@@ -2,8 +2,10 @@ const path = require('path');
 const fs = require('fs');
 const { execSync } = require('child_process');
 
+const [, , hostRelativePath] = process.argv;
+
 const context = process.cwd();
-const hostModules = path.resolve(context, '../lerna-ts', './node_modules');
+const hostModules = path.resolve(context, hostRelativePath, './node_modules');
 const libModules = path.resolve(context, './node_modules');
 
 const { peerDependencies } = require(path.resolve(context, 'package.json'));

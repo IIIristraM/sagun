@@ -1,6 +1,6 @@
 {
     "name": "@iiiristram/sagun",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "description": "",
     "main": "./lib/index.js",
     "types": "./lib/types/index.d.ts",
@@ -16,6 +16,7 @@
         "init": "rm -r ./node_modules && npm i",
         "lint": "eslint .",
         "format": "prettier --write .",
+        "link:dev": "node ./scripts/link.js",
         "release:internal": "npm run test && npm publish --registry https://npm.pkg.github.com",
         "release": "npm run test && npm publish --access public --registry https://registry.npmjs.org/"
     },
