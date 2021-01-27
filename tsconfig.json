@@ -1,0 +1,29 @@
+{
+    "compilerOptions": {
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "declarationDir": "lib/types",
+        "declaration": true,
+        "importHelpers": true,
+        "module": "CommonJS",
+        "moduleResolution": "node",
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "strictNullChecks": true,
+        "noUnusedLocals": true,
+        "noImplicitAny": true,
+        "strictBindCallApply": true,
+        "jsx": "react",
+        "target": "ES5",
+        "downlevelIteration": true,
+        "baseUrl": ".",
+        "outDir": "lib",
+        "paths": {
+            "_test/*": ["./tests/*"]
+        },
+        "typeRoots": ["./typings", "./node_modules/@types"],
+        "pretty": true,
+        "preserveSymlinks": false
+    },
+    "include": ["src", "typings"]
+}
