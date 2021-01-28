@@ -7,3 +7,23 @@ export const getSagaRunner = (reducer?: Reducer<any, AnyAction>) => {
 
     return { run: sagaMiddleware.run, store };
 };
+
+// jest.resetModuleRegistry makes hooks to throw error so jest.isolateModules
+export function isolate(fn: () => Promise<unknown>) {
+    return new Promise<void>((resolve, reject) => {
+        jest.isolateModules(async () => {
+            try {
+                await fn();
+                resolve();
+            } catch (err) {
+                reject(err);
+            }
+        });
+    });
+}
+
+export function delay(ms: number) {
+    return new Promise<void>(resolve => {
+        setTimeout(resolve, ms);
+    });
+}

@@ -14,7 +14,7 @@ const configFabric = (context = __dirname, isolatedModules = true) => {
         globals: {
             'ts-jest': {
                 isolatedModules,
-                tsConfig: tsconfigPath,
+                tsconfig: tsconfigPath,
             },
         },
         moduleNameMapper,

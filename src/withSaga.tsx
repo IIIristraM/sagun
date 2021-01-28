@@ -1,4 +1,4 @@
-import React, { SuspenseProps, useContext, useMemo } from 'react';
+import React, { Suspense, SuspenseProps, useContext, useMemo } from 'react';
 
 import { ActionAPI, AsyncOperation, ComponentSaga, OperationId } from './types';
 import { DisableSsrContext, IDIContext } from './context';
@@ -6,7 +6,6 @@ import { useOperation, useServiceConsumer } from './hooks';
 import { useSaga, UseSagaOptions } from './hooks/useSaga';
 import { isNodeEnv } from './utils/isNodeEnv';
 import { Service } from './services';
-import { Suspense } from './components/Suspense';
 import { useDI } from './hooks/useDI';
 import { useService } from './hooks/useService';
 

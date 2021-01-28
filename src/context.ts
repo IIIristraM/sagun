@@ -9,38 +9,6 @@ export type SagaClientHash = Indexed<{
     result: any;
 }>;
 
-export type SSRContext = {
-    parentID?: string;
-    prefix?: string;
-    generator: {
-        seed: () => number;
-        getUID: () => number;
-    };
-};
-
-export type ISSRContextFactory = (options?: { prefix?: string }) => SSRContext;
-
-export const createGenerator = () => {
-    let seed = 0;
-    const self = {
-        seed: () => seed,
-        getUID() {
-            return seed++;
-        },
-    };
-
-    return self;
-};
-
-export const getDefaultContext: ISSRContextFactory = options => {
-    return {
-        ...options,
-        generator: createGenerator(),
-    };
-};
-
-export const SsrContext = createContext<SSRContext | null>(null);
-
 export const DisableSsrContext = createContext<boolean>(false);
 
 export type IDIContext = {

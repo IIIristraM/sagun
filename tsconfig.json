@@ -25,5 +25,5 @@
         "pretty": true,
         "preserveSymlinks": false
     },
-    "include": ["src", "typings"]
+    "include": ["src", "typings", "tests"]
 }

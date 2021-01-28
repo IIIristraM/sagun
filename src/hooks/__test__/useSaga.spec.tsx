@@ -10,20 +10,24 @@ import jsdom from 'jsdom';
 import { Provider } from 'react-redux';
 import ReactDOM from 'react-dom';
 
-import { getDefaultContext, SsrContext } from '../../context';
-import { ComponentLifecycleService } from '../../services';
+import { ComponentLifecycleService, Service } from '../../services';
 import { createDeferred } from '../../utils/createDeferred';
+import { operation } from '../../decorators';
+import { OperationId } from '../../types';
 import { OperationService } from '../../services';
 import reducer from '../../reducer';
 import { Root } from '../../components/Root';
 import { useSaga } from '../useSaga';
 
+import { delay } from '_test/utils';
+
 type Props = {
     operationService: OperationService;
     componentLifecycleService: ComponentLifecycleService;
     processOperationId?: (operationId: string) => void;
-    onUpdate: Function;
-    onUnmount: Function;
+    onUpdate?: Function;
+    onUnmount?: Function;
+    children?: (x: number) => JSX.Element;
 };
 
 const sagaMiddleware = createSagaMiddleware();
@@ -63,26 +67,20 @@ const App: React.FC<Props> = ({
     const [x, setX] = useState(0);
 
     useEffect(() => {
-        onUpdate();
+        onUpdate?.();
     });
 
     useEffect(() => {
-        return () => onUnmount();
+        return () => onUnmount?.();
     }, []);
 
     return (
         <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
             <Provider store={store}>
-                {children ? (
-                    children
-                ) : (
-                    <>
-                        <TestComponent x={x} processOperationId={processOperationId} />
-                        <button id="update" onClick={() => setX(x + 1)}>
-                            b
-                        </button>
-                    </>
-                )}
+                {children ? children(x) : <TestComponent x={x} processOperationId={processOperationId} />}
+                <button id="update" onClick={() => setX(x + 1)}>
+                    b
+                </button>
             </Provider>
         </Root>
     );
@@ -251,8 +249,12 @@ describe('useSaga', () => {
                 onUnmount={onUnmount}
                 operationService={operationService}
                 componentLifecycleService={componentLifecycleService}>
-                <TestComponent x={1} processOperationId={processOperationId1} />
-                <TestComponent x={2} processOperationId={processOperationId2} />
+                {() => (
+                    <>
+                        <TestComponent x={1} processOperationId={processOperationId1} />
+                        <TestComponent x={2} processOperationId={processOperationId2} />
+                    </>
+                )}
             </App>,
             appEl
         );
@@ -329,15 +331,34 @@ describe('useSaga', () => {
     });
 
     test('hash collected from ssr applied', async () => {
+        const fn = jest.fn(() => {});
+        const id = 'test_id' as OperationId<void>;
+        class TestService extends Service {
+            toString() {
+                return 'TestService';
+            }
+
+            @operation(id)
+            *method() {
+                fn();
+            }
+        }
+
         const operationService = new OperationService({
             hash: {
-                ['0']: {
-                    args: ['xxx', 0],
+                [id]: {
+                    args: [0],
                     result: undefined,
                 },
             },
         });
         const componentLifecycleService = new ComponentLifecycleService(operationService);
+        const service = new TestService(operationService);
+
+        const TestComponent = ({ x }: { x: number }) => {
+            useSaga({ onLoad: service.method }, [x]);
+            return null;
+        };
 
         const { window } = new jsdom.JSDOM(`
             <html>
@@ -348,28 +369,19 @@ describe('useSaga', () => {
         `);
 
         const appEl = window.document.getElementById('app')!;
-        let updateDefer = createDeferred();
+        const updateDefer1 = createDeferred();
+        const updateDefer2 = createDeferred();
         const unmountDefer = createDeferred();
-        const onUpdate = () => {
-            updateDefer.resolve();
-            updateDefer = createDeferred();
-        };
-
-        const onUnmount = () => unmountDefer.resolve();
 
         const task = sagaMiddleware.run(function* () {
             yield* call(componentLifecycleService.run);
-            yield updateDefer.promise;
-
+            yield updateDefer1.promise;
             // first load skipped due to ssr
-            expect(processLoading).toHaveBeenCalledTimes(0);
-            expect(processDisposing).toHaveBeenCalledTimes(0);
+            expect(fn).toHaveBeenCalledTimes(0);
 
-            yield updateDefer.promise;
-
+            yield updateDefer2.promise;
             // next load proceed as usual
-            expect(processDisposing).toHaveBeenCalledTimes(1);
-            expect(processLoading).toHaveBeenCalledTimes(1);
+            expect(fn).toHaveBeenCalledTimes(1);
 
             yield unmountDefer.promise;
 
@@ -377,22 +389,22 @@ describe('useSaga', () => {
         });
 
         ReactDOM.render(
-            <SsrContext.Provider value={getDefaultContext()}>
-                <App
-                    operationService={operationService}
-                    componentLifecycleService={componentLifecycleService}
-                    onUpdate={onUpdate}
-                    onUnmount={onUnmount}
-                />
-            </SsrContext.Provider>,
+            <App operationService={operationService} componentLifecycleService={componentLifecycleService}>
+                {x => <TestComponent x={x} />}
+            </App>,
             appEl
         );
 
-        await updateDefer.promise;
+        await delay(100);
+        updateDefer1.resolve();
+
         window.document.getElementById('update')?.click();
-        await updateDefer.promise;
+        await delay(100);
+        updateDefer2.resolve();
+
         ReactDOM.unmountComponentAtNode(appEl);
-        await unmountDefer.promise;
+        await delay(100);
+
         task.cancel();
         await task.toPromise();
     });

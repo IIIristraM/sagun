@@ -1,12 +1,10 @@
-import { useCallback, useContext, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 
 import { ComponentLifecycleService, createServiceActions, LoadOptions } from '../services';
 import { ComponentSaga, OperationId } from '../types';
-import { DisableSsrContext, SsrContext } from '../context';
 import { isNodeEnv } from '../utils/isNodeEnv';
 import { useDI } from './useDI';
-import { useOperationId } from './useOperationId';
 import { uuid } from '../utils/uuid';
 
 export type UseSagaOptions<TArgs extends any[], TRes> = {
@@ -33,9 +31,7 @@ export function useSaga<TArgs extends any[], TRes>(
     const diContext = useDI();
 
     const dispatch = useDispatch();
-    const disableSSR = useContext(DisableSsrContext);
-    const context = disableSSR === true ? null : useContext(SsrContext);
-    const operationId = useOperationId<OperationId<TRes, TArgs>>(context);
+    const operationId = uuid() as OperationId<TRes, TArgs>;
     const [reloadCount, updateCounter] = useState(0);
 
     const forceReload = useCallback(() => {
@@ -70,7 +66,7 @@ export function useSaga<TArgs extends any[], TRes>(
         };
     }, []);
 
-    if (isNodeEnv() && context) {
+    if (isNodeEnv()) {
         dispatch(
             actions.load({
                 loadId: uuid(),
