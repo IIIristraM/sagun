@@ -1,13 +1,13 @@
-import React, { Suspense, SuspenseProps, useContext, useMemo } from 'react';
+import React, { Suspense, SuspenseProps, useMemo } from 'react';
 
-import { ActionAPI, AsyncOperation, ComponentSaga, OperationId } from './types';
-import { DisableSsrContext, IDIContext } from './context';
-import { useOperation, useServiceConsumer } from './hooks';
+import { ActionAPI, AsyncOperation, ComponentSaga } from './types';
 import { useSaga, UseSagaOptions } from './hooks/useSaga';
-import { isNodeEnv } from './utils/isNodeEnv';
+import { IDIContext } from './context';
+import { Operation } from './components/Operation';
 import { Service } from './services';
 import { useDI } from './hooks/useDI';
 import { useService } from './hooks/useService';
+import { useServiceConsumer } from './hooks';
 
 type WithSagaProp<P extends object, TRes, TArgs extends any[]> = P & {
     operation: Partial<AsyncOperation<TRes, TArgs>>;
@@ -27,19 +27,6 @@ type OuterProps<P> = P & {
 };
 
 type ArgsMapper<P extends object, TArgs extends any[]> = (props: P) => TArgs;
-
-function Operation<TRes, TArgs>({
-    children,
-    operationId,
-}: {
-    operationId: OperationId<TRes, TArgs>;
-    children: (operation: Partial<AsyncOperation<TRes, TArgs>>) => React.ReactNode;
-}) {
-    const disableSSR = useContext(DisableSsrContext);
-    const operation = useOperation({ operationId, suspense: disableSSR ? !isNodeEnv() : true });
-
-    return <>{children(operation)}</>;
-}
 
 export function withSaga<TRes>(options: {
     sagaFactory: (context: IDIContext) => ComponentSaga<[], TRes>;
