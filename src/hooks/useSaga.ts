@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 
 import { ComponentLifecycleService, createServiceActions, LoadOptions } from '../services';
 import { ComponentSaga, OperationId } from '../types';
+import { DisableSsrContext } from '../context';
 import { isNodeEnv } from '../utils/isNodeEnv';
 import { useDI } from './useDI';
 import { uuid } from '../utils/uuid';
@@ -29,6 +30,7 @@ export function useSaga<TArgs extends any[], TRes>(
     options?: UseSagaOptions<TArgs, TRes>
 ) {
     const diContext = useDI();
+    const disableSSR = useContext(DisableSsrContext);
 
     const dispatch = useDispatch();
     const operationId = uuid() as OperationId<TRes, TArgs>;
@@ -66,7 +68,7 @@ export function useSaga<TArgs extends any[], TRes>(
         };
     }, []);
 
-    if (isNodeEnv()) {
+    if (isNodeEnv() && !disableSSR) {
         dispatch(
             actions.load({
                 loadId: uuid(),

@@ -1,7 +1,3 @@
-/**
- * @jest-environment jsdom
- */
-
 import { applyMiddleware, createStore } from 'redux';
 import React, { useState } from 'react';
 import { call } from 'typed-redux-saga';
@@ -31,55 +27,10 @@ type Props = {
     children?: (x: number) => JSX.Element;
 };
 
-function initTest() {
-    const sagaMiddleware = createSagaMiddleware();
-    const store = applyMiddleware(sagaMiddleware)(createStore)(reducer);
-
-    const processLoading = jest.fn((...args: any[]) => ({}));
-    const processDisposing = jest.fn((...args: any[]) => ({}));
-
-    const onLoad = function* (...args: [string, number]) {
-        processLoading(...args);
-    };
-
-    const onDispose = function* (...args: [string, number]) {
-        processDisposing(...args);
-    };
-
-    const TestComponent: React.FC<Pick<Props, 'processOperationId'> & { x: number }> = ({ x, processOperationId }) => {
-        const { operationId, reload } = useSaga({ onLoad, onDispose }, [...ARGS, x]);
-
-        if (processOperationId) {
-            processOperationId(operationId);
-        }
-
-        return <button id="reload" onClick={reload} />;
-    };
-
-    const App: React.FC<Props> = ({ processOperationId, operationService, componentLifecycleService, children }) => {
-        const [x, setX] = useState(0);
-
-        return (
-            <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                <Provider store={store}>
-                    {children ? children(x) : <TestComponent x={x} processOperationId={processOperationId} />}
-                    <button id="update" onClick={() => setX(x + 1)}>
-                        b
-                    </button>
-                </Provider>
-            </Root>
-        );
-    };
-
-    return { App, TestComponent, processLoading, processDisposing, sagaMiddleware, store };
-}
-
 describe('useSaga', () => {
-    test('Saga methods were invoked with proper args', async () => {
-        const { sagaMiddleware, App, processLoading, processDisposing } = initTest();
-
-        const operationService = new OperationService({ hash: {} });
-        const componentLifecycleService = new ComponentLifecycleService(operationService);
+    function initTest() {
+        const sagaMiddleware = createSagaMiddleware();
+        const store = applyMiddleware(sagaMiddleware)(createStore)(reducer);
 
         const { window } = new jsdom.JSDOM(`
             <html>
@@ -88,6 +39,53 @@ describe('useSaga', () => {
                 </body>
             </html>
         `);
+
+        (global as any).window = window;
+
+        const processLoading = jest.fn((...args: any[]) => ({}));
+        const processDisposing = jest.fn((...args: any[]) => ({}));
+
+        const onLoad = function* (...args: [string, number]) {
+            processLoading(...args);
+        };
+
+        const onDispose = function* (...args: [string, number]) {
+            processDisposing(...args);
+        };
+
+        const TestComponent: React.FC<Pick<Props, 'processOperationId'> & { x: number }> = ({ x, processOperationId }) => {
+            const { operationId, reload } = useSaga({ onLoad, onDispose }, [...ARGS, x]);
+
+            if (processOperationId) {
+                processOperationId(operationId);
+            }
+
+            return <button id="reload" onClick={reload} />;
+        };
+
+        const App: React.FC<Props> = ({ processOperationId, operationService, componentLifecycleService, children }) => {
+            const [x, setX] = useState(0);
+
+            return (
+                <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
+                    <Provider store={store}>
+                        {children ? children(x) : <TestComponent x={x} processOperationId={processOperationId} />}
+                        <button id="update" onClick={() => setX(x + 1)}>
+                            b
+                        </button>
+                    </Provider>
+                </Root>
+            );
+        };
+
+        return { App, TestComponent, processLoading, processDisposing, sagaMiddleware, store };
+    }
+
+    test('Saga methods were invoked with proper args', async () => {
+        const { sagaMiddleware, App, processLoading, processDisposing } = initTest();
+
+        const operationService = new OperationService({ hash: {} });
+        const componentLifecycleService = new ComponentLifecycleService(operationService);
 
         const appEl = window.document.getElementById('app')!;
         const updateDefer1 = createDeferred();
@@ -135,14 +133,6 @@ describe('useSaga', () => {
         const operationService = new OperationService({ hash: {} });
         const componentLifecycleService = new ComponentLifecycleService(operationService);
 
-        const { window } = new jsdom.JSDOM(`
-            <html>
-                <body>
-                    <div id="app"></div>
-                </body>
-            </html>
-        `);
-
         const appEl = window.document.getElementById('app')!;
         const unmountDefer = createDeferred();
         let operationId: string;
@@ -180,14 +170,6 @@ describe('useSaga', () => {
 
         const operationService = new OperationService({ hash: {} });
         const componentLifecycleService = new ComponentLifecycleService(operationService);
-
-        const { window } = new jsdom.JSDOM(`
-            <html>
-                <body>
-                    <div id="app"></div>
-                </body>
-            </html>
-        `);
 
         const appEl = window.document.getElementById('app')!;
         const unmountDefer = createDeferred();
@@ -233,14 +215,6 @@ describe('useSaga', () => {
         const operationService = new OperationService({ hash: {} });
         const componentLifecycleService = new ComponentLifecycleService(operationService);
 
-        const { window } = new jsdom.JSDOM(`
-            <html>
-                <body>
-                    <div id="app"></div>
-                </body>
-            </html>
-        `);
-
         const reloadCount = 5;
         const appEl = window.document.getElementById('app')!;
         const unmountDefer = createDeferred();
@@ -277,7 +251,7 @@ describe('useSaga', () => {
     test('hash collected from ssr applied', async () => {
         const { sagaMiddleware, App } = initTest();
 
-        const fn = jest.fn(() => {});
+        const fn = jest.fn(() => { });
         const id = 'test_id' as OperationId<void>;
         class TestService extends Service {
             toString() {
@@ -305,14 +279,6 @@ describe('useSaga', () => {
             useSaga({ onLoad: service.method }, [x]);
             return null;
         };
-
-        const { window } = new jsdom.JSDOM(`
-            <html>
-                <body>
-                    <div id="app"></div>
-                </body>
-            </html>
-        `);
 
         const appEl = window.document.getElementById('app')!;
         const unmountDefer = createDeferred();

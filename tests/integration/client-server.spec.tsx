@@ -17,8 +17,8 @@ import {
     useDI,
     useOperation,
     useService,
-} from '../../src';
-import { renderToStringAsync } from '../../src/serverRender';
+} from '_lib/';
+import { renderToStringAsync } from '_lib/serverRender';
 
 import { api, DELAY } from './TestAPI';
 import Content from './components/Content';

@@ -1,8 +1,6 @@
-import React, { useContext } from 'react';
+import React from 'react';
 
 import { AsyncOperation, OperationId } from '../types';
-import { DisableSsrContext } from '../context';
-import { isNodeEnv } from '../utils/isNodeEnv';
 import { useOperation } from '../hooks/useOperation';
 
 export function Operation<TRes, TArgs>({
@@ -12,8 +10,6 @@ export function Operation<TRes, TArgs>({
     operationId: OperationId<TRes, TArgs>;
     children: (operation: Partial<AsyncOperation<TRes, TArgs>>) => React.ReactNode;
 }) {
-    const disableSSR = useContext(DisableSsrContext);
-    const operation = useOperation({ operationId, suspense: disableSSR ? !isNodeEnv() : true });
-
+    const operation = useOperation({ operationId, suspense: true });
     return <>{children(operation)}</>;
 }
