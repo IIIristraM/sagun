@@ -1,7 +1,8 @@
 import { applyMiddleware, combineReducers, createStore, Store } from 'redux';
-import { call, delay } from 'typed-redux-saga';
 import { GetProps, Provider } from 'react-redux';
 import React, { Suspense } from 'react';
+import { act } from 'react-dom/test-utils';
+import { call } from 'typed-redux-saga';
 import createSagaMiddleware from 'redux-saga';
 import { ExtractArgs } from '@iiiristram/ts-type-utils';
 import jsdom from 'jsdom';
@@ -137,25 +138,35 @@ async function clientRender(
     const task = sagaMiddleware.run(function* () {
         yield* call(operationService.run);
         yield* call(service.run);
-        yield* delay(DELAY * 10);
-        yield* call(service.destroy);
-        yield* call(operationService.destroy);
     });
 
     const appEl = window.document.getElementById('app');
-    ReactDOM.hydrate(
-        renderApp({
-            store,
-            service,
-            operationService,
-        }),
-        appEl,
-        () => {
-            // handle hydration warnings
-            // expect(console.error).toHaveBeenCalledTimes(0);
-        }
-    );
 
+    await act(async () => {
+        ReactDOM.hydrate(
+            renderApp({
+                store,
+                service,
+                operationService,
+            }),
+            appEl,
+            () => {
+                // handle hydration warnings
+                // expect(console.error).toHaveBeenCalledTimes(0);
+            }
+        );
+    });
+
+    jest.useFakeTimers();
+    const maxRequests = 4;
+    for (let steps = 0; steps < maxRequests; steps++) {
+        await act(async () => {
+            jest.advanceTimersByTime(DELAY + 1);
+        });
+    }
+    jest.useRealTimers();
+
+    task.cancel();
     await task.toPromise();
 
     console.log(
@@ -196,6 +207,8 @@ test('sync independent sagas', async () => {
         await clientRender(renderApp, html, store.getState(), hash);
         expect(api.getUser).toHaveBeenCalledTimes(1);
         expect(api.getList).toHaveBeenCalledTimes(1);
+        expect(global.window.document.getElementsByClassName('user').length).toBe(1);
+        expect(global.window.document.getElementsByClassName('table-item').length).toBe(5);
     });
 });
 
@@ -223,6 +236,8 @@ test('async independent sagas', async () => {
         await clientRender(renderApp, html, store.getState(), hash);
         expect(api.getUser).toHaveBeenCalledTimes(1);
         expect(api.getList).toHaveBeenCalledTimes(1);
+        expect(global.window.document.getElementsByClassName('user').length).toBe(1);
+        expect(global.window.document.getElementsByClassName('table-item').length).toBe(5);
     });
 });
 
@@ -255,6 +270,8 @@ test('async dependent sagas', async () => {
         expect(api.getUser).toHaveBeenCalledTimes(1);
         expect(api.getList).toHaveBeenCalledTimes(1);
         expect(api.getUserDetails).toHaveBeenCalledTimes(1);
+        expect(global.window.document.getElementsByClassName('user').length).toBe(1);
+        expect(global.window.document.getElementsByClassName('table-item').length).toBe(5);
         expect(global.window.document.getElementsByClassName('card').length).toBe(1);
         expect(global.window.document.getElementsByClassName('card')?.[0].innerHTML).toBe('**00');
     });
@@ -289,6 +306,8 @@ test('async dependent siblings', async () => {
         expect(api.getUser).toHaveBeenCalledTimes(1);
         expect(api.getList).toHaveBeenCalledTimes(1);
         expect(api.getUserDetails).toHaveBeenCalledTimes(1);
+        expect(global.window.document.getElementsByClassName('user').length).toBe(1);
+        expect(global.window.document.getElementsByClassName('table-item').length).toBe(5);
         expect(global.window.document.getElementsByClassName('card').length).toBe(1);
         expect(global.window.document.getElementsByClassName('card')?.[0].innerHTML).toBe('**00');
     });

@@ -1,5 +1,6 @@
 import { applyMiddleware, createStore } from 'redux';
 import React, { useState } from 'react';
+import { act } from 'react-dom/test-utils';
 import { call } from 'typed-redux-saga';
 import createSagaMiddleware from 'redux-saga';
 import jsdom from 'jsdom';
@@ -15,9 +16,9 @@ import reducer from '../../reducer';
 import { Root } from '../../components/Root';
 import { useSaga } from '../useSaga';
 
-import { delay } from '_test/utils';
+import { wait } from '_test/utils';
 
-const RENDER_DELAY = 0;
+const DELAY = 50;
 const ARGS = ['xxx'];
 
 type Props = {
@@ -28,6 +29,14 @@ type Props = {
 };
 
 describe('useSaga', () => {
+    beforeAll(() => {
+        jest.useFakeTimers();
+    });
+
+    afterAll(() => {
+        jest.useRealTimers();
+    });
+
     function initTest() {
         const sagaMiddleware = createSagaMiddleware();
         const store = applyMiddleware(sagaMiddleware)(createStore)(reducer);
@@ -46,6 +55,7 @@ describe('useSaga', () => {
         const processDisposing = jest.fn((...args: any[]) => ({}));
 
         const onLoad = function* (...args: [string, number]) {
+            yield wait(DELAY);
             processLoading(...args);
         };
 
@@ -53,7 +63,10 @@ describe('useSaga', () => {
             processDisposing(...args);
         };
 
-        const TestComponent: React.FC<Pick<Props, 'processOperationId'> & { x: number }> = ({ x, processOperationId }) => {
+        const TestComponent: React.FC<Pick<Props, 'processOperationId'> & { x: number }> = ({
+            x,
+            processOperationId,
+        }) => {
             const { operationId, reload } = useSaga({ onLoad, onDispose }, [...ARGS, x]);
 
             if (processOperationId) {
@@ -63,7 +76,12 @@ describe('useSaga', () => {
             return <button id="reload" onClick={reload} />;
         };
 
-        const App: React.FC<Props> = ({ processOperationId, operationService, componentLifecycleService, children }) => {
+        const App: React.FC<Props> = ({
+            processOperationId,
+            operationService,
+            componentLifecycleService,
+            children,
+        }) => {
             const [x, setX] = useState(0);
 
             return (
@@ -88,8 +106,6 @@ describe('useSaga', () => {
         const componentLifecycleService = new ComponentLifecycleService(operationService);
 
         const appEl = window.document.getElementById('app')!;
-        const updateDefer1 = createDeferred();
-        const updateDefer2 = createDeferred();
         const unmountDefer = createDeferred();
 
         const task = sagaMiddleware.run(function* () {
@@ -98,22 +114,27 @@ describe('useSaga', () => {
             yield* call(componentLifecycleService.destroy);
         });
 
-        ReactDOM.render(
-            <App operationService={operationService} componentLifecycleService={componentLifecycleService} />,
-            appEl
-        );
+        await act(async () => {
+            ReactDOM.render(
+                <App operationService={operationService} componentLifecycleService={componentLifecycleService} />,
+                appEl
+            );
+        });
 
-        await delay(RENDER_DELAY);
-        updateDefer1.resolve();
+        await act(async () => {
+            jest.advanceTimersByTime(DELAY + 1);
+        });
 
-        window.document.getElementById('update')?.click();
-        await delay(RENDER_DELAY);
-        updateDefer2.resolve();
+        await act(async () => {
+            window.document.getElementById('update')?.click();
+            jest.advanceTimersByTime(DELAY + 1);
+        });
 
-        ReactDOM.unmountComponentAtNode(appEl);
-        await delay(RENDER_DELAY);
+        await act(async () => {
+            ReactDOM.unmountComponentAtNode(appEl);
+        });
+
         unmountDefer.resolve();
-
         task.cancel();
         await task.toPromise();
 
@@ -144,20 +165,27 @@ describe('useSaga', () => {
             yield call(componentLifecycleService.destroy);
         });
 
-        ReactDOM.render(
-            <App
-                operationService={operationService}
-                componentLifecycleService={componentLifecycleService}
-                processOperationId={processOperationId}
-            />,
-            appEl
-        );
+        await act(async () => {
+            ReactDOM.render(
+                <App
+                    operationService={operationService}
+                    componentLifecycleService={componentLifecycleService}
+                    processOperationId={processOperationId}
+                />,
+                appEl
+            );
+        });
 
-        await delay(RENDER_DELAY);
+        await act(async () => {
+            jest.advanceTimersByTime(DELAY + 1);
+        });
+
         expect(store.getState()[operationId!]).toBeTruthy();
 
-        ReactDOM.unmountComponentAtNode(appEl);
-        await delay(RENDER_DELAY);
+        await act(async () => {
+            ReactDOM.unmountComponentAtNode(appEl);
+        });
+
         expect(store.getState()[operationId!]).toBeFalsy();
 
         unmountDefer.resolve();
@@ -184,19 +212,24 @@ describe('useSaga', () => {
             yield* call(componentLifecycleService.destroy);
         });
 
-        ReactDOM.render(
-            <App operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                {() => (
-                    <>
-                        <TestComponent x={1} processOperationId={processOperationId1} />
-                        <TestComponent x={2} processOperationId={processOperationId2} />
-                    </>
-                )}
-            </App>,
-            appEl
-        );
+        await act(async () => {
+            ReactDOM.render(
+                <App operationService={operationService} componentLifecycleService={componentLifecycleService}>
+                    {() => (
+                        <>
+                            <TestComponent x={1} processOperationId={processOperationId1} />
+                            <TestComponent x={2} processOperationId={processOperationId2} />
+                        </>
+                    )}
+                </App>,
+                appEl
+            );
+        });
 
-        await delay(RENDER_DELAY);
+        await act(async () => {
+            jest.advanceTimersByTime(DELAY + 1);
+        });
+
         expect(operationId1).not.toBe(operationId2);
         expect(processLoading).toHaveBeenCalledTimes(2);
         expect(processLoading).toHaveBeenNthCalledWith(1, ...ARGS, 1);
@@ -225,18 +258,25 @@ describe('useSaga', () => {
             yield* call(componentLifecycleService.destroy);
         });
 
-        ReactDOM.render(
-            <App operationService={operationService} componentLifecycleService={componentLifecycleService} />,
-            appEl
-        );
+        await act(async () => {
+            ReactDOM.render(
+                <App operationService={operationService} componentLifecycleService={componentLifecycleService} />,
+                appEl
+            );
+        });
 
-        await delay(RENDER_DELAY);
+        await act(async () => {
+            jest.advanceTimersByTime(DELAY + 1);
+        });
+
         expect(processDisposing).toHaveBeenCalledTimes(0);
         expect(processLoading).toHaveBeenCalledTimes(1);
 
         for (let i = 0; i < reloadCount; i++) {
-            window.document.getElementById('reload')?.click();
-            await delay(RENDER_DELAY);
+            await act(async () => {
+                window.document.getElementById('reload')?.click();
+                jest.advanceTimersByTime(DELAY + 1);
+            });
         }
 
         expect(processDisposing).toHaveBeenCalledTimes(reloadCount);
@@ -251,7 +291,7 @@ describe('useSaga', () => {
     test('hash collected from ssr applied', async () => {
         const { sagaMiddleware, App } = initTest();
 
-        const fn = jest.fn(() => { });
+        const fn = jest.fn(() => {});
         const id = 'test_id' as OperationId<void>;
         class TestService extends Service {
             toString() {
@@ -289,19 +329,27 @@ describe('useSaga', () => {
             yield* call(componentLifecycleService.destroy);
         });
 
-        ReactDOM.render(
-            <App operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                {x => <TestComponent x={x} />}
-            </App>,
-            appEl
-        );
+        await act(async () => {
+            ReactDOM.render(
+                <App operationService={operationService} componentLifecycleService={componentLifecycleService}>
+                    {x => <TestComponent x={x} />}
+                </App>,
+                appEl
+            );
+        });
 
-        await delay(RENDER_DELAY);
+        await act(async () => {
+            jest.advanceTimersByTime(DELAY + 1);
+        });
+
         // first load skipped due to ssr
         expect(fn).toHaveBeenCalledTimes(0);
 
-        window.document.getElementById('update')?.click();
-        await delay(RENDER_DELAY);
+        await act(async () => {
+            window.document.getElementById('update')?.click();
+            jest.advanceTimersByTime(DELAY + 1);
+        });
+
         // next load proceed as usual
         expect(fn).toHaveBeenCalledTimes(1);
 

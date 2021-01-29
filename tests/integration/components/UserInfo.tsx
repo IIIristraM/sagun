@@ -19,7 +19,7 @@ export default withSaga({
     const { result: login } = useOperation({ operationId: userOperationId(id), suspense: true });
 
     return (
-        <div>
+        <div className="user">
             {login}
             {children}
         </div>

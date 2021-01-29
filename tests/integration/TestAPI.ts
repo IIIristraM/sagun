@@ -1,14 +1,10 @@
+import { wait } from '_test/utils';
+
 export const DELAY = 20;
 
 export type UserDetails = {
     cardLastDigits: string;
 };
-
-function wait(time: number) {
-    return new Promise(resolve => {
-        setTimeout(resolve, time);
-    });
-}
 
 export class TestAPI {
     private _delay: number;

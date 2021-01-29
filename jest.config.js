@@ -1,7 +1,7 @@
 const path = require('path');
 const { pathsToModuleNameMapper } = require('ts-jest/utils');
 
-const configFabric = (context = __dirname, isolatedModules = true) => {
+const configFabric = (context = __dirname, isolatedModules = false) => {
     const tsconfigPath = path.resolve(context, './tsconfig.json');
     const { compilerOptions } = require(tsconfigPath);
     const moduleNameMapper = compilerOptions.paths

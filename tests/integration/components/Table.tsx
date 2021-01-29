@@ -18,7 +18,9 @@ export default withSaga({
     return (
         <div>
             {result?.map(item => (
-                <span key={item}>{item}</span>
+                <span className="table-item" key={item}>
+                    {item}
+                </span>
             ))}
         </div>
     );
