@@ -1,3 +1,4 @@
 node_modules
 lib
 package-lock.json
+tests/stress/*.js

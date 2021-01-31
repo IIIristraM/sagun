@@ -16,6 +16,9 @@
         "jsx": "react",
         "target": "ES5",
         "downlevelIteration": true,
+        "composite": true,
+        "tsBuildInfoFile": "lib/types/.tsbuildinfo",
+        "rootDir": "./src",
         "baseUrl": ".",
         "outDir": "lib",
         "paths": {
