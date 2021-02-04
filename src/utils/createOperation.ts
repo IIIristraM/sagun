@@ -12,16 +12,16 @@ type Operation<TArgs extends any[], TRes> = {
 
 const { addOrUpdateOperation, removeOperation } = operationActions;
 
-const defaultUpdateStrategy = (operation: AsyncOperation<any, any, any>) => {
+function defaultUpdateStrategy(operation: AsyncOperation<any, any, any>) {
     return operation;
-};
+}
 
-export const createOperation = <TArgs extends any[], TRes>(
+export function createOperation<TArgs extends any[], TRes>(
     id: OperationId<TRes, TArgs>,
     genFunc: CallEffectTarget<TArgs, TRes>,
     updateStrategy: IOperationUpdateStrategy<TRes, TArgs> = defaultUpdateStrategy
-): Operation<TArgs, TRes> => {
-    const run = function* (...args: TArgs) {
+): Operation<TArgs, TRes> {
+    function* run(...args: TArgs) {
         let error: Error | undefined = undefined;
         let result: TRes | undefined = undefined;
 
@@ -51,15 +51,15 @@ export const createOperation = <TArgs extends any[], TRes>(
         }
 
         return result;
-    };
+    }
 
-    const destroy = function* () {
+    function* destroy() {
         yield* put(removeOperation(id));
-    };
+    }
 
     return {
         id,
         run,
         destroy,
     };
-};
+}

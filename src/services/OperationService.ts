@@ -1,5 +1,5 @@
+import { apply, call } from 'typed-redux-saga';
 import { ExtractArgs, Indexed } from '@iiiristram/ts-type-utils';
-import { call } from 'typed-redux-saga';
 
 import { createDeferred, Deferred } from '../utils/createDeferred';
 import { daemon, DaemonMode } from '../decorators';
@@ -32,7 +32,7 @@ export class OperationService extends BaseService {
             const defer = self._operationSubscriptions[id];
 
             try {
-                result = (yield* call([this, run], ...args)) as TRes;
+                result = (yield* apply(this, run, args)) as TRes;
             } catch (e) {
                 error = e;
                 throw e;
@@ -64,16 +64,21 @@ export class OperationService extends BaseService {
     }) {
         const self = this;
         const id = operationArgs[0];
-        const operation = createOperation(...operationArgs);
+        const isNode = isNodeEnv();
+
+        const operation = createOperation.apply(null, operationArgs);
 
         const originRun = operation.run;
         operation.run = this.createSubscription(id, function* (...args: any[]) {
-            if (!isNodeEnv()) {
+            if (!isNode) {
                 if (self._hash[id]) {
                     const { args: ssrArgs, result } = self._hash[id];
 
                     const sameArgs =
-                        ssrArgs.length === args.length && ssrArgs.every((arg, i) => ssrArgs[i] === args[i]);
+                        ssrArgs.length === args.length &&
+                        ssrArgs.every(function (arg, i) {
+                            return ssrArgs[i] === args[i];
+                        });
 
                     delete self._hash[id];
 
@@ -83,9 +88,9 @@ export class OperationService extends BaseService {
                 }
             }
 
-            const result = yield* call([this, originRun], ...args);
+            const result = yield* apply(this, originRun, args);
 
-            if (isNodeEnv() && ssr) {
+            if (isNode && ssr) {
                 self._hash[id] = { args, result };
             }
 

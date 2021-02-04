@@ -32,16 +32,15 @@ export type AsyncOperation<TRes = unknown, TArgs = unknown[], TMeta = unknown, T
     meta?: TMeta;
 };
 
-// нужен чтобы тайпскрипт хранил тип дженерика
-declare class OperationMetaClass<TRes, TArgs, TMeta, TErr> {
-    private _res: TRes;
-    private _args: TArgs;
-    private _meta: TMeta;
-    private _err: TErr;
-}
+type OperationMeta<TRes, TArgs, TMeta, TErr> = {
+    _res: TRes;
+    _args: TArgs;
+    _meta: TMeta;
+    _err: TErr;
+};
 
 export type OperationId<TRes, TArgs = unknown[], TMeta = unknown, TErr = Error> = string &
-    OperationMetaClass<TRes, TArgs, TMeta, TErr>;
+    OperationMeta<TRes, TArgs, TMeta, TErr>;
 
 export type OperationFromId<T> = T extends OperationId<infer R, infer A, infer M, infer E>
     ? AsyncOperation<R, A, M, E>
@@ -89,3 +88,5 @@ export type OperationCreationOptions<TRes, TArgs extends any[]> = {
         updateStrategy: IOperationUpdateStrategy<TRes, TArgs>;
     };
 };
+
+export type Ctr<T> = new (...args: any) => T;

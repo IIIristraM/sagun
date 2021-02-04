@@ -208,7 +208,7 @@ test('properly invoke updateStrategy', () => {
         })
         .toPromise()
         .then(() => {
-            const { result } = runner.store.getState()[getOperationId(testService.method)!];
+            const { result } = runner.store.getState().get(getOperationId(testService.method)!)!;
             expect(result).toBe(2);
         });
 });
@@ -361,20 +361,20 @@ test('service correctly handle operations', () => {
             yield* call(service.method3, 13);
 
             let state = ((yield* select()) as any) as Indexed;
-            expect(state[getOperationId(service.method)!]).toBeTruthy();
-            expect(state['10']).toBeTruthy();
-            expect(state['11']).toBeTruthy();
-            expect(state['12']).toBeTruthy();
-            expect(state['13']).toBeTruthy();
+            expect(state.get(getOperationId(service.method)!)).toBeTruthy();
+            expect(state.get('10')).toBeTruthy();
+            expect(state.get('11')).toBeTruthy();
+            expect(state.get('12')).toBeTruthy();
+            expect(state.get('13')).toBeTruthy();
 
             yield* call(service.destroy);
 
             state = ((yield* select()) as any) as Indexed;
-            expect(state[getOperationId(service.method)!]).toBe(undefined);
-            expect(state['10']).toBe(undefined);
-            expect(state['11']).toBe(undefined);
-            expect(state['12']).toBe(undefined);
-            expect(state['13']).toBe(undefined);
+            expect(state.get(getOperationId(service.method)!)).toBe(undefined);
+            expect(state.get('10')).toBe(undefined);
+            expect(state.get('11')).toBe(undefined);
+            expect(state.get('12')).toBe(undefined);
+            expect(state.get('13')).toBe(undefined);
         })
         .toPromise();
 });

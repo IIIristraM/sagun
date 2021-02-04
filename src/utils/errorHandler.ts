@@ -1,12 +1,13 @@
-import { call } from 'typed-redux-saga';
+import { apply } from 'typed-redux-saga';
 
-import { CallEffectTarget } from '../types';
+import { CallEffectTarget, Saga } from '../types';
 import { prepareCall } from './prepareCall';
 
 export function errorHandler<TArgs extends any[], TRet>(gen: CallEffectTarget<TArgs, TRet>, propagate = false) {
-    return function* catcher(...args: TArgs) {
+    return function* catcher() {
         try {
-            return yield* call(prepareCall(gen), ...args);
+            const target = prepareCall(gen);
+            return yield* apply(target[0], target[1], arguments as any);
         } catch (error) {
             console.warn(error);
 
@@ -14,5 +15,5 @@ export function errorHandler<TArgs extends any[], TRet>(gen: CallEffectTarget<TA
                 throw error;
             }
         }
-    };
+    } as Saga<TArgs, TRet>;
 }

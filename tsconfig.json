@@ -14,11 +14,8 @@
         "noImplicitAny": true,
         "strictBindCallApply": true,
         "jsx": "react",
-        "target": "ES5",
+        "target": "ES6",
         "downlevelIteration": true,
-        "composite": true,
-        "tsBuildInfoFile": "lib/types/.tsbuildinfo",
-        "rootDir": "./src",
         "baseUrl": ".",
         "outDir": "lib",
         "paths": {

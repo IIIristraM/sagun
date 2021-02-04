@@ -3,6 +3,11 @@ import { createContext } from 'react';
 import { Indexed } from '@iiiristram/ts-type-utils';
 
 import { BaseService } from './services/BaseService';
+import { Ctr } from './types';
+import { Dependency } from './services/Dependency';
+import { serviceActionsFactory } from './services';
+
+const EMPTY_ARR: any[] = [];
 
 export type SagaClientHash = Indexed<{
     args: any[];
@@ -12,26 +17,33 @@ export type SagaClientHash = Indexed<{
 export const DisableSsrContext = createContext<boolean>(false);
 
 export type IDIContext = {
-    registerService: (service: BaseService<any, any>) => void;
-    createService: <T extends BaseService<any, any>>(Ctr: new (...args: any) => T) => T;
-    getService: <T extends BaseService<any, any>>(Ctr: new (...args: any) => T) => T;
+    registerService: (service: Dependency) => void;
+    createService: <T extends Dependency>(Ctr: Ctr<T>) => T;
+    getService: <T extends Dependency>(Ctr: Ctr<T>) => T;
+    createServiceActions: ReturnType<typeof serviceActionsFactory>;
 };
 
 export type IDIContextFactory = () => IDIContext;
 
+function serviceFilter(dep: any) {
+    return dep.prototype instanceof BaseService;
+}
+
 export const getDIContext: IDIContextFactory = () => {
-    const container = new WeakMap<Function, BaseService<any[], any>>();
+    const container = {} as Indexed<Dependency>;
+    const createServiceActions = serviceActionsFactory();
 
     const context: IDIContext = {
         registerService(service) {
-            if (container.has(service.constructor)) {
+            const key = service.toString();
+            if (container[key]) {
                 return;
             }
 
-            container.set(service.constructor, service);
+            container[key] = service;
         },
-        getService<T extends BaseService<any, any>>(Ctr: new (...args: any) => T) {
-            const record = container.get(Ctr);
+        getService<T extends Dependency>(Ctr: Ctr<T>) {
+            const record = container[Ctr.prototype.toString()];
 
             if (!record) {
                 throw new Error(`Register service first ${Ctr.name}`);
@@ -39,9 +51,10 @@ export const getDIContext: IDIContextFactory = () => {
 
             return (record as any) as T;
         },
-        createService<T extends BaseService<any, any>>(Ctr: new (...args: any) => T) {
-            if (container.has(Ctr)) {
-                return container.get(Ctr) as T;
+        createService<T extends Dependency>(Ctr: Ctr<T>) {
+            const key = Ctr.prototype.toString();
+            if (container[key]) {
+                return container[key] as T;
             }
 
             let metaTarget = Ctr;
@@ -52,13 +65,16 @@ export const getDIContext: IDIContextFactory = () => {
 
                 metaTarget = Object.getPrototypeOf(metaTarget);
             }
+            function depMap(i: any) {
+                return context.getService(i);
+            }
 
-            const serviceDeps = (meta || []).filter((dep: any) => dep.prototype instanceof BaseService);
-
-            const args = serviceDeps.map((i: any) => context.getService(i));
+            const serviceDeps = (meta || EMPTY_ARR).filter(serviceFilter);
+            const args = serviceDeps.map(depMap);
 
             return new Ctr(...args);
         },
+        createServiceActions,
     };
 
     return context;

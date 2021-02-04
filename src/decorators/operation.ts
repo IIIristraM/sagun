@@ -10,7 +10,7 @@ function isStringId<TRes, TArgs extends any[]>(id: any): id is OperationId<TRes,
     return typeof id === 'string';
 }
 
-const createDescriptor = <TRes, TArgs extends any[]>(options: {
+function createDescriptor<TRes, TArgs extends any[]>(options: {
     target: any;
     key: string;
     descriptor: PropertyDescriptor;
@@ -19,7 +19,7 @@ const createDescriptor = <TRes, TArgs extends any[]>(options: {
         updateStrategy?: IOperationUpdateStrategy<TRes, TArgs>;
         ssr?: boolean;
     };
-}): PropertyDescriptor => {
+}): PropertyDescriptor {
     const { target, key, descriptor, operationOptions } = options;
     const { updateStrategy, id, ssr } = operationOptions || {};
 
@@ -51,7 +51,7 @@ const createDescriptor = <TRes, TArgs extends any[]>(options: {
     }
 
     return inheritDescriptor(descriptor, operationWrapper);
-};
+}
 
 export function operation(target: any, key: string, descriptor: PropertyDescriptor): PropertyDescriptor;
 
@@ -95,7 +95,7 @@ export function operation(...args: any[]) {
             throw new Error('Unexpected arguments');
         }
 
-        return (target: any, key: string, descriptor: PropertyDescriptor) => {
+        return function operationDesc(target: any, key: string, descriptor: PropertyDescriptor) {
             return createDescriptor({ target, key, descriptor, operationOptions });
         };
     }

@@ -4,7 +4,9 @@ import { Pattern } from 'redux-saga/effects';
 import { createDaemon, DaemonMode } from '../utils/createDaemon';
 import { Gen, Saga } from '../types';
 import { createActions } from '../utils/createActions';
+import { Dependency } from './Dependency';
 import { getClassMethods } from '../utils/getKeys';
+import { UUIDGenerator } from './UUIDGenerator';
 
 interface PrivateServiceProps {
     __$daemonMode?: DaemonMode;
@@ -13,14 +15,15 @@ interface PrivateServiceProps {
 
 type ServiceStatus = 'unavailable' | 'ready';
 
-let uuid = 0;
-export class BaseService<TRunArgs extends any[] = [], TRes = void> {
+const uuidGen = new UUIDGenerator();
+export class BaseService<TRunArgs extends any[] = [], TRes = void> extends Dependency {
     private _daemons: ReturnType<typeof createDaemon>[];
     private _status: ServiceStatus = 'unavailable';
     private _uuid: string;
 
     constructor() {
-        this._uuid = `${uuid++}`;
+        super();
+        this._uuid = `${uuidGen.uuid()}`;
         this._daemons = [];
 
         const methods = getClassMethods(this);
@@ -54,10 +57,6 @@ export class BaseService<TRunArgs extends any[] = [], TRes = void> {
         });
     }
 
-    toString() {
-        throw new Error('toString should return uniq constant');
-    }
-
     *run(...args: TRunArgs): Gen<TRes | undefined> {
         const result: TRes | undefined = undefined;
 
@@ -77,6 +76,11 @@ export class BaseService<TRunArgs extends any[] = [], TRes = void> {
         }
     }
 
-    getStatus = () => this._status;
-    getUUID = () => this._uuid;
+    getStatus() {
+        return this._status;
+    }
+
+    getUUID() {
+        return this._uuid;
+    }
 }

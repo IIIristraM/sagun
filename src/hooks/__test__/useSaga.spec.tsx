@@ -50,6 +50,7 @@ describe('useSaga', () => {
         `);
 
         (global as any).window = window;
+        (global as any).document = window.document;
 
         const processLoading = jest.fn((...args: any[]) => ({}));
         const processDisposing = jest.fn((...args: any[]) => ({}));
@@ -180,13 +181,13 @@ describe('useSaga', () => {
             jest.advanceTimersByTime(DELAY + 1);
         });
 
-        expect(store.getState()[operationId!]).toBeTruthy();
+        expect(store.getState().get(operationId!)).toBeTruthy();
 
         await act(async () => {
             ReactDOM.unmountComponentAtNode(appEl);
         });
 
-        expect(store.getState()[operationId!]).toBeFalsy();
+        expect(store.getState().get(operationId!)).toBeFalsy();
 
         unmountDefer.resolve();
         task.cancel();

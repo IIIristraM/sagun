@@ -377,14 +377,14 @@ test('Components release operations', () => {
             );
 
             yield renderDefer.promise;
-            expect(store.getState()[operationId]).toBeTruthy();
+            expect(store.getState().get(operationId)).toBeTruthy();
 
             const button = window.document.getElementById('switch') as HTMLButtonElement;
             button.click();
             yield destroyDefer.promise;
             yield* call(testService.destroy);
 
-            expect(store.getState()[operationId]).toBe(undefined);
+            expect(store.getState().get(operationId)).toBe(undefined);
 
             yield* call(componentLifecycleService.destroy);
             yield* call(operationService.destroy);

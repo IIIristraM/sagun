@@ -57,9 +57,7 @@ test('operation persists in store', () => {
         .run(operation.run)
         .toPromise()
         .then(() => {
-            expect(runner.store.getState()).toMatchObject({
-                [id]: { isLoading: false, args: [] },
-            });
+            expect(runner.store.getState().get(id)).toMatchObject({ isLoading: false, args: [] });
         });
 });
 
@@ -75,9 +73,7 @@ test('Operation created even if failed', () => {
         .run(errorHandler(operation.run))
         .toPromise()
         .then(() => {
-            expect(runner.store.getState()).toMatchObject({
-                [id]: { isLoading: false, isError: true, error },
-            });
+            expect(runner.store.getState().get(id)).toMatchObject({ isLoading: false, isError: true, error });
         });
 });
 
@@ -91,7 +87,7 @@ test('operation removed', () => {
         })
         .toPromise()
         .then(() => {
-            expect(runner.store.getState()).not.toHaveProperty(id);
+            expect(runner.store.getState().get(id)).toBeFalsy();
         });
 });
 
@@ -104,7 +100,7 @@ test('strategy properly updates operation', () => {
         .run(operation.run)
         .toPromise()
         .then(runResult => {
-            expect(runner.store.getState()[id].result).toBe(2);
+            expect(runner.store.getState().get(id)?.result).toBe(2);
             expect(runResult).toBe(1);
         });
 });

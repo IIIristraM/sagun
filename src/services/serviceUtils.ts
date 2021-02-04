@@ -5,17 +5,19 @@ import { ActionAPI, ExtractOperation } from '../types';
 import { BaseService } from './BaseService';
 import { createActions } from '../utils/createActions';
 
-const bindActions = <A extends Indexed>(obj: A, store: Store) => {
+function bindActions<A extends Indexed>(obj: A, store: Store) {
     const result: Indexed = {};
 
-    Object.keys(obj).forEach(key => {
+    function keyMap(key: string) {
         const subObj = obj[key];
         result[key] =
             typeof subObj === 'function' ? bindActionCreators(subObj, store.dispatch) : bindActions(subObj, store);
-    });
+    }
+
+    Object.keys(obj).forEach(keyMap);
 
     return result as A;
-};
+}
 
 export function getOperationId<T>(fn: T) {
     const id = (fn as any)?.id;
@@ -29,17 +31,20 @@ export function getOperationId<T>(fn: T) {
 function cache<TArgs extends any[], TRes>(fn: (...args: TArgs) => TRes, getKey: (...args: TArgs) => string) {
     const cache: Record<string, TRes> = {};
 
-    return (...args: TArgs) => {
+    return function cached(...args: TArgs) {
         const key = getKey(...args);
         cache[key] = cache[key] || fn(...args);
         return cache[key];
     };
 }
 
-export const createServiceActions = cache(
-    function <T extends BaseService<any, any>>(service: T, bind?: Store) {
+function serviceCacheKey<T extends BaseService<any, any>>(service: T, bind?: Store) {
+    return `${service}_${service.getUUID()}_${!!bind}`;
+}
+
+export function serviceActionsFactory() {
+    return cache(function <T extends BaseService<any, any>>(service: T, bind?: Store) {
         const actions = createActions(service, service.getUUID());
         return ((bind ? bindActions(actions, bind) : actions) as any) as ActionAPI<T>;
-    },
-    (service, bind) => `${service}_${service.getUUID()}_${!!bind}`
-);
+    }, serviceCacheKey);
+}

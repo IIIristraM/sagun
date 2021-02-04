@@ -7,7 +7,9 @@ export function getKeys(source: Indexed) {
     do {
         const keys = Object.getOwnPropertyNames(obj);
 
-        keys.forEach(key => props.add(key));
+        keys.forEach(function (key) {
+            props.add(key);
+        });
 
         obj = Object.getPrototypeOf(obj);
     } while (obj && obj !== Object.prototype && obj !== Function.prototype);
@@ -23,7 +25,7 @@ export function getClassMethods<T extends Indexed | Function>(source: T) {
         ...Object.getOwnPropertyNames(Function.prototype),
     ];
 
-    props = props.filter(key => {
+    props = props.filter(function (key) {
         return source[key as keyof T] instanceof Function && !omitMethods.includes(key) && key[0] !== '_';
     });
 

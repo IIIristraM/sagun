@@ -132,6 +132,7 @@ async function clientRender(
     `);
 
     (global as any).window = window;
+    (global as any).document = window.document;
     const operationService = new OperationService({ hash });
     const service = new ComponentLifecycleService(operationService);
 

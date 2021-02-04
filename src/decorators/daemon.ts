@@ -4,13 +4,11 @@ import { DaemonMode } from '../utils/createDaemon';
 
 export { DaemonMode } from '../utils/createDaemon';
 
-export const daemon = (mode?: DaemonMode, action?: Pattern<any>) => (
-    target: any,
-    key: string,
-    descriptor: PropertyDescriptor
-): PropertyDescriptor => {
-    descriptor.value.__$daemonMode = mode || DaemonMode.Sync;
-    descriptor.value.__$action = action;
+export function daemon(mode?: DaemonMode, action?: Pattern<any>) {
+    return function daemonMeta(target: any, key: string, descriptor: PropertyDescriptor): PropertyDescriptor {
+        descriptor.value.__$daemonMode = mode || DaemonMode.Sync;
+        descriptor.value.__$action = action;
 
-    return descriptor;
-};
+        return descriptor;
+    };
+}

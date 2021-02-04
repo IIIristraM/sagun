@@ -84,9 +84,10 @@ test('execute sagas on server', async () => {
 
     expect(fn).toHaveBeenCalledTimes(1);
     expect(fn2).toHaveBeenCalledTimes(2); // one call is disabled by DisableSsrContext
-    expect(Object.entries(runner.store.getState())[0][1]?.result).toBe(1);
-    expect(Object.entries(runner.store.getState())[1][1]?.result).toBe(2);
-    expect(Object.entries(runner.store.getState())[2][1]?.result).toBe(2);
+    const values = Array.from(runner.store.getState().values());
+    expect(values[0]?.result).toBe(1);
+    expect(values[1]?.result).toBe(2);
+    expect(values[2]?.result).toBe(2);
 });
 
 test('execute nested sagas on server', async () => {
@@ -149,7 +150,8 @@ test('execute nested sagas on server', async () => {
 
     expect(fn).toHaveBeenCalledTimes(1);
     expect(fn2).toHaveBeenCalledTimes(2);
-    expect(Object.entries(runner.store.getState())[0][1]?.result).toBe(1);
-    expect(Object.entries(runner.store.getState())[1][1]?.result).toBe(3);
-    expect(Object.entries(runner.store.getState())[2][1]?.result).toBe(5);
+    const values = Array.from(runner.store.getState().values());
+    expect(values[0]?.result).toBe(1);
+    expect(values[1]?.result).toBe(3);
+    expect(values[2]?.result).toBe(5);
 });

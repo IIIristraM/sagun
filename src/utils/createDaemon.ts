@@ -1,4 +1,4 @@
-import { call, delay, spawn, take, takeEvery, takeLatest } from 'typed-redux-saga';
+import { apply, call, delay, spawn, take, takeEvery, takeLatest } from 'typed-redux-saga';
 import { Pattern } from 'redux-saga/effects';
 import { Task } from 'redux-saga';
 
@@ -18,70 +18,70 @@ export const DAEMON_DEFAULTS = {
     mode: DaemonMode.Sync,
 };
 
-const extractArgs = ({ payload }: Action<any>) => (Array.isArray(payload) ? payload : [payload]);
-
-const extractor = (func: CallEffectTarget) =>
-    function* (action: Action<any>) {
-        return yield* call(prepareCall.call(this, func), ...extractArgs(action));
+function extractor(func: CallEffectTarget) {
+    return function* extractorInner(action: Action<any>) {
+        const payload = action.payload;
+        const target = prepareCall.call(this, func);
+        return yield* apply(target[0], target[1], Array.isArray(payload) ? payload : [payload]);
     };
+}
 
-export const daemon = function* (pattern: Pattern<any>, func: CallEffectTarget) {
+export function* daemon(pattern: Pattern<any>, func: CallEffectTarget) {
+    const wrappedFunc = errorHandler(extractor(func));
     while (true) {
         const action = yield* take(pattern);
-        yield* call(errorHandler(extractor(func)), action);
+        yield* call(wrappedFunc, action);
     }
-};
+}
 
-export const createScheduledDaemon = function* (timeout: number, func: CallEffectTarget) {
+export function* createScheduledDaemon(timeout: number, func: CallEffectTarget) {
+    const wrappedFunc = errorHandler(func);
     while (true) {
-        yield* call(errorHandler(func));
+        yield* call(wrappedFunc);
         yield* delay(timeout);
     }
-};
+}
 
 export function createDaemon(pattern: Pattern<any>, func: CallEffectTarget, config?: Partial<typeof DAEMON_DEFAULTS>) {
     let task: Task | undefined;
     const { mode } = { ...DAEMON_DEFAULTS, ...config };
+    const wrappedFunc = errorHandler(extractor(func));
 
     if (typeof pattern === 'number' && mode !== DaemonMode.Schedule) {
         throw new Error('Daemon mode is inconsistent with other options');
     }
 
-    const run = function* () {
+    function* run() {
         if (task) {
             return;
         }
 
         if (mode === DaemonMode.Schedule) {
-            task = yield* spawn(() => createScheduledDaemon(pattern as number, func));
+            task = yield* spawn(createScheduledDaemon, pattern as number, func);
             return;
         }
 
         if (mode === DaemonMode.Every) {
-            task = yield* spawn(function* () {
-                yield* takeEvery(pattern, errorHandler(extractor(func)));
-            });
+            task = yield* spawn(takeEvery as any, pattern, wrappedFunc);
             return;
         }
 
         if (mode === DaemonMode.Last) {
-            task = yield* spawn(function* () {
-                yield* takeLatest(pattern, errorHandler(extractor(func)));
-            });
+            task = yield* spawn(takeLatest as any, pattern, wrappedFunc);
             return;
         }
 
-        task = yield* spawn(() => daemon(pattern, func));
-    };
+        task = yield* spawn(daemon, pattern, func);
+    }
 
-    const destroy = function () {
+    function destroy() {
         if (!task) {
             return;
         }
 
         task.cancel();
         task = undefined;
-    };
+    }
 
     return {
         run,

@@ -3,18 +3,65 @@ import { call, delay, put } from 'typed-redux-saga';
 import { getSagaRunner } from '_test/utils';
 
 import { ComponentLifecycleService } from '../ComponentLifecycleService';
-import { createServiceActions } from '../serviceUtils';
 import { OperationId } from '../../types';
 import { OperationService } from '../OperationService';
-
-const runner = getSagaRunner();
+import { serviceActionsFactory } from '../serviceUtils';
 
 const DELAY = 10;
-const operationService = new OperationService({ hash: {} });
-const service = new ComponentLifecycleService(operationService);
-const serviceActions = createServiceActions(service);
+
+test('onLoad skip loads in between', () => {
+    const runner = getSagaRunner();
+    const operationService = new OperationService({ hash: {} });
+    const service = new ComponentLifecycleService(operationService);
+    const createServiceActions = serviceActionsFactory();
+    const serviceActions = createServiceActions(service);
+    const iterations = 15;
+    let loadCounter = 0;
+
+    function* inc(counter: number) {
+        loadCounter += counter;
+        yield* delay(DELAY);
+    }
+
+    const componentSaga = { onLoad: inc };
+    const operationId = 'OPERATION_ID' as OperationId<void, [number]>;
+
+    function* saga() {
+        yield* call(service.run);
+
+        for (let i = 1; i <= iterations; i++) {
+            const loadId = `LOAD_ID_${i}`;
+            yield* put(
+                serviceActions.load({
+                    loadId,
+                    operationId,
+                    saga: componentSaga,
+                    args: [i],
+                })
+            );
+        }
+
+        yield* delay(DELAY);
+        yield* put(serviceActions.dispose(`LOAD_ID_${1}`));
+        yield* delay(DELAY);
+        yield* call(service.destroy);
+    }
+
+    return runner
+        .run(saga)
+        .toPromise()
+        .then(() => {
+            // first and last loads 1 + 15
+            expect(loadCounter).toBe(16);
+        });
+});
 
 test('onLoad / onDispose invoked in a right order', () => {
+    const runner = getSagaRunner();
+    const operationService = new OperationService({ hash: {} });
+    const service = new ComponentLifecycleService(operationService);
+    const createServiceActions = serviceActionsFactory();
+    const serviceActions = createServiceActions(service);
     const iterations = 15;
     let loadCounter = 0;
     let disposeCounter = 0;
@@ -89,6 +136,11 @@ test('onLoad / onDispose invoked in a right order', () => {
 });
 
 test('uniq onLoad / onDispose per instance', () => {
+    const runner = getSagaRunner();
+    const operationService = new OperationService({ hash: {} });
+    const service = new ComponentLifecycleService(operationService);
+    const createServiceActions = serviceActionsFactory();
+    const serviceActions = createServiceActions(service);
     const mockLoad = jest.fn((...options: any[]) => ({}));
     const mockDispose = jest.fn((...options: any[]) => ({}));
 

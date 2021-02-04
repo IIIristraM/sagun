@@ -1,12 +1,12 @@
-import { useCallback, useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
 
-import { ComponentLifecycleService, createServiceActions, LoadOptions } from '../services';
+import { ComponentLifecycleService, LoadOptions } from '../services';
 import { ComponentSaga, OperationId } from '../types';
 import { DisableSsrContext } from '../context';
 import { isNodeEnv } from '../utils/isNodeEnv';
 import { useDI } from './useDI';
-import { uuid } from '../utils/uuid';
+import { UUIDGenerator } from '../services/UUIDGenerator';
 
 export type UseSagaOptions<TArgs extends any[], TRes> = {
     operationOptions?: LoadOptions<TArgs, TRes>['options'];
@@ -16,6 +16,8 @@ export type UseSagaOutput<TRes, TArgs> = {
     operationId: OperationId<TRes, TArgs>;
     reload: () => void;
 };
+
+const EMPTY_ARR = [] as any[];
 
 export function useSaga<TRes>(saga: ComponentSaga<[], TRes>): UseSagaOutput<TRes, []>;
 export function useSaga<TArgs extends any[], TRes>(
@@ -31,47 +33,56 @@ export function useSaga<TArgs extends any[], TRes>(
 ) {
     const diContext = useDI();
     const disableSSR = useContext(DisableSsrContext);
+    const uuidGen = diContext.getService(UUIDGenerator);
 
     const dispatch = useDispatch();
-    const operationId = uuid() as OperationId<TRes, TArgs>;
+    const operationId = useMemo(function () {
+        return uuidGen.uuid('operation');
+    }, EMPTY_ARR) as OperationId<TRes, TArgs>;
     const [reloadCount, updateCounter] = useState(0);
 
-    const forceReload = useCallback(() => {
-        updateCounter(reloadCount + 1);
-    }, [reloadCount]);
+    const forceReload = useCallback(
+        function () {
+            updateCounter(reloadCount + 1);
+        },
+        [reloadCount]
+    );
 
     const service = diContext.getService(ComponentLifecycleService);
-    const actions = createServiceActions(service);
+    const actions = diContext.createServiceActions(service);
 
     // reload on args changed
-    useEffect(() => {
-        const loadId = uuid();
-        dispatch(
-            actions.load({
-                loadId,
-                operationId,
-                saga,
-                args,
-                options: options?.operationOptions,
-            })
-        );
+    useEffect(
+        function load() {
+            const loadId = uuidGen.uuid('load');
+            dispatch(
+                actions.load({
+                    loadId,
+                    operationId,
+                    saga,
+                    args,
+                    options: options?.operationOptions,
+                })
+            );
 
-        return () => {
-            dispatch(actions.dispose(loadId));
-        };
-    }, [...args, reloadCount]);
+            return function dispose() {
+                dispatch(actions.dispose(loadId));
+            };
+        },
+        [...args, reloadCount]
+    );
 
     // remove underlying operation on unmount
-    useEffect(() => {
-        return () => {
+    useEffect(function initClean() {
+        return function clean() {
             dispatch(actions.cleanup({ operationId }));
         };
-    }, []);
+    }, EMPTY_ARR);
 
     if (isNodeEnv() && !disableSSR) {
         dispatch(
             actions.load({
-                loadId: uuid(),
+                loadId: uuidGen.uuid('load'),
                 operationId,
                 saga,
                 args,

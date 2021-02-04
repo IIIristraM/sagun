@@ -2,9 +2,10 @@ import { call, delay, put } from 'typed-redux-saga';
 
 import { getSagaRunner } from '_test/utils';
 
-import { createServiceActions, OperationService, Service } from '../../services';
 import { daemon, DaemonMode } from '../daemon';
+import { OperationService, Service, serviceActionsFactory } from '../../services';
 
+const createServiceActions = serviceActionsFactory();
 const operationService = new OperationService({ hash: {} });
 const runner = getSagaRunner();
 

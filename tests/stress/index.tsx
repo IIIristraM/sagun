@@ -27,15 +27,18 @@ const TEMPLATE = (html: string) => `
 
 const itemsCount = 1000;
 let x = 0;
+const itemSaga = {
+    onLoad: function* () {
+        x = x + 1;
+        return x;
+    },
+};
+
 const Item = () => {
-    const { operationId } = useSaga({
-        onLoad: function* () {
-            x = x + 1;
-            return x;
-        },
-    });
+    const { operationId } = useSaga(itemSaga);
 
     return <Operation operationId={operationId}>{({ result }) => <div>{result}</div>}</Operation>;
+    // return <div />;
 };
 
 const App = () => {

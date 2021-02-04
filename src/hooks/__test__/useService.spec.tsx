@@ -10,6 +10,7 @@ import { Provider } from 'react-redux';
 import ReactDOM from 'react-dom';
 
 import { ComponentLifecycleService, OperationService, Service } from '../../services';
+import { daemon, DaemonMode } from '../../decorators';
 import { createDeferred } from '../../utils/createDeferred';
 import reducer from '../../reducer';
 import { Root } from '../../components/Root';
@@ -26,6 +27,11 @@ const processDisposing = jest.fn(() => ({}));
 class TestServiceClass extends Service<[string]> {
     toString() {
         return 'TestServiceClass';
+    }
+
+    @daemon(DaemonMode.Every)
+    public *foo() {
+        return 1;
     }
 
     public *run(...args: [string]) {

@@ -1,4 +1,4 @@
-import { Indexed } from '@iiiristram/ts-type-utils';
+import { Map } from 'immutable';
 
 import { AsyncOperation } from './types';
 import { createAction } from './utils/createActions';
@@ -10,10 +10,14 @@ const CONSTANTS = {
 
 const addOrUpdateOperation = createAction(
     CONSTANTS.ADD_OR_UPDATE_OPERATION,
-    (operationPatch: Omit<Partial<AsyncOperation>, 'id'> & Pick<AsyncOperation, 'id'>) => operationPatch
+    function (operationPatch: Omit<Partial<AsyncOperation>, 'id'> & Pick<AsyncOperation, 'id'>) {
+        return operationPatch;
+    }
 );
 
-const removeOperation = createAction(CONSTANTS.REMOVE_OPERATION, (operationId: string) => operationId);
+const removeOperation = createAction(CONSTANTS.REMOVE_OPERATION, function (operationId: string) {
+    return operationId;
+});
 
 export const actions = {
     addOrUpdateOperation,
@@ -23,25 +27,38 @@ export const actions = {
 export type AddOrUpdateAction = ReturnType<typeof addOrUpdateOperation>;
 export type RemoveAction = ReturnType<typeof removeOperation>;
 
-export type State = Indexed<AddOrUpdateAction['payload'] | undefined>;
+const INITIAL_STATE = Map<string, AddOrUpdateAction['payload']>();
 
-const INITIAL_STATE: State = {};
+export type State = typeof INITIAL_STATE;
 
-export default (state = INITIAL_STATE, action: AddOrUpdateAction | RemoveAction) => {
+export default function asyncOperationsReducer(state = INITIAL_STATE, action: AddOrUpdateAction | RemoveAction) {
+    if (!Map.isMap(state)) {
+        return Object.entries(state).reduce((map, item) => {
+            return map.set(item[0], item[1] as any);
+        }, Map<string, AddOrUpdateAction['payload']>());
+    }
+
     if (action.type === CONSTANTS.ADD_OR_UPDATE_OPERATION && action.payload) {
         const id = action.payload.id;
 
-        return {
-            ...state,
-            [id]: { ...state[id], ...action.payload },
-        };
+        if (state.has(id)) {
+            return state.update(id, function (v) {
+                return v ? { ...v, ...action.payload } : v;
+            });
+        }
+
+        return state.set(id, action.payload);
     }
 
     if (action.type === CONSTANTS.REMOVE_OPERATION && action.payload) {
         const id = action.payload;
-        delete state[id];
-        return { ...state };
+
+        if (state.has(id)) {
+            return state.delete(id);
+        }
+
+        return state;
     }
 
     return state;
-};
+}
