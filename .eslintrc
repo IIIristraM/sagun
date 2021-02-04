@@ -6,9 +6,7 @@
     },
     "root": true,
     "parser": "@typescript-eslint/parser",
-    "plugins": [
-        "@typescript-eslint"
-    ],
+    "plugins": ["@typescript-eslint"],
     "extends": [
         "eslint:recommended",
         "plugin:@typescript-eslint/recommended",
@@ -49,10 +47,7 @@
     },
     "overrides": [
         {
-            "files": [
-                "*spec.ts",
-                "*spec.tsx"
-            ],
+            "files": ["*spec.ts", "*spec.tsx"],
             "rules": {
                 "@typescript-eslint/no-empty-function": "off",
                 "@typescript-eslint/no-non-null-assertion": "off"

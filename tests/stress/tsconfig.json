@@ -11,7 +11,5 @@
         "downlevelIteration": true,
         "esModuleInterop": true
     },
-    "files": [
-        "./index.tsx"
-    ]
+    "files": ["./index.tsx"]
 }
