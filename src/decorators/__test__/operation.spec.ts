@@ -21,7 +21,7 @@ test('without args', () => {
         }
 
         @operation
-        public *operation() {
+        *operation() {
             return 1;
         }
     }
@@ -39,19 +39,19 @@ test('with id', () => {
         }
 
         @operation(TEST_ID)
-        public *operation() {
+        *operation() {
             return 1;
         }
 
         // @ts-expect-error
         @operation(TEST_ID)
-        public *operation2() {
+        *operation2() {
             return '1';
         }
 
         // @ts-expect-error
         @operation(TEST_ID)
-        public *operation3(x: string) {
+        *operation3(x: string) {
             return 1;
         }
     }
@@ -68,25 +68,25 @@ test('with object', () => {
         }
 
         @operation({ id: TEST_ID, ssr: true })
-        public *operation() {
+        *operation() {
             return 1;
         }
 
         // @ts-expect-error
         @operation({ id: TEST_ID })
-        public *operation2() {
+        *operation2() {
             return '1';
         }
 
         // @ts-expect-error
         @operation({ id: TEST_ID, ssr: true })
-        public *operation3() {
+        *operation3() {
             return '1';
         }
 
         // @ts-expect-error
         @operation({ id: TEST_ID })
-        public *operation4(x: string) {
+        *operation4(x: string) {
             return 1;
         }
     }
@@ -105,7 +105,7 @@ test('outer operation hides inner for method id', () => {
         @operation(TEST_ID)
         // @ts-expect-error
         @operation('xxx')
-        public *operation() {
+        *operation() {
             return 1;
         }
     }
@@ -127,7 +127,7 @@ test('propagates id even if operation is not the top decorator', () => {
 
         @someDecorator
         @operation(TEST_ID)
-        public *operation() {
+        *operation() {
             return 1;
         }
     }
@@ -144,7 +144,7 @@ test('propagates return value', () => {
         }
 
         @operation
-        public *method() {
+        *method() {
             return 1;
         }
     }
@@ -173,7 +173,7 @@ test('properly invoke updateStrategy', () => {
                 return { result: (result || 0) + 1, ...rest };
             },
         })
-        public *method() {
+        *method() {
             return 1;
         }
 
@@ -183,7 +183,7 @@ test('properly invoke updateStrategy', () => {
                 return { result, ...rest };
             },
         })
-        public *method2() {
+        *method2() {
             return '1';
         }
 
@@ -195,7 +195,7 @@ test('properly invoke updateStrategy', () => {
                 return { result, ...rest };
             },
         })
-        public *method3(x: string) {
+        *method3(x: string) {
             return 1;
         }
     }
@@ -228,7 +228,7 @@ test('keeps this', () => {
         }
 
         @operation
-        public *method() {
+        *method() {
             expect(this._x).toBe(1);
             expect(this).toBe(testService);
             return 1;
@@ -262,7 +262,7 @@ test('enabled for private methods', () => {
             return 1;
         }
 
-        public method2() {
+        method2() {
             return this.method();
         }
     }
@@ -287,12 +287,12 @@ test('function generated ids', () => {
         @operation({
             id: (x: number) => `${x}_2` as OperationId<number, [number]>,
         })
-        public static *method2(x: number) {
+        static *method2(x: number) {
             return yield* call(TestService.method, x);
         }
 
         @operation((x: number) => `${x}_3` as OperationId<number, [number]>)
-        public static *method3(x: number) {
+        static *method3(x: number) {
             return yield* call(TestService.method2, x);
         }
 
@@ -301,7 +301,7 @@ test('function generated ids', () => {
             id: (x: number) => x.toString() as OperationId<number, [number]>,
             updateStrategy: ({ result }: AsyncOperation<number, [number]>) => ({ result }),
         })
-        public static *method4(x: number) {
+        static *method4(x: number) {
             return '1';
         }
 
@@ -309,18 +309,18 @@ test('function generated ids', () => {
         @operation({
             id: (x: number) => `${x}_2` as OperationId<number, [number]>,
         })
-        public static *method5(x: string) {
+        static *method5(x: string) {
             return x;
         }
 
         // @ts-expect-error
         @operation((x: number) => `${x}_3` as OperationId<number, [number]>)
-        public static *method6() {
+        static *method6() {
             return yield* call(TestService.method, 1);
         }
 
         @operation(() => '7' as OperationId<number>)
-        public static *method7() {
+        static *method7() {
             return yield* call(TestService.method, 1);
         }
     }
@@ -334,17 +334,17 @@ test('service correctly handle operations', () => {
         }
 
         @operation
-        public *method() {
+        *method() {
             return 1;
         }
 
         @operation((x: number) => `${x}` as OperationId<number>)
-        public *method2(x: number) {
+        *method2(x: number) {
             return 1;
         }
 
         @operation((x: number) => `${x}` as OperationId<number>)
-        public *method3(x: number) {
+        *method3(x: number) {
             return 1;
         }
     }
@@ -389,7 +389,7 @@ test('ssr only', () => {
         @operation({
             ssr: true,
         })
-        public *method() {
+        *method() {
             return 1;
         }
     }

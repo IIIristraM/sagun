@@ -17,7 +17,7 @@ test('default mode is DaemonMode.Sync', () => {
         }
 
         @daemon()
-        public method(): null {
+        method(): null {
             return null;
         }
     }
@@ -33,7 +33,7 @@ test('each service instance has uniq actions', () => {
         }
 
         @daemon()
-        public *method() {
+        *method() {
             return null;
         }
     }
@@ -57,7 +57,7 @@ test('propagates return value', () => {
         }
 
         @daemon()
-        public method() {
+        method() {
             return 1;
         }
     }
@@ -82,7 +82,7 @@ test('keeps this', () => {
         }
 
         @daemon()
-        public *method() {
+        *method() {
             expect(this instanceof TestService).toBe(true);
             mock();
             return 1;

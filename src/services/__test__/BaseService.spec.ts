@@ -18,17 +18,17 @@ describe('BaseService', () => {
                 return 'TestService';
             }
 
-            public *method() {
+            *method() {
                 expect(this instanceof TestService).toBe(true);
                 mockFn();
             }
 
-            public *run() {
+            *run() {
                 yield call(this.method);
                 return yield call([this, super.run]);
             }
 
-            public *destroy() {
+            *destroy() {
                 yield call(this.method);
                 yield call([this, super.destroy]);
             }
@@ -57,7 +57,7 @@ describe('BaseService', () => {
                 return 'TestServiceA';
             }
 
-            public *method(): Generator<unknown> {
+            *method(): Generator<unknown> {
                 expect(this instanceof TestServiceB).toBe(true);
                 mockFn();
             }
@@ -69,7 +69,7 @@ describe('BaseService', () => {
                 return 'TestServiceB';
             }
 
-            public *method() {
+            *method() {
                 expect(this instanceof TestServiceB).toBe(true);
                 yield call([this, super.method]);
                 mockFn();
@@ -96,7 +96,7 @@ describe('BaseService', () => {
                 return 'TestService';
             }
 
-            public *method(a: number, b?: string) {
+            *method(a: number, b?: string) {
                 return 1;
             }
         }

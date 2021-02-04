@@ -32,7 +32,7 @@ export class ComponentLifecycleService extends Service {
     private EXECUTION_MAP: Indexed<LoadOptions<any[], any> | undefined> = {};
 
     @daemon(DaemonMode.Every)
-    public *load<TArgs extends any[]>(options: LoadOptions<TArgs, any>) {
+    *load<TArgs extends any[]>(options: LoadOptions<TArgs, any>) {
         const { operationId } = options;
         if (!this.EXECUTION_MAP[operationId] && !isNodeEnv()) {
             yield* call(this._operationsService.registerConsumer, this, operationId);
@@ -69,12 +69,12 @@ export class ComponentLifecycleService extends Service {
     }
 
     @daemon(DaemonMode.Every)
-    public *dispose(id: string) {
+    *dispose(id: string) {
         yield* put({ type: DISPOSE_SIGNAL, payload: id });
     }
 
     @daemon(DaemonMode.Every)
-    public *cleanup({ operationId }: { operationId: string }) {
+    *cleanup({ operationId }: { operationId: string }) {
         this.EXECUTION_MAP[operationId] = undefined;
         yield* call(this._operationsService.unregisterConsumer, this, operationId);
     }

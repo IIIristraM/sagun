@@ -30,16 +30,16 @@ class TestServiceClass extends Service<[string]> {
     }
 
     @daemon(DaemonMode.Every)
-    public *foo() {
+    *foo() {
         return 1;
     }
 
-    public *run(...args: [string]) {
+    *run(...args: [string]) {
         yield call(processLoading, ...args);
         return yield call([this, super.run], ...args);
     }
 
-    public *destroy(...args: [string]) {
+    *destroy(...args: [string]) {
         yield call(processDisposing);
         yield call([this, super.destroy], ...args);
     }
