@@ -19,7 +19,7 @@ function bindActions<A extends Indexed>(obj: A, store: Store) {
     return result as A;
 }
 
-export function getOperationId<T>(fn: T) {
+export function getId<T>(fn: T) {
     const id = (fn as any)?.id;
     if (typeof id !== 'string') {
         throw new Error('Target is not an operation');

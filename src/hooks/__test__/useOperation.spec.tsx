@@ -9,7 +9,7 @@ import createSagaMiddleware from 'redux-saga';
 import { Provider } from 'react-redux';
 import ReactDOM from 'react-dom';
 
-import { ComponentLifecycleService, getOperationId, OperationService, Service } from '../../services';
+import { ComponentLifecycleService, getId, OperationService, Service } from '../../services';
 import reducer, { actions } from '../../reducer';
 import { createDeferred } from '../../utils/createDeferred';
 import { operation } from '../../decorators';
@@ -51,7 +51,7 @@ test('Component gets the operation', () => {
 
     const renderDefer = createDeferred();
     const TestComponent: React.FC<{}> = () => {
-        const operation = useOperation({ operationId: getOperationId(testService.getResult)! });
+        const operation = useOperation({ operationId: getId(testService.getResult)! });
 
         useEffect(() => {
             renderDefer.resolve();
@@ -189,7 +189,7 @@ test('Component throws promise when suspense is true and operation is loading', 
 
     const renderDefer = createDeferred();
     const TestComponent: React.FC<{}> = () => {
-        const operation = useOperation({ operationId: getOperationId(testService.operation)!, suspense: true });
+        const operation = useOperation({ operationId: getId(testService.operation)!, suspense: true });
 
         useEffect(() => {
             renderDefer.resolve();
@@ -258,11 +258,11 @@ test('Component renders after the longest operation is completed', async () => {
             const start = Date.now();
             const TestComponent: React.FC<{}> = () => {
                 const operation1 = useOperation({
-                    operationId: getOperationId(testService.operation0)!,
+                    operationId: getId(testService.operation0)!,
                     suspense: true,
                 });
                 const operation2 = useOperation({
-                    operationId: getOperationId(testService.operation1)!,
+                    operationId: getId(testService.operation1)!,
                     suspense: true,
                 });
 
@@ -320,7 +320,7 @@ test('Components release operations', () => {
     }
 
     const testService = new TestService(operationService);
-    const operationId = getOperationId(testService.getResult)!;
+    const operationId = getId(testService.getResult)!;
     const renderDefer = createDeferred();
     const destroyDefer = createDeferred();
 

@@ -3,7 +3,7 @@ import { call, delay } from 'typed-redux-saga';
 import { getSagaRunner } from '_test/utils';
 
 import { BaseService } from '../BaseService';
-import { getOperationId } from '../serviceUtils';
+import { getId } from '../serviceUtils';
 import { OperationId } from '../../types';
 
 const runner = getSagaRunner();
@@ -104,7 +104,7 @@ describe('BaseService', () => {
         const service = new TestService();
 
         try {
-            let id = getOperationId(service.method);
+            let id = getId(service.method);
             id = id as OperationId<number, [number, string?]>;
             // @ts-expect-error
             id = id as OperationId<{}, [number, string?]>;

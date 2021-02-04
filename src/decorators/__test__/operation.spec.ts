@@ -4,7 +4,7 @@ import { Indexed } from '@iiiristram/ts-type-utils';
 import { getSagaRunner } from '_test/utils';
 
 import { AsyncOperation, OperationId } from '../../types';
-import { getOperationId, OperationService, Service } from '../../services';
+import { getId, OperationService, Service } from '../../services';
 import { operation } from '../operation';
 import reducer from '../../reducer';
 
@@ -28,7 +28,7 @@ test('without args', () => {
     const testService = new TestService(operationService);
 
     expect(testService.operation).toHaveProperty('id');
-    expect(getOperationId(testService.operation)?.startsWith('TEST_SERVICE_OPERATION')).toBe(true);
+    expect(getId(testService.operation)?.startsWith('TEST_SERVICE_OPERATION')).toBe(true);
 });
 
 test('with id', () => {
@@ -57,7 +57,7 @@ test('with id', () => {
     }
     const testService = new TestService(operationService);
 
-    expect(getOperationId(testService.operation)?.startsWith(TEST_ID)).toBe(true);
+    expect(getId(testService.operation)?.startsWith(TEST_ID)).toBe(true);
 });
 
 test('with object', () => {
@@ -92,7 +92,7 @@ test('with object', () => {
     }
     const testService = new TestService(operationService);
 
-    expect(getOperationId(testService.operation)?.startsWith(TEST_ID)).toBe(true);
+    expect(getId(testService.operation)?.startsWith(TEST_ID)).toBe(true);
 });
 
 test('outer operation hides inner for method id', () => {
@@ -111,7 +111,7 @@ test('outer operation hides inner for method id', () => {
     }
     const testService = new TestService(operationService);
 
-    expect(getOperationId(testService.operation)?.startsWith(TEST_ID)).toBe(true);
+    expect(getId(testService.operation)?.startsWith(TEST_ID)).toBe(true);
 });
 
 test('propagates id even if operation is not the top decorator', () => {
@@ -133,7 +133,7 @@ test('propagates id even if operation is not the top decorator', () => {
     }
     const testService = new TestService(operationService);
 
-    expect(getOperationId(testService.operation)?.startsWith(TEST_ID)).toBe(true);
+    expect(getId(testService.operation)?.startsWith(TEST_ID)).toBe(true);
 });
 
 test('propagates return value', () => {
@@ -208,7 +208,7 @@ test('properly invoke updateStrategy', () => {
         })
         .toPromise()
         .then(() => {
-            const { result } = runner.store.getState().get(getOperationId(testService.method)!)!;
+            const { result } = runner.store.getState().get(getId(testService.method)!)!;
             expect(result).toBe(2);
         });
 });
@@ -361,7 +361,7 @@ test('service correctly handle operations', () => {
             yield* call(service.method3, 13);
 
             let state = ((yield* select()) as any) as Indexed;
-            expect(state.get(getOperationId(service.method)!)).toBeTruthy();
+            expect(state.get(getId(service.method)!)).toBeTruthy();
             expect(state.get('10')).toBeTruthy();
             expect(state.get('11')).toBeTruthy();
             expect(state.get('12')).toBeTruthy();
@@ -370,7 +370,7 @@ test('service correctly handle operations', () => {
             yield* call(service.destroy);
 
             state = ((yield* select()) as any) as Indexed;
-            expect(state.get(getOperationId(service.method)!)).toBe(undefined);
+            expect(state.get(getId(service.method)!)).toBe(undefined);
             expect(state.get('10')).toBe(undefined);
             expect(state.get('11')).toBe(undefined);
             expect(state.get('12')).toBe(undefined);

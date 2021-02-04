@@ -32,15 +32,15 @@ export type AsyncOperation<TRes = unknown, TArgs = unknown[], TMeta = unknown, T
     meta?: TMeta;
 };
 
-type OperationMeta<TRes, TArgs, TMeta, TErr> = {
-    _res: TRes;
-    _args: TArgs;
-    _meta: TMeta;
-    _err: TErr;
-};
+declare class OperationMetaClass<TRes, TArgs, TMeta, TErr> {
+    private _res: TRes;
+    private _args: TArgs;
+    private _meta: TMeta;
+    private _err: TErr;
+}
 
 export type OperationId<TRes, TArgs = unknown[], TMeta = unknown, TErr = Error> = string &
-    OperationMeta<TRes, TArgs, TMeta, TErr>;
+    OperationMetaClass<TRes, TArgs, TMeta, TErr>;
 
 export type OperationFromId<T> = T extends OperationId<infer R, infer A, infer M, infer E>
     ? AsyncOperation<R, A, M, E>
