@@ -1,0 +1,15 @@
+{
+    "references": [
+        {
+            "path": "../../tsconfig.public.json"
+        }
+    ],
+    "compilerOptions": {
+        "baseUrl": ".",
+        "outDir": ".",
+        "jsx": "react",
+        "downlevelIteration": true,
+        "esModuleInterop": true
+    },
+    "files": ["./index.tsx"]
+}

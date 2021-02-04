@@ -1,0 +1,7 @@
+{
+    "name": "@iiiristram/sagun/server",
+    "version": "0.0.0",
+    "main": "../lib/serverRender.js",
+    "types": "../lib/types/serverRender.d.ts",
+    "private": true
+}

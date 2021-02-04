@@ -1,0 +1,9 @@
+{
+    "compilerOptions": {
+        "composite": true,
+        "rootDir": "./src",
+        "tsBuildInfoFile": "lib/types/.tsbuildinfo"
+    },
+    "extends": "./tsconfig.json",
+    "exclude": ["tests", "**/__test__/**"]
+}
