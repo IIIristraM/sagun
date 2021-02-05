@@ -22,8 +22,8 @@ import {
 import { renderToStringAsync } from '_lib/serverRender';
 
 import { api, DELAY } from './TestAPI';
+import { isolate, resource, wait } from '../utils';
 import Content from './components/Content';
-import { isolate } from '../utils';
 import Table from './components/Table';
 import { TestService } from './TestService';
 import UserInfo from './components/UserInfo';
@@ -89,9 +89,9 @@ function App({
     return (
         <Root operationService={operationService} componentLifecycleService={service}>
             <Provider store={store}>
-                <Layout>
-                    <Suspense fallback="">{children}</Suspense>
-                </Layout>
+                <Suspense fallback="">
+                    <Layout>{children}</Layout>
+                </Suspense>
             </Provider>
         </Root>
     );
@@ -345,4 +345,50 @@ test('multiple component instances', async () => {
         expect(global.window.document.getElementsByClassName('card')?.[0].innerHTML).toBe('**00');
         expect(global.window.document.getElementsByClassName('card')?.[1].innerHTML).toBe('**00');
     });
+});
+
+test('fragments', async () => {
+    let r1 = resource();
+
+    const C1 = ({ className }: { className: string }) => {
+        const res = r1.read();
+        return <div className={className}>{res}</div>;
+    };
+
+    const App = () => (
+        <div>
+            <Suspense fallback="">
+                <>
+                    <C1 className="1" />
+                </>
+                <>
+                    <div />
+                </>
+            </Suspense>
+        </div>
+    );
+
+    const html = await renderToStringAsync(<App />);
+
+    const { window } = new jsdom.JSDOM(`
+            <html>
+                <body>
+                    <div id="app">${html}</div>
+                </body>
+            </html>
+        `);
+
+    (global as any).window = window;
+    (global as any).document = window.document;
+
+    r1 = resource();
+    ReactDOM.hydrate(<App />, window.document.getElementById('app'));
+
+    await wait(50);
+
+    console.log(html);
+    console.log(window.document.getElementById('app')?.innerHTML);
+    // this is actually a bug, seems like sibling fragments renders wrong inside Suspense
+    // does not reproduce in React 17
+    expect(global.window.document.getElementsByClassName('1').length).toBe(2);
 });
