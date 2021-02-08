@@ -2,6 +2,17 @@
 
 Strongly-typed service-based isomorphic architecture on top of redux-saga
 
+Currently compatible only with typescript codebase with following options enabled
+
+```json
+{
+    "compilerOptions": {
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true
+    }
+}
+```
+
 -   [sagun](#sagun)
     -   [Core concepts](#core-concepts)
     -   [Install](#install)
@@ -31,6 +42,9 @@ Strongly-typed service-based isomorphic architecture on top of redux-saga
         -   [Contexts](#contexts)
             -   [1. DIContext](#1-dicontext)
             -   [2. DisableSsrContext](#2-disablessrcontext)
+        -   [HoC](#hoc)
+            -   [1. withSaga](#1-withsaga)
+            -   [2. withService](#2-withservice)
         -   [SSR](#ssr)
 
 ## Core concepts
@@ -60,6 +74,12 @@ recommended to install
 
 ```tsx
 // bootstrap.tsx
+
+// should be the very first import.
+// provides metadata for dependency injection.
+// could be prepended by bundler instead.
+import 'reflect-metadata';
+
 import { applyMiddleware, createStore, combineReducers } from 'redux';
 import { Provider } from 'react-redux';
 import createSagaMiddleware from 'redux-saga';
@@ -216,8 +236,8 @@ import { useServiceConsumer, useOperation, getId } from '@iiiristram/sagun';
 function MyComponent() {
     // resolve service instance, that was registered somewhere in parent components
     const { service } = useServiceConsumer(MyService);
-    const operation = useOperation({ 
-        operationId: getId(service.foo) // get operation id from service method
+    const operation = useOperation({
+        operationId: getId(service.foo), // get operation id from service method
     });
     return <div>{operation?.result} World</div>;
 }
@@ -254,9 +274,9 @@ function MyComponent() {
 
 #### 4. Dependency injection
 
-It is possible to declare service dependencies via constructor arguments. 
-Each dependency should be an instance of some class, that extends `Dependency` class. 
-`Service` class has been already inherited from `Dependency`. 
+It is possible to declare service dependencies via constructor arguments.
+Each dependency should be an instance of some class, that extends `Dependency` class.
+`Service` class has been already inherited from `Dependency`.
 Service with custom dependencies should be marked with `@injectable` decorator.
 
 ```ts
@@ -642,6 +662,7 @@ function MyComponent() {
     return <div>{operation?.result} World</div>;
 }
 ```
+
 ```tsx
 // Parent.tsx
 function Parent() {
@@ -741,6 +762,59 @@ Provides IoC container, you shouldn't use this context directly, there is hook `
 #### 2. DisableSsrContext
 
 Provides boolean flag, if `false` no sagas will be executed on server in a children subtrees.
+
+### HoC
+
+#### 1. withSaga
+
+Encapsulates saga binding with operation subscription.
+Uses `useSaga`, `useOperation`, `useDI` and `Suspense` inside.
+
+```tsx
+const MyComponent = withSaga({
+    // factory provided with DIContext
+    sagaFactory: ({ getService }) => ({
+        onLoad: function* (id: string) {
+            const service = getService(MyService);
+            return yield call(service.fetch, id);
+        },
+    }),
+    // converts component props to useSaga "args" list
+    argsMapper: ({ id }: Props) => [id],
+})(({ operation }) => {
+    // rendered after operation finished,
+    return <div>{operation.result}</div>;
+});
+
+const Parent = () => {
+    // fallback to Loader till operation not finished
+    return <MyComponent id="1" fallback={<Loader />} />;
+};
+```
+
+#### 2. withService
+
+Encapsulates saga binding with operation subscription.
+Uses `useService`, `useServiceConsumer`, `useDI`, `useOperation` and `Suspense` inside.
+
+```tsx
+const MyComponent = withService({
+    // factory provided with DIContext
+    serviceFactory: ({ createService }) => {
+        return createService(MyService);
+    },
+    // converts component props to useService "args" list
+    argsMapper: ({ id }: Props) => [id],
+})(({ operation, service, action }) => {
+    // rendered after service registered and initialized,
+    return <div onClick={() => actions.foo()}>{service.getStatus()}</div>;
+});
+
+const Parent = () => {
+    // fallback to Loader till operation not finished
+    return <MyComponent id="1" fallback={<Loader />} />;
+};
+```
 
 ### SSR
 
