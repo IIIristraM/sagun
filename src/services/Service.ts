@@ -2,7 +2,7 @@ import { call } from 'typed-redux-saga';
 
 import { BaseService } from './BaseService';
 import { Gen } from '../types';
-import { injectable } from '../decorators/inject';
+import { injectable } from '../decorators/injectable';
 import { OperationService } from './OperationService';
 
 @injectable

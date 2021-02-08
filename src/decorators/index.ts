@@ -1,3 +1,3 @@
 export * from './daemon';
 export * from './operation';
-export * from './inject';
+export * from './injectable';

@@ -120,7 +120,7 @@ async function clientRender(
     renderApp: ({ store }: GetProps<typeof App>) => JSX.Element,
     html: string,
     state: AppStore,
-    hash: SagaClientHash
+    hash?: SagaClientHash
 ) {
     const { store, sagaMiddleware } = buildStore(state);
     const { window } = new jsdom.JSDOM(`

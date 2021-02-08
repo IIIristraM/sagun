@@ -10,6 +10,7 @@ import {
 } from '_lib/';
 import React, { Suspense } from 'react';
 import { act } from 'react-dom/test-utils';
+import { combineReducers } from 'redux';
 import { getSagaRunner } from '_test/utils';
 import jsdom from 'jsdom';
 import { Provider } from 'react-redux';
@@ -26,8 +27,12 @@ afterAll(() => {
 });
 
 test('execute nested sagas on client', async () => {
-    const runner = getSagaRunner(reducer);
-    useOperation.setPath(x => x);
+    const runner = getSagaRunner(
+        combineReducers({
+            asyncOperations: reducer,
+        })
+    );
+    useOperation.setPath(x => x.asyncOperations);
 
     const { window } = new jsdom.JSDOM(`
         <html>
@@ -42,7 +47,7 @@ test('execute nested sagas on client', async () => {
 
     const fn = jest.fn(() => 1);
     const fn2 = jest.fn((x: number) => x + 2);
-    const operationService = new OperationService({ hash: {} });
+    const operationService = new OperationService();
     const componentLifecycleService = new ComponentLifecycleService(operationService);
 
     const task = runner.run(function* () {
@@ -105,7 +110,7 @@ test('execute nested sagas on client', async () => {
 
     expect(fn).toHaveBeenCalledTimes(1);
     expect(fn2).toHaveBeenCalledTimes(2);
-    const values = Array.from(runner.store.getState().values());
+    const values = Array.from(runner.store.getState().asyncOperations.values());
     expect(values[0]?.result).toBe(1);
     expect(values[1]?.result).toBe(3);
     expect(values[2]?.result).toBe(5);
