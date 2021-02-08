@@ -16,7 +16,7 @@ export class OperationService extends BaseService {
         return 'OperationService';
     }
 
-    private _hash: SagaClientHash;
+    private _hash: SagaClientHash | undefined;
     private _operations: Indexed<ReturnType<typeof createOperation> | undefined> = {};
     private _operationConsumers: Indexed<Set<object>> = {};
     private _consumerOperations = new WeakMap<object, Indexed<string>>();
@@ -50,9 +50,9 @@ export class OperationService extends BaseService {
         };
     }
 
-    constructor({ hash }: { hash: SagaClientHash }) {
+    constructor(options?: { hash?: SagaClientHash }) {
         super();
-        this._hash = hash;
+        this._hash = options?.hash;
     }
 
     createOperation({
@@ -71,7 +71,7 @@ export class OperationService extends BaseService {
         const originRun = operation.run;
         operation.run = this.createSubscription(id, function* (...args: any[]) {
             if (!isNode) {
-                if (self._hash[id]) {
+                if (self._hash?.[id]) {
                     const { args: ssrArgs, result } = self._hash[id];
 
                     const sameArgs =
@@ -90,7 +90,7 @@ export class OperationService extends BaseService {
 
             const result = yield* apply(this, originRun, args);
 
-            if (isNode && ssr) {
+            if (isNode && ssr && self._hash) {
                 self._hash[id] = { args, result };
             }
 

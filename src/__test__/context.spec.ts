@@ -1,6 +1,6 @@
 import { BaseService } from '../services/BaseService';
 import { getDIContext } from '../context';
-import { injectable } from '../decorators/inject';
+import { injectable } from '../decorators/injectable';
 
 test('getDIContext', () => {
     const context = getDIContext();
