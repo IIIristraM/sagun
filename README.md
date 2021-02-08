@@ -80,13 +80,15 @@ const store = applyMiddleware(sagaMiddleware)(createStore)(
         asyncOperations: asyncOperationsReducer,
     })
 );
+
 // set up destination for storage
 useOperation.setPath(state => state.asyncOperations);
+
 // two basic services which provide library workflow
 const operationService = new OperationService();
 const componentLifecycleService = new ComponentLifecycleService(operationService);
-// have to be started in application bootstrap file
-const task = sagaMiddleware.run(function* () {
+
+sagaMiddleware.run(function* () {
     yield* call(operationService.run);
     yield* call(componentLifecycleService.run);
 });
@@ -135,7 +137,7 @@ operation.id = str; // TYPE ERROR id has to be of OperationId type
 
 #### 1. Basics
 
-Services are primary containers for your business logic, they are represented by classes which are inherited from base `Service` class.
+Services are primary containers for your business logic, they are represented by classes, which are inherited from base `Service` class.
 
 ```ts
 class Service<TRunArgs extends any[] = [], TRes = void> {
@@ -154,8 +156,8 @@ import { Service } from '@iiiristram/sagun';
 
 class MyService extends Service {
     // each service have to override "toString" with custom string.
-    // it is used for actions and operations generation
-    // it should be defined as class method NOT AS PROPERTY
+    // it is used for actions and operations generation.
+    // it should be defined as class method NOT AS PROPERTY.
     toString() {
         return 'MyService';
     }
@@ -166,7 +168,7 @@ class MyService extends Service {
 }
 ```
 
-To make service initialized you should invoke `useService` in the root of components subtree where this service required, for example in a page root component
+To make service initialized you should invoke `useService` in the root of components subtree, where this service required, for example in a page root component
 
 ```tsx
 import { useDI, useService, Operation } from '@iiiristram/sagun';
@@ -175,8 +177,7 @@ function HomePage() {
     const context = useDI();
     // create instance of service resolving all its dependencies
     const service = context.createService(TestService);
-    // register service in order it could be resolved
-    // as dependency for other services
+    // register service in order it could be resolved as dependency for other services
     context.registerService(service);
     // init service
     const { operationId } = useService(service);
@@ -213,16 +214,18 @@ class MyService extends Service {
 import { useServiceConsumer, useOperation, getId } from '@iiiristram/sagun';
 
 function MyComponent() {
-    // resolve service instance that was registered upper in components tree
+    // resolve service instance, that was registered somewhere in parent components
     const { service } = useServiceConsumer(MyService);
-    const operation = useOperation({ operationId: getId(service.foo) });
+    const operation = useOperation({ 
+        operationId: getId(service.foo) // get operation id from service method
+    });
     return <div>{operation?.result} World</div>;
 }
 ```
 
 #### 3. Provide redux action for service method
 
-In order to be able to trigger method from UI by redux action this method has to be marked with `@daemon` decorator
+In order to be able to trigger method from UI by redux action, this method has to be marked with `@daemon` decorator
 
 ```ts
 import { Service, daemon } from '@iiiristram/sagun';
@@ -251,7 +254,10 @@ function MyComponent() {
 
 #### 4. Dependency injection
 
-It is possible to declare service dependencies via constructor arguments. Each dependency should be an instance of some class that extends `Dependency` class. `Service` class has been inherited from `Dependency` already. Service with custom dependencies should be marked with `@injectable` decorator. Dependencies should be registered via `useDI` before dependent service.
+It is possible to declare service dependencies via constructor arguments. 
+Each dependency should be an instance of some class, that extends `Dependency` class. 
+`Service` class has been already inherited from `Dependency`. 
+Service with custom dependencies should be marked with `@injectable` decorator.
 
 ```ts
 // Service1.ts
@@ -353,7 +359,7 @@ class MyService extends Service<MyArgs, MyRes> {
         yield call(this._someOtherService.destroy)
     }
 
-    @daemon() // make method be reachable by redux action
+    @daemon() // make method reachable by redux action
     @operation // write result to redux state
     *foo(a: Type1, b: Type2) {
         // your custom logic
@@ -379,7 +385,7 @@ class MyService extends Service {
     }
 
     // create an operation with auto-generated id,
-    // which can be retrieved with util "getId"
+    // which can be retrieved by util "getId"
     @operation
     *method_1() {
         ...
@@ -392,8 +398,7 @@ class MyService extends Service {
         return 1;
     }
 
-    // create an operation id depending on arguments
-    // provided for method
+    // create an operation id depending on arguments provided for method
     @operation((...args) => args.join('_') as OperationId<number>)
     *method_3(...args) {
         return 1;
@@ -402,7 +407,7 @@ class MyService extends Service {
     @operation({
         // optional, could be constant or function
         id,
-        // optional, function that allows to change operation values
+        // optional, function that allows to change operation values,
         // but it should not change operation generics
         // (ie if operation result was a number it should be a number after change)
         updateStrategy: function*(operation) {
@@ -446,7 +451,7 @@ class MyService extends Service {
 
 #### 2. daemon
 
-This decorator provide some meta-data for method so it could be invoked by redux action after `service.run` called.
+This decorator provide some meta-data for method, so it could be invoked by redux action after `service.run` called.
 Decorator doesn't affect cases when method directly called from another saga, all logic applied only for redux actions.
 
 ```ts
@@ -479,7 +484,7 @@ class MyService extends Service {
     }
 
     // has no corresponding action,
-    // call method every N ms provided by second argument after service run
+    // after service run, method will be called every N ms, provided by second argument
     // i.e. make some polling
     @daemon(DaemonMode.Schedule, ms)
     *method_4() {
@@ -504,7 +509,7 @@ class MyService extends Service {
 This decorator has to be applied to service classes which has custom constructors. In order service dependencies could be resolved.
 
 ```ts
-// Service2.ts
+// MyService.ts
 import {Service, injectable} from '@iiiristram/sagun';
 
 @injectable
@@ -526,7 +531,7 @@ class MyService extends Service {
 
 #### 1. useSaga
 
-Binds saga execution to component lifecycle. Executed same way `useEffect` executed.
+Binds saga execution to component lifecycle. Executed same way as `useEffect`.
 Should be used to execute some application logic like form initialization, or to aggregate
 multiple methods of services
 
@@ -553,8 +558,8 @@ function MyComponent(props) {
 
 ```
 
-If changes happened in the middle of long running `onLoad` this saga will be canceled (break on nearest yield) and `onDispose` will be called.
-It is guaranteed that `onDispose` will be fully executed before next `onLoad`, so if changes happened multiple times during long running `onDispose`, `onLoad` will be called once with latest arguments. `onLoad` is wrapped into operation so you able to subscribe to its execution using `operationId` provided by the hook.
+If changes happened in the middle of long running `onLoad`, this saga will be canceled (break on nearest yield) and `onDispose` will be called.
+It is guaranteed that `onDispose` will be fully executed before next `onLoad`, so if changes happened multiple times during long running `onDispose`, `onLoad` will be called only once with latest arguments. `onLoad` is wrapped into operation, so you are able to subscribe to its execution using `operationId`, provided by the hook.
 
 #### 2. useService
 
@@ -576,7 +581,7 @@ const { operationId } = useSaga(
 
 #### 3. useServiceConsumer
 
-this hook retrieves service by its constructor and create corresponding redux actions to invoke methods marked by `@daemon` decorator. Actions are bond to store so no `dispatch` necessary.
+This hook retrieves service by its constructor, and create corresponding redux actions to invoke methods, marked by `@daemon` decorator. Actions are bond to store, so no `dispatch` necessary.
 
 ```ts
 import { Service, daemon } from '@iiiristram/sagun';
@@ -628,7 +633,6 @@ class MyService extends Service {
 import { useServiceConsumer, useOperation, getId } from '@iiiristram/sagun';
 
 function MyComponent() {
-    // resolve service instance that was registered upper in components tree
     const { service } = useServiceConsumer(MyService);
     const operation = useOperation({
         operationId: getId(service.foo),
@@ -637,7 +641,9 @@ function MyComponent() {
 
     return <div>{operation?.result} World</div>;
 }
-
+```
+```tsx
+// Parent.tsx
 function Parent() {
     return (
         <Suspense fallback="">
@@ -647,7 +653,7 @@ function Parent() {
 }
 ```
 
-Your should provide path in store where to look for operation before using the hook.
+Before using the hook your should provide path in store, where to look for operation.
 
 ```ts
 // bootstrap.ts
@@ -668,7 +674,7 @@ type IDIContext = {
     // retrieve dependency instance if it was registered,
     // throw an error otherwise
     getService: <T extends Dependency>(Ctr: Ctr<T>) => T;
-    // create actions for service method marked by @daemon,
+    // create actions for service methods marked by @daemon,
     // bind them to store if any provided
     createServiceActions: <T extends BaseService<any, any>>(service: T, bind?: Store<any, AnyAction>) => ActionAPI<T>;
 };
@@ -678,7 +684,7 @@ type IDIContext = {
 
 #### 1. Root
 
-This component provides all necessary contexts. Your have to wrap your application into it.
+This component provides all necessary contexts. You have to wrap your application with it.
 
 ```tsx
 import {
@@ -705,7 +711,7 @@ ReactDOM.render(
 
 #### 2. Operation
 
-This component just encapsulates `useOperation`
+This component encapsulates `useOperation`
 
 ```tsx
 import {useSaga, Operation} from '@iiiristram/sagun';
@@ -746,8 +752,8 @@ class MyService extends Service {
     @operation({
         // Enable ssr for operation, so it's result will be collected.
         // Operations marked this way won't be executed on client at first time,
-        // so don't put here any logic about application state, like forms,
-        // that probably have also be executed on client.
+        // so don't put here any logic with application state, like forms,
+        // it probably have to be also executed on the client.
         // You should collect pure data here.
         ssr: true
     })
@@ -796,6 +802,7 @@ const render = async (req, res) => {
         asyncOperationsReducer
     );
 
+    // privide "hash" option
     const operationService = new OperationService({ hash: {} });
     const componentLifecycleService = new ComponentLifecycleService(operationService);
 
@@ -804,8 +811,8 @@ const render = async (req, res) => {
         yield* call(componentLifecycleService.run);
     });
 
-    // this will incrementally render application
-    // awaiting for all Suspense components resolved
+    // this will incrementally render application,
+    // awaiting till all Suspense components resolved
     const html = await renderToStringAsync(
         <Root
             operationService={operationService}
@@ -817,6 +824,7 @@ const render = async (req, res) => {
         </Root>
     );
 
+    // cleanup sagas
     task.cancel();
     await task.toPromise();
 
