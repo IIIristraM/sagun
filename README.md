@@ -175,7 +175,7 @@ So custom service could be defined like this
 import { Service } from '@iiiristram/sagun';
 
 class MyService extends Service {
-    // each service have to override "toString" with custom string.
+    // each service has to override "toString" with custom string.
     // it is used for actions and operations generation.
     // it should be defined as class method NOT AS PROPERTY.
     toString() {
@@ -196,7 +196,7 @@ import { useDI, useService, Operation } from '@iiiristram/sagun';
 function HomePage() {
     const context = useDI();
     // create instance of service resolving all its dependencies
-    const service = context.createService(TestService);
+    const service = context.createService(MyService);
     // register service in order it could be resolved as dependency for other services
     context.registerService(service);
     // init service
@@ -827,7 +827,7 @@ class MyService extends Service {
         // Enable ssr for operation, so it's result will be collected.
         // Operations marked this way won't be executed on client at first time,
         // so don't put here any logic with application state, like forms,
-        // it probably have to be also executed on the client.
+        // such logic probably has to be also executed on the client.
         // You should collect pure data here.
         ssr: true
     })
@@ -876,7 +876,7 @@ const render = async (req, res) => {
         asyncOperationsReducer
     );
 
-    // privide "hash" option
+    // provide "hash" option
     const operationService = new OperationService({ hash: {} });
     const componentLifecycleService = new ComponentLifecycleService(operationService);
 
