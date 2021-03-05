@@ -13,39 +13,39 @@ Currently compatible only with typescript codebase with following options enable
 }
 ```
 
--   [sagun](#sagun)
-    -   [Core concepts](#core-concepts)
-    -   [Install](#install)
-    -   [Get started](#get-started)
-    -   [API](#api)
-        -   [Operations](#operations)
-        -   [Services](#services)
-            -   [1. Basics](#1-basics)
-            -   [2. Save results to store](#2-save-results-to-store)
-            -   [3. Provide redux action for service method](#3-provide-redux-action-for-service-method)
-            -   [4. Dependency injection](#4-dependency-injection)
-            -   [5. Custom initialization and cleanup](#5-custom-initialization-and-cleanup)
-            -   [6. Full service description](#6-full-service-description)
-        -   [Decorators](#decorators)
-            -   [1. operation](#1-operation)
-            -   [2. daemon](#2-daemon)
-            -   [3. injectable](#3-injectable)
-        -   [Hooks](#hooks)
-            -   [1. useSaga](#1-usesaga)
-            -   [2. useService](#2-useservice)
-            -   [3. useServiceConsumer](#3-useserviceconsumer)
-            -   [4. useOperation](#4-useoperation)
-            -   [4. useDI](#4-usedi)
-        -   [Components](#components)
-            -   [1. Root](#1-root)
-            -   [2. Operation](#2-operation)
-        -   [Contexts](#contexts)
-            -   [1. DIContext](#1-dicontext)
-            -   [2. DisableSsrContext](#2-disablessrcontext)
-        -   [HoC](#hoc)
-            -   [1. withSaga](#1-withsaga)
-            -   [2. withService](#2-withservice)
-        -   [SSR](#ssr)
+- [sagun](#sagun)
+  - [Core concepts](#core-concepts)
+  - [Install](#install)
+  - [Get started](#get-started)
+  - [API](#api)
+    - [Operations](#operations)
+    - [Services](#services)
+      - [1. Basics](#1-basics)
+      - [2. Save results to store](#2-save-results-to-store)
+      - [3. Provide redux action for service method](#3-provide-redux-action-for-service-method)
+      - [4. Dependency injection](#4-dependency-injection)
+      - [5. Custom initialization and cleanup](#5-custom-initialization-and-cleanup)
+      - [6. Full service description](#6-full-service-description)
+    - [Decorators](#decorators)
+      - [1. operation](#1-operation)
+      - [2. daemon](#2-daemon)
+      - [3. inject](#3-inject)
+    - [Hooks](#hooks)
+      - [1. useSaga](#1-usesaga)
+      - [2. useService](#2-useservice)
+      - [3. useServiceConsumer](#3-useserviceconsumer)
+      - [4. useOperation](#4-useoperation)
+      - [4. useDI](#4-usedi)
+    - [Components](#components)
+      - [1. Root](#1-root)
+      - [2. Operation](#2-operation)
+    - [Contexts](#contexts)
+      - [1. DIContext](#1-dicontext)
+      - [2. DisableSsrContext](#2-disablessrcontext)
+    - [HoC](#hoc)
+      - [1. withSaga](#1-withsaga)
+      - [2. withService](#2-withservice)
+    - [SSR](#ssr)
 
 ## Core concepts
 
@@ -74,12 +74,6 @@ recommended to install
 
 ```tsx
 // bootstrap.tsx
-
-// should be the very first import.
-// provides metadata for dependency injection.
-// could be prepended by bundler instead.
-import 'reflect-metadata';
-
 import { applyMiddleware, createStore, combineReducers } from 'redux';
 import { Provider } from 'react-redux';
 import createSagaMiddleware from 'redux-saga';
@@ -277,7 +271,7 @@ function MyComponent() {
 It is possible to declare service dependencies via constructor arguments.
 Each dependency should be an instance of some class, that extends `Dependency` class.
 `Service` class has been already inherited from `Dependency`.
-Service with custom dependencies should be marked with `@injectable` decorator.
+Service with custom dependencies should mark them with `@inject` decorator.
 
 ```ts
 // Service1.ts
@@ -294,9 +288,8 @@ class Service1 extends Service {
 
 ```ts
 // Service2.ts
-import {Service, injectable} from '@iiiristram/sagun';
+import {Service, inject} from '@iiiristram/sagun';
 
-@injectable
 class Service2 extends Service {
     private _service1: Service1
 
@@ -306,8 +299,8 @@ class Service2 extends Service {
 
     constructor(
         // default dependency for all services
-        operationService: OperationService,
-        service1: Service1
+        @inject(OperationService) operationService: OperationService,
+        @inject(Service1) service1: Service1
     ) {
         super(operationService)
         this._service1 = service1
@@ -345,8 +338,6 @@ class MyService extends Service<MyArgs, MyRes> {
 #### 6. Full service description
 
 ```ts
-// REQUIRED FOR CONSTRUCTOR OVERRIDE
-@injectable
 class MyService extends Service<MyArgs, MyRes> {
     // OPTIONAL
     private _someOtherService: MyOtherService
@@ -358,8 +349,8 @@ class MyService extends Service<MyArgs, MyRes> {
 
     // OPTIONAL
     constructor(
-        operationService: OperationService,
-        someOtherService: MyOtherService
+        @inject(OperationService) operationService: OperationService,
+        @inject(MyOtherService) someOtherService: MyOtherService
     ) {
         super(operationService)
         this._someOtherService = someOtherService;
@@ -497,7 +488,7 @@ class MyService extends Service {
     }
 
     // call method every time, no order guarantied (like redux-saga takeEvery)
-    // i.e. some send some analytics
+    // i.e. send some analytics
     @daemon(DaemonMode.Every)
     *method_3(a: number, b: number) {
         ...
@@ -524,21 +515,20 @@ class MyService extends Service {
 }
 ```
 
-#### 3. injectable
+#### 3. inject
 
-This decorator has to be applied to service classes which has custom constructors. In order service dependencies could be resolved.
+This decorator has to be applied to arguments of service's constructor in order service dependencies could be resolved.
 
 ```ts
 // MyService.ts
-import {Service, injectable} from '@iiiristram/sagun';
+import {Service, inject} from '@iiiristram/sagun';
 
-@injectable
 class MyService extends Service {
     ...
     constructor(
         // default dependency for all services
-        operationService: OperationService,
-        myOtherService: MyOtherService
+        @inject(OperationService) operationService: OperationService,
+        @inject(MyOtherService) myOtherService: MyOtherService
     ) {
         super(operationService)
         ...
@@ -690,7 +680,7 @@ type IDIContext = {
     // register dependency instance
     registerService: (service: Dependency) => void;
     // create dependency instance resolving all sub-dependencies,
-    // in case that was registered before, throw an error otherwise
+    // in case they were registered before, throw an error otherwise
     createService: <T extends Dependency>(Ctr: Ctr<T>) => T;
     // retrieve dependency instance if it was registered,
     // throw an error otherwise

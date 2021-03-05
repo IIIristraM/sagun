@@ -19,7 +19,6 @@ const configFabric = (context = __dirname, isolatedModules = false) => {
         },
         moduleNameMapper,
         testPathIgnorePatterns: ['(.*)/lib'],
-        setupFiles: ['reflect-metadata'],
     };
 };
 

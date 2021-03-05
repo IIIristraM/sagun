@@ -1,19 +1,16 @@
-type Ctr = { new (...args: any): any };
+import { Ctr, CtrWithInject } from '../types';
 
-// export function inject<C extends Ctr>(ctr: C) {
-//     return function (
-//         target: Ctr & { __injects: Ctr[] },
-//         propertyKey: string | symbol,
-//         parameterIndex: number,
-//     ) {
-//         if (!target.hasOwnProperty('__injects')) {
-//             target.__injects = Array(target.length);
-//         }
+export function inject<C extends Ctr<any>>(ctr: C) {
+    return function (target: CtrWithInject<any>, propertyKey: string | symbol, parameterIndex: number) {
+        if (!target.hasOwnProperty('__injects')) {
+            target.__injects = Array.from({ length: target.length });
+        }
 
-//         target.__injects[parameterIndex] = ctr;
-//     };
-// }
-
-export function injectable<T extends Ctr>(constructor: T) {
-    return constructor;
+        if (!target.__injects) return;
+        target.__injects[parameterIndex] = ctr;
+    };
 }
+
+// export function injectable<T extends Ctr<any>>(constructor: T) {
+//     return constructor;
+// }

@@ -90,3 +90,5 @@ export type OperationCreationOptions<TRes, TArgs extends any[]> = {
 };
 
 export type Ctr<T> = new (...args: any) => T;
+
+export type CtrWithInject<T> = Ctr<T> & { __injects?: Ctr<any>[] };

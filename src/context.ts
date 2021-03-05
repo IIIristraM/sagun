@@ -1,9 +1,8 @@
-import 'reflect-metadata';
 import { createContext } from 'react';
 import { Indexed } from '@iiiristram/ts-type-utils';
 
+import { Ctr, CtrWithInject } from './types';
 import { BaseService } from './services/BaseService';
-import { Ctr } from './types';
 import { Dependency } from './services/Dependency';
 import { serviceActionsFactory } from './services';
 
@@ -51,7 +50,7 @@ export const getDIContext: IDIContextFactory = () => {
 
             return (record as any) as T;
         },
-        createService<T extends Dependency>(Ctr: Ctr<T>) {
+        createService<T extends Dependency>(Ctr: CtrWithInject<T>) {
             const key = Ctr.prototype.toString();
             if (container[key]) {
                 return container[key] as T;
@@ -59,12 +58,14 @@ export const getDIContext: IDIContextFactory = () => {
 
             let metaTarget = Ctr;
             let meta: any[] | undefined;
+
             while (metaTarget) {
-                meta = Reflect.getOwnMetadata('design:paramtypes', metaTarget);
+                meta = metaTarget.__injects;
                 if (meta) break;
 
                 metaTarget = Object.getPrototypeOf(metaTarget);
             }
+
             function depMap(i: any) {
                 return context.getService(i);
             }
