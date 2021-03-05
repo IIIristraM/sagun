@@ -60,7 +60,7 @@ Currently compatible only with typescript codebase with following options enable
 
 peer dependencies:
 
-`npm i --save react react-dom redux react-redux redux-saga immutable reflect-metadata`
+`npm i --save react react-dom redux react-redux redux-saga immutable`
 
 lib install
 
