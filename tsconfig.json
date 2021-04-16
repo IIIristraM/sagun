@@ -14,17 +14,28 @@
         "noImplicitAny": true,
         "strictBindCallApply": true,
         "jsx": "react",
-        "target": "ES6",
+        "target": "ES5",
         "downlevelIteration": true,
         "baseUrl": ".",
         "outDir": "lib",
         "paths": {
-            "_test*": ["./tests*"],
-            "_lib*": ["./src*"]
+            "_test*": [
+                "./tests*"
+            ],
+            "_lib*": [
+                "./src*"
+            ]
         },
-        "typeRoots": ["./typings", "./node_modules/@types"],
+        "typeRoots": [
+            "./typings",
+            "./node_modules/@types"
+        ],
         "pretty": true,
         "preserveSymlinks": false
     },
-    "include": ["src", "typings", "tests"]
+    "include": [
+        "src",
+        "typings",
+        "tests"
+    ]
 }

@@ -1,13 +1,16 @@
-import { call, delay, put } from 'typed-redux-saga';
+import { call, delay, put, select } from 'typed-redux-saga';
+import { Indexed } from '@iiiristram/ts-type-utils';
 
 import { getSagaRunner } from '_test/utils';
 
 import { daemon, DaemonMode } from '../daemon';
-import { OperationService, Service, serviceActionsFactory } from '../../services';
+import { getId, OperationService, Service, serviceActionsFactory } from '../../services';
+import { operation } from '../operation';
+import reducer from '../../reducer';
 
 const createServiceActions = serviceActionsFactory();
 const operationService = new OperationService({ hash: {} });
-const runner = getSagaRunner();
+const runner = getSagaRunner(reducer);
 
 test('default mode is DaemonMode.Sync', () => {
     // tslint:disable-next-line: max-classes-per-file
@@ -103,4 +106,39 @@ test('keeps this', () => {
         .then(() => {
             expect(mock).toHaveBeenCalledTimes(1);
         });
+});
+
+test('handle exceptions', () => {
+    // tslint:disable-next-line: max-classes-per-file
+    class TestService extends Service {
+        toString() {
+            return 'TestService';
+        }
+
+        @daemon()
+        @operation
+        *operation() {
+            yield* call(async () => {
+                throw new Error('custom error');
+            });
+        }
+    }
+    const testService = new TestService(operationService);
+    const actions = createServiceActions(testService);
+
+    return runner
+        .run(function* () {
+            yield* call(testService.run);
+            yield* put(actions.operation());
+            yield* delay(0);
+
+            const state = ((yield* select()) as any) as Indexed;
+            const operationId = getId(testService.operation);
+            expect(state.get(operationId)).toBeTruthy();
+            expect(state.get(operationId).isLoading).toBe(false);
+            expect(state.get(operationId).isError).toBe(true);
+            expect(state.get(operationId).error).toBeTruthy();
+            yield* call(testService.destroy);
+        })
+        .toPromise();
 });

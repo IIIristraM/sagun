@@ -31,6 +31,38 @@ test('without args', () => {
     expect(getId(testService.operation)?.startsWith('TEST_SERVICE_OPERATION')).toBe(true);
 });
 
+test('handle exceptions', () => {
+    // tslint:disable-next-line: max-classes-per-file
+    class TestService extends Service {
+        toString() {
+            return 'TestService';
+        }
+
+        @operation
+        *operation() {
+            yield* call(async () => {
+                throw new Error('custom error');
+            });
+        }
+    }
+    const testService = new TestService(operationService);
+
+    return runner
+        .run(function* () {
+            try {
+                yield* call(testService.operation);
+            } catch (error) {
+                const state = ((yield* select()) as any) as Indexed;
+                const operationId = getId(testService.operation);
+                expect(state.get(operationId)).toBeTruthy();
+                expect(state.get(operationId).isLoading).toBe(false);
+                expect(state.get(operationId).isError).toBe(true);
+                expect(state.get(operationId).error).toBe(error);
+            }
+        })
+        .toPromise();
+});
+
 test('with id', () => {
     // tslint:disable-next-line: max-classes-per-file
     class TestService extends Service {
