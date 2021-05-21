@@ -56,7 +56,7 @@ export const useOperation = Object.assign(
             return function unregister() {
                 dispatch(actions.unregisterConsumer(componentId, operationId));
             };
-        });
+        }, []);
 
         const operation = useSelector(function getOperation(state: Indexed) {
             return ((PATH?.(state)?.get(operationId) ||
