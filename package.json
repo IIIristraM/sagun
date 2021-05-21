@@ -1,6 +1,6 @@
 {
     "name": "@iiiristram/sagun",
-    "version": "0.0.15",
+    "version": "0.0.16",
     "description": "",
     "main": "./lib/index.js",
     "types": "./lib/types/index.d.ts",
@@ -12,12 +12,11 @@
         "tsc": "rm -rf ./lib && tsc -p tsconfig.public.json",
         "tsc:watch": "rm -rf ./lib && tsc -w -p tsconfig.public.json",
         "test": "jest",
-        "build:dev": "rm -rf ./lib && NODE_ENV=development webpack",
         "init": "rm -r ./node_modules && npm i",
         "lint": "eslint .",
         "format": "prettier --write .",
         "link:dev": "node ./scripts/link.js",
-        "release:internal": "npm run test && npm publish --registry https://npm.pkg.github.com",
+        "release:internal": "npm run test && npm run tsc && npm publish --registry https://npm.pkg.github.com",
         "release": "npm run test && npm publish --access public --registry https://registry.npmjs.org/",
         "stress:build": "rm -f tests/stress/index.js && tsc -b ./tests/stress/tsconfig.json && node ./scripts/replaceSrc.js",
         "stress:test": "npm run stress:build && NODE_ENV=production node ./tests/stress/index.js"
