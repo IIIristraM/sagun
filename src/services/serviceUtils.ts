@@ -45,6 +45,6 @@ function serviceCacheKey<T extends BaseService<any, any>>(service: T, bind?: Sto
 export function serviceActionsFactory() {
     return cache(function <T extends BaseService<any, any>>(service: T, bind?: Store) {
         const actions = createActions(service, service.getUUID());
-        return ((bind ? bindActions(actions, bind) : actions) as any) as ActionAPI<T>;
+        return (bind ? bindActions(actions, bind) : actions) as any as ActionAPI<T>;
     }, serviceCacheKey);
 }

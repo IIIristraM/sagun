@@ -46,6 +46,12 @@ export type OperationFromId<T> = T extends OperationId<infer R, infer A, infer M
     ? AsyncOperation<R, A, M, E>
     : never;
 
+declare class DependencyMetaClass<D> {
+    private _type: D;
+}
+
+export type DependencyKey<D> = string & DependencyMetaClass<D>;
+
 export type Gen<R = any> = Generator<any, R, any>;
 
 export type Saga<TArgs extends any[] = any[], TRes = any> = (...args: TArgs) => Gen<TRes>;
@@ -91,4 +97,6 @@ export type OperationCreationOptions<TRes, TArgs extends any[]> = {
 
 export type Ctr<T> = new (...args: any) => T;
 
-export type CtrWithInject<T> = Ctr<T> & { __injects?: Ctr<any>[] };
+export type InjectionKey = Ctr<any> | DependencyKey<any>;
+
+export type CtrWithInject<T> = Ctr<T> & { __injects?: InjectionKey[] };

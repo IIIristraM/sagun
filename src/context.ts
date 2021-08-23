@@ -1,12 +1,11 @@
 import { createContext } from 'react';
 import { Indexed } from '@iiiristram/ts-type-utils';
 
-import { Ctr, CtrWithInject } from './types';
-import { BaseService } from './services/BaseService';
+import { Ctr, CtrWithInject, DependencyKey, InjectionKey } from './types';
 import { Dependency } from './services/Dependency';
 import { serviceActionsFactory } from './services';
 
-const EMPTY_ARR: any[] = [];
+const EMPTY_ARR: Ctr<Dependency>[] = [];
 
 export type SagaClientHash = Indexed<{
     args: any[];
@@ -16,6 +15,8 @@ export type SagaClientHash = Indexed<{
 export const DisableSsrContext = createContext<boolean>(false);
 
 export type IDIContext = {
+    registerDependency<D>(key: DependencyKey<D>, dependency: D): void;
+    getDependency<D>(key: DependencyKey<D>): D;
     registerService: (service: Dependency) => void;
     createService: <T extends Dependency>(Ctr: Ctr<T>) => T;
     getService: <T extends Dependency>(Ctr: Ctr<T>) => T;
@@ -24,31 +25,36 @@ export type IDIContext = {
 
 export type IDIContextFactory = () => IDIContext;
 
-function serviceFilter(dep: any) {
-    return dep.prototype instanceof BaseService;
-}
-
 export const getDIContext: IDIContextFactory = () => {
-    const container = {} as Indexed<Dependency>;
+    const container = {} as Indexed<any>;
     const createServiceActions = serviceActionsFactory();
 
-    const context: IDIContext = {
-        registerService(service) {
-            const key = service.toString();
-            if (container[key]) {
-                return;
-            }
+    function registerDependency<D>(key: DependencyKey<D>, dependency: D) {
+        if (container[key]) {
+            return;
+        }
 
-            container[key] = service;
+        container[key] = dependency;
+    }
+
+    function getDependency<D>(key: DependencyKey<D>): D {
+        const record = container[key];
+
+        if (!record) {
+            throw new Error(`Register dependency first by key ${key}`);
+        }
+
+        return record;
+    }
+
+    const context: IDIContext = {
+        registerDependency,
+        getDependency,
+        registerService(service) {
+            registerDependency(service.toString() as DependencyKey<Dependency>, service);
         },
         getService<T extends Dependency>(Ctr: Ctr<T>) {
-            const record = container[Ctr.prototype.toString()];
-
-            if (!record) {
-                throw new Error(`Register service first ${Ctr.name}`);
-            }
-
-            return (record as any) as T;
+            return getDependency(Ctr.prototype.toString());
         },
         createService<T extends Dependency>(Ctr: CtrWithInject<T>) {
             const key = Ctr.prototype.toString();
@@ -57,7 +63,7 @@ export const getDIContext: IDIContextFactory = () => {
             }
 
             let metaTarget = Ctr;
-            let meta: any[] | undefined;
+            let meta: InjectionKey[] | undefined;
 
             while (metaTarget) {
                 meta = metaTarget.__injects;
@@ -66,14 +72,11 @@ export const getDIContext: IDIContextFactory = () => {
                 metaTarget = Object.getPrototypeOf(metaTarget);
             }
 
-            function depMap(i: any) {
-                return context.getService(i);
+            function depMap(key: InjectionKey) {
+                return typeof key === 'function' ? context.getService(key) : getDependency(key);
             }
 
-            const serviceDeps = (meta || EMPTY_ARR).filter(serviceFilter);
-            const args = serviceDeps.map(depMap);
-
-            return new Ctr(...args);
+            return new Ctr(...(meta || EMPTY_ARR).map(depMap));
         },
         createServiceActions,
     };

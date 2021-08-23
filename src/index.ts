@@ -1,7 +1,7 @@
 export * from './hooks';
 export * from './decorators';
 export * from './services';
-export type { AsyncOperation, OperationId, OperationFromId, Gen, Saga, Action, Callable } from './types';
+export type { AsyncOperation, OperationId, OperationFromId, Gen, Saga, Action, Callable, DependencyKey } from './types';
 export { default as asyncOperationsReducer } from './reducer';
 export * from './context';
 export * from './components';

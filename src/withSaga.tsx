@@ -41,7 +41,7 @@ export function withSaga<P extends object, TRes, TArgs extends any[]>(options: {
 
 export function withSaga<P extends object, TRes, TArgs extends any[]>({
     sagaFactory,
-    argsMapper = () => ([] as any) as TArgs,
+    argsMapper = () => [] as any as TArgs,
     options,
 }: {
     sagaFactory: (context: IDIContext) => ComponentSaga<TArgs, TRes>;
@@ -78,7 +78,7 @@ export function withService<P extends object, TRes, TArgs extends any[], TServ e
 
 export function withService<P extends object, TRes, TArgs extends any[], TServ extends Service<TArgs, TRes>>({
     serviceFactory,
-    argsMapper = () => ([] as any) as TArgs,
+    argsMapper = () => [] as any as TArgs,
     options,
 }: {
     serviceFactory: (context: Pick<IDIContext, 'getService' | 'createService'>) => TServ;

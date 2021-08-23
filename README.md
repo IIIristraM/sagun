@@ -269,7 +269,7 @@ function MyComponent() {
 #### 4. Dependency injection
 
 It is possible to declare service dependencies via constructor arguments.
-Each dependency should be an instance of some class, that extends `Dependency` class.
+Each dependency should be ether an instance of some class, that extends `Dependency` class, or associated with a string uniq constant (dependency key).
 `Service` class has been already inherited from `Dependency`.
 Service with custom dependencies should mark them with `@inject` decorator.
 
@@ -287,11 +287,56 @@ class Service1 extends Service {
 ```
 
 ```ts
+// CustomClass.ts
+import {Dependency} from '@iiiristram/sagun';
+
+class CustomClass extends Dependency {
+    toString() {
+        return 'CustomClass'
+    }
+
+    ...
+}
+```
+
+```ts
+// customDependency.ts
+import {DependencyKey} from '@iiiristram/sagun';
+
+export type Data = {...}
+export const KEY = '...' as DependencyKey<Data>
+export const DATA: Data = {...}
+```
+
+```ts
+// somewhere in react components
+...
+const di = useDI();
+
+// register custom dependency by key
+di.registerDependency(KEY, DATA);
+
+// create instance of Dependency resolving all its dependencies
+const service1 = context.createService(Service1);
+const custom = context.createService(CustomClass);
+
+// register Dependency instancies so they could be resolved as dependencies for other services
+context.registerService(service1);
+context.registerService(custom);
+
+// create service with resolved dependencies after their registration
+const service2 = context.createService(Service2);
+...
+```
+
+```ts
 // Service2.ts
 import {Service, inject} from '@iiiristram/sagun';
 
 class Service2 extends Service {
     private _service1: Service1
+    private _customClass: CustomClass
+    private _data: Data
 
     toString() {
         return 'Service2'
@@ -300,10 +345,14 @@ class Service2 extends Service {
     constructor(
         // default dependency for all services
         @inject(OperationService) operationService: OperationService,
-        @inject(Service1) service1: Service1
+        @inject(Service1) service1: Service1,
+        @inject(CustomClass) customClass: CustomClass,
+        @inject(KEY) data: Data
     ) {
         super(operationService)
         this._service1 = service1
+        this._customClass = customClass
+        this._data = data
     }
     ...
 }
@@ -677,6 +726,10 @@ This hook return a context which is primally used to register and resolve depend
 
 ```ts
 type IDIContext = {
+    // register custom dependency by key
+    registerDependency<D>(key: DependencyKey<D>, dependency: D): void;
+    // get custom dependency by key
+    getDependency<D>(key: DependencyKey<D>): D;
     // register dependency instance
     registerService: (service: Dependency) => void;
     // create dependency instance resolving all sub-dependencies,
