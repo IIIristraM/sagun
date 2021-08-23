@@ -132,7 +132,7 @@ test('handle exceptions', () => {
             yield* put(actions.operation());
             yield* delay(0);
 
-            const state = ((yield* select()) as any) as Indexed;
+            const state = (yield* select()) as any as Indexed;
             const operationId = getId(testService.operation);
             expect(state.get(operationId)).toBeTruthy();
             expect(state.get(operationId).isLoading).toBe(false);

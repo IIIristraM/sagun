@@ -52,7 +52,7 @@ test('handle exceptions', () => {
             try {
                 yield* call(testService.operation);
             } catch (error) {
-                const state = ((yield* select()) as any) as Indexed;
+                const state = (yield* select()) as any as Indexed;
                 const operationId = getId(testService.operation);
                 expect(state.get(operationId)).toBeTruthy();
                 expect(state.get(operationId).isLoading).toBe(false);
@@ -392,7 +392,7 @@ test('service correctly handle operations', () => {
             yield* call(service.method3, 12);
             yield* call(service.method3, 13);
 
-            let state = ((yield* select()) as any) as Indexed;
+            let state = (yield* select()) as any as Indexed;
             expect(state.get(getId(service.method)!)).toBeTruthy();
             expect(state.get('10')).toBeTruthy();
             expect(state.get('11')).toBeTruthy();
@@ -401,7 +401,7 @@ test('service correctly handle operations', () => {
 
             yield* call(service.destroy);
 
-            state = ((yield* select()) as any) as Indexed;
+            state = (yield* select()) as any as Indexed;
             expect(state.get(getId(service.method)!)).toBe(undefined);
             expect(state.get('10')).toBe(undefined);
             expect(state.get('11')).toBe(undefined);

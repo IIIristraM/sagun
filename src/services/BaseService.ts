@@ -28,7 +28,7 @@ export class BaseService<TRunArgs extends any[] = [], TRes = void> extends Depen
 
         const methods = getClassMethods(this);
         methods.forEach(m => {
-            const origin = (this[m as keyof this] as any) as Function;
+            const origin = this[m as keyof this] as any as Function;
             const bond = origin.bind(this);
             // copy possible decorators meta
             this[m as keyof this] = Object.assign(bond, origin);
@@ -47,7 +47,7 @@ export class BaseService<TRunArgs extends any[] = [], TRes = void> extends Depen
 
             const daemon = createDaemon(
                 __$action || actions[key as keyof typeof actions].toString(),
-                (method as any) as Saga,
+                method as any as Saga,
                 {
                     mode: __$daemonMode,
                 }

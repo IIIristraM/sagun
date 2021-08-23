@@ -28,7 +28,7 @@ export function useSaga<TArgs extends any[], TRes>(
 
 export function useSaga<TArgs extends any[], TRes>(
     saga: ComponentSaga<TArgs, TRes>,
-    args: TArgs = ([] as any) as TArgs,
+    args: TArgs = [] as any as TArgs,
     options?: UseSagaOptions<TArgs, TRes>
 ) {
     const diContext = useDI();

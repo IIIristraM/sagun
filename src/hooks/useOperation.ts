@@ -59,9 +59,9 @@ export const useOperation = Object.assign(
         }, []);
 
         const operation = useSelector(function getOperation(state: Indexed) {
-            return ((PATH?.(state)?.get(operationId) ||
+            return (PATH?.(state)?.get(operationId) ||
                 defaultState ||
-                {}) as any) as Partial<AsyncOperation<TRes, TArgs, TMeta, TErr>>;
+                {}) as any as Partial<AsyncOperation<TRes, TArgs, TMeta, TErr>>;
         });
 
         if (!operation) {

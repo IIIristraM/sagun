@@ -20,14 +20,12 @@ export class TestAPI {
         };
     });
 
-    getUserDetails = jest.fn(
-        async (login: string): Promise<UserDetails> => {
-            await wait(this._delay);
-            return {
-                cardLastDigits: '**00',
-            };
-        }
-    );
+    getUserDetails = jest.fn(async (login: string): Promise<UserDetails> => {
+        await wait(this._delay);
+        return {
+            cardLastDigits: '**00',
+        };
+    });
 
     getList = jest.fn(async () => {
         await wait(this._delay);
