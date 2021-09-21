@@ -1,6 +1,6 @@
 {
     "name": "@iiiristram/sagun",
-    "version": "0.0.17",
+    "version": "0.0.18",
     "description": "",
     "main": "./lib/index.js",
     "types": "./lib/types/index.d.ts",
