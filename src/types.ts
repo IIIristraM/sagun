@@ -64,9 +64,9 @@ export type ReplaceSaga<T, TArgs extends any[] = any[], TRes = any> = T extends 
     : never;
 
 export type Callable<TArgs extends any[] = any[], TRes = any> =
-    | ((...args: TArgs) => TRes)
     | ((...args: TArgs) => Promise<TRes>)
-    | Saga<TArgs, TRes>;
+    | Saga<TArgs, TRes>
+    | ((...args: TArgs) => TRes);
 
 export type CallEffectTarget<TArgs extends any[] = any[], TRes = any> =
     | Callable<TArgs, TRes>
