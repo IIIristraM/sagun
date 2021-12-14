@@ -7,7 +7,7 @@ import { isNodeEnv } from '../utils/isNodeEnv';
 import { OperationCreationOptions } from '../types';
 import { Service } from './Service';
 
-export type LoadOptions<TArgs extends any[], TRes> = OperationCreationOptions<TRes, TArgs> & {
+export type LoadOptions<TArgs extends any[] | readonly any[], TRes> = OperationCreationOptions<TRes, TArgs> & {
     loadId: string;
 };
 

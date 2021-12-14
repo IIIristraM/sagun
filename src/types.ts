@@ -54,7 +54,7 @@ export type DependencyKey<D> = string & DependencyMetaClass<D>;
 
 export type Gen<R = any> = Generator<any, R, any>;
 
-export type Saga<TArgs extends any[] = any[], TRes = any> = (...args: TArgs) => Gen<TRes>;
+export type Saga<TArgs extends any[] | readonly any[] = any[], TRes = any> = (...args: TArgs) => Gen<TRes>;
 export type NoYieldSaga<TArgs extends any[] = any[], TRes = any> = (...args: TArgs) => Generator<never, TRes, any>;
 
 export type ReplaceSaga<T, TArgs extends any[] = any[], TRes = any> = T extends (
@@ -76,17 +76,17 @@ export type ExtractOperation<T> = T extends Saga<infer TArgs, infer TRes> ? Oper
 
 export type ServiceMethod<T> = T & { id?: ExtractOperation<T> };
 
-export type ComponentSaga<TArgs extends any[], TRes> = {
+export type ComponentSaga<TArgs extends any[] | readonly any[], TRes> = {
     onLoad?: Saga<TArgs, TRes>;
     onDispose?: Saga<TArgs>;
 };
 
-export type IOperationUpdateStrategy<TRes, TArgs extends any[]> = Callable<
+export type IOperationUpdateStrategy<TRes, TArgs extends any[] | readonly any[]> = Callable<
     [AsyncOperation<TRes, TArgs>],
     AsyncOperation<TRes, TArgs>
 >;
 
-export type OperationCreationOptions<TRes, TArgs extends any[]> = {
+export type OperationCreationOptions<TRes, TArgs extends any[] | readonly any[]> = {
     operationId: OperationId<TRes, TArgs>;
     saga: ComponentSaga<TArgs, TRes>;
     args: TArgs;

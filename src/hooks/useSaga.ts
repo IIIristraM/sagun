@@ -8,7 +8,7 @@ import { isNodeEnv } from '../utils/isNodeEnv';
 import { useDI } from './useDI';
 import { UUIDGenerator } from '../services/UUIDGenerator';
 
-export type UseSagaOptions<TArgs extends any[], TRes> = {
+export type UseSagaOptions<TArgs extends any[] | readonly any[], TRes> = {
     operationOptions?: LoadOptions<TArgs, TRes>['options'];
 };
 
@@ -20,7 +20,7 @@ export type UseSagaOutput<TRes, TArgs> = {
 const EMPTY_ARR = [] as any[];
 
 export function useSaga<TRes>(saga: ComponentSaga<[], TRes>): UseSagaOutput<TRes, []>;
-export function useSaga<TArgs extends any[], TRes>(
+export function useSaga<TArgs extends any[] | readonly any[], TRes>(
     saga: ComponentSaga<TArgs, TRes>,
     args: TArgs,
     options?: UseSagaOptions<TArgs, TRes>

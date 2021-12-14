@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { act } from 'react-dom/test-utils';
 import { call } from 'typed-redux-saga';
 import createSagaMiddleware from 'redux-saga';
+import { Exact } from '@iiiristram/ts-type-utils';
 import jsdom from 'jsdom';
 import { Provider } from 'react-redux';
 import ReactDOM from 'react-dom';
@@ -20,6 +21,10 @@ import { wait } from '_test/utils';
 
 const DELAY = 50;
 const ARGS = ['xxx'];
+
+function exact<T, Expected>(result: Exact<T, Expected>) {
+    //
+}
 
 type Props = {
     operationService: OperationService;
@@ -360,4 +365,42 @@ describe('useSaga', () => {
         task.cancel();
         await task.toPromise();
     });
+
+    test('types are correctly inferred from hook args', () => {
+        // @ts-ignore
+        function TestComponent() {
+            const arg0 = 1;
+            const arg1 = '1';
+            const args: [number, string] = [arg0, arg1]
+
+            useSaga({
+                onLoad: function * (a, b) {
+                    exact<typeof a, number>(true);
+                    exact<typeof b, string>(true);
+                }
+            }, args)
+
+            useSaga({
+                onLoad: function * (a, b) {
+                    exact<typeof a, 1>(true);
+                    exact<typeof b, '1'>(true);
+                }
+            }, [arg0, arg1] as const)
+
+            useSaga<[number, string], void>({
+                onLoad: function * (a, b) {
+                    exact<typeof a, number>(true);
+                    exact<typeof b, string>(true);
+                }
+            }, [arg0, arg1])
+
+            useSaga<[string, number], void>({
+                onLoad: function * (a, b) {
+                }
+                // @ts-expect-error
+            }, [arg0, arg1])
+
+            return null;
+        }
+    })
 });

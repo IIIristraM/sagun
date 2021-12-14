@@ -1,6 +1,3 @@
-/**
- * @jest-environment jsdom
- */
 import { applyMiddleware, createStore } from 'redux';
 import React, { useEffect } from 'react';
 import { call } from 'typed-redux-saga';
@@ -21,10 +18,10 @@ const store = applyMiddleware(sagaMiddleware)(createStore)(reducer);
 const operationService = new OperationService({ hash: {} });
 const componentLifecycleService = new ComponentLifecycleService(operationService);
 
-const processLoading = jest.fn((x: string) => ({}));
+const processLoading = jest.fn((x: string, y: number) => ({}));
 const processDisposing = jest.fn(() => ({}));
 
-class TestServiceClass extends Service<[string]> {
+class TestServiceClass extends Service<[string, number]> {
     toString() {
         return 'TestServiceClass';
     }
@@ -34,14 +31,14 @@ class TestServiceClass extends Service<[string]> {
         return 1;
     }
 
-    *run(...args: [string]) {
-        yield call(processLoading, ...args);
-        return yield call([this, super.run], ...args);
+    *run(...args: [string, number]) {
+        yield* call(processLoading, ...args);
+        return yield* call([this, super.run], ...args);
     }
 
-    *destroy(...args: [string]) {
-        yield call(processDisposing);
-        yield call([this, super.destroy], ...args);
+    *destroy(...args: [string, number]) {
+        yield* call(processDisposing);
+        yield* call([this, super.destroy], ...args);
     }
 }
 
@@ -59,6 +56,9 @@ test('useService runs and destroys service', async () => {
         </html>
     `);
 
+    (global as any).window = window;
+    (global as any).document = window.document;
+
     const appEl = window.document.getElementById('app')!;
     const mountDefer = createDeferred();
     const unmountDefer = createDeferred();
@@ -71,7 +71,7 @@ test('useService runs and destroys service', async () => {
     });
 
     const TestComponent: React.FC<{}> = () => {
-        useService(new TestServiceClass(operationService), ['1']);
+        useService(new TestServiceClass(operationService), ['1', 1]);
 
         useEffect(() => {
             mountDefer.resolve();
@@ -96,6 +96,39 @@ test('useService runs and destroys service', async () => {
     task.cancel();
 
     expect(processLoading).toHaveBeenCalledTimes(1);
-    expect(processLoading).toHaveBeenCalledWith('1');
+    expect(processLoading).toHaveBeenCalledWith('1', 1);
     expect(processDisposing).toHaveBeenCalledTimes(1);
 });
+
+test('types are correctly inferred from hook args', () => {
+    // @ts-ignore
+    function TestComponent() {
+        const arg0 = 1;
+        const arg1 = '1';
+        const args: [string, number] = [arg1, arg0]
+
+        useService(new TestServiceClass(operationService), args)
+
+        useService(new TestServiceClass(operationService), [arg1, arg0])
+
+        useService(
+            new TestServiceClass(operationService), 
+            // TODO error is preferable
+            [arg0, arg1]
+        )
+
+        useService<[number, string], void>(
+            // @ts-expect-error
+            new TestServiceClass(operationService), 
+            [arg0, arg1]
+        )
+
+        useService<[string, number], void>(
+            new TestServiceClass(operationService), 
+            // @ts-expect-error
+            [arg0, arg1]
+        )
+
+        return null;
+    }
+})

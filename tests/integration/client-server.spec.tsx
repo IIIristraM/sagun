@@ -317,7 +317,7 @@ test('async dependent siblings', async () => {
 test('multiple component instances', async () => {
     return isolate(async () => {
         const HeaderAsync = load(() => import('./components/Header'));
-        const UserDetailsAsync = require('./components/UserDetails').default;
+        const UserDetailsAsync = load(() => import('./components/UserDetails'));
 
         const renderApp = ({ store, service, operationService }: GetProps<typeof App>) => (
             <App store={store} service={service} operationService={operationService}>

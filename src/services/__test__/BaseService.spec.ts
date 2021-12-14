@@ -25,7 +25,7 @@ describe('BaseService', () => {
 
             *run() {
                 yield call(this.method);
-                return yield call([this, super.run]);
+                return yield* call([this, super.run]);
             }
 
             *destroy() {
