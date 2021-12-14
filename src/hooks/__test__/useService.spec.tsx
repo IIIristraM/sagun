@@ -105,30 +105,30 @@ test('types are correctly inferred from hook args', () => {
     function TestComponent() {
         const arg0 = 1;
         const arg1 = '1';
-        const args: [string, number] = [arg1, arg0]
+        const args: [string, number] = [arg1, arg0];
 
-        useService(new TestServiceClass(operationService), args)
+        useService(new TestServiceClass(operationService), args);
 
-        useService(new TestServiceClass(operationService), [arg1, arg0])
+        useService(new TestServiceClass(operationService), [arg1, arg0]);
 
         useService(
-            new TestServiceClass(operationService), 
+            new TestServiceClass(operationService),
             // TODO error is preferable
             [arg0, arg1]
-        )
+        );
 
         useService<[number, string], void>(
             // @ts-expect-error
-            new TestServiceClass(operationService), 
+            new TestServiceClass(operationService),
             [arg0, arg1]
-        )
+        );
 
         useService<[string, number], void>(
-            new TestServiceClass(operationService), 
+            new TestServiceClass(operationService),
             // @ts-expect-error
             [arg0, arg1]
-        )
+        );
 
         return null;
     }
-})
+});

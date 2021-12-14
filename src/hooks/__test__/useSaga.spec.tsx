@@ -371,36 +371,47 @@ describe('useSaga', () => {
         function TestComponent() {
             const arg0 = 1;
             const arg1 = '1';
-            const args: [number, string] = [arg0, arg1]
+            const args: [number, string] = [arg0, arg1];
 
-            useSaga({
-                onLoad: function * (a, b) {
-                    exact<typeof a, number>(true);
-                    exact<typeof b, string>(true);
-                }
-            }, args)
+            useSaga(
+                {
+                    onLoad: function* (a, b) {
+                        exact<typeof a, number>(true);
+                        exact<typeof b, string>(true);
+                    },
+                },
+                args
+            );
 
-            useSaga({
-                onLoad: function * (a, b) {
-                    exact<typeof a, 1>(true);
-                    exact<typeof b, '1'>(true);
-                }
-            }, [arg0, arg1] as const)
+            useSaga(
+                {
+                    onLoad: function* (a, b) {
+                        exact<typeof a, 1>(true);
+                        exact<typeof b, '1'>(true);
+                    },
+                },
+                [arg0, arg1] as const
+            );
 
-            useSaga<[number, string], void>({
-                onLoad: function * (a, b) {
-                    exact<typeof a, number>(true);
-                    exact<typeof b, string>(true);
-                }
-            }, [arg0, arg1])
+            useSaga<[number, string], void>(
+                {
+                    onLoad: function* (a, b) {
+                        exact<typeof a, number>(true);
+                        exact<typeof b, string>(true);
+                    },
+                },
+                [arg0, arg1]
+            );
 
-            useSaga<[string, number], void>({
-                onLoad: function * (a, b) {
-                }
-                // @ts-expect-error
-            }, [arg0, arg1])
+            useSaga<[string, number], void>(
+                {
+                    onLoad: function* (a, b) {},
+                    // @ts-expect-error
+                },
+                [arg0, arg1]
+            );
 
             return null;
         }
-    })
+    });
 });
