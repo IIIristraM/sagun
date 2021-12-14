@@ -406,8 +406,8 @@ describe('useSaga', () => {
             useSaga<[string, number], void>(
                 {
                     onLoad: function* (a, b) {},
-                    // @ts-expect-error
                 },
+                // @ts-expect-error
                 [arg0, arg1]
             );
 
