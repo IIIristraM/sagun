@@ -496,7 +496,7 @@ class MyService extends Service {
 
     @operation({
         updateStrategy: function* mergeStrategy(next) {
-            const prev = yield call(state => state.asyncOperations.get(next.id));
+            const prev = yield select(state => state.asyncOperations.get(next.id));
             return {
                 ...next,
                 result: prev?.result && next.result ? [...prev.result, ...next.result] : next.result || prev?.result,
