@@ -884,8 +884,6 @@ class MyService extends Service {
 function MyComponent() {
     const {operationId} = useSaga({
         onLoad: myService.fetchSomething,
-        // enable Suspense compatibility
-        suspense: true
     })
 
     return (
