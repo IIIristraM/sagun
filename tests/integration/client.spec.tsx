@@ -8,23 +8,14 @@ import {
     useOperation,
     useSaga,
 } from '_lib/';
+import { getSagaRunner, wait } from '_test/utils';
 import React, { Suspense } from 'react';
-import { act } from 'react-dom/test-utils';
 import { combineReducers } from 'redux';
-import { getSagaRunner } from '_test/utils';
 import jsdom from 'jsdom';
 import { Provider } from 'react-redux';
-import ReactDOM from 'react-dom';
+import ReactDOM from 'react-dom/client';
 
 const DELAY = 50;
-
-beforeAll(() => {
-    jest.useFakeTimers();
-});
-
-afterAll(() => {
-    jest.useRealTimers();
-});
 
 test('execute nested sagas on client', async () => {
     const runner = getSagaRunner(
@@ -67,9 +58,11 @@ test('execute nested sagas on client', async () => {
         );
 
         return (
-            <Operation operationId={operationId}>
-                {({ result }) => (result && result < 5 ? <Item x={result} /> : null)}
-            </Operation>
+            <Suspense fallback="">
+                <Operation operationId={operationId}>
+                    {({ result }) => (result && result < 5 ? <Item x={result} /> : null)}
+                </Operation>
+            </Suspense>
         );
     };
 
@@ -88,21 +81,17 @@ test('execute nested sagas on client', async () => {
         );
     };
 
-    await act(async () => {
-        ReactDOM.render(
-            <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                <Provider store={runner.store}>
-                    <App />
-                </Provider>
-            </Root>,
-            window.document.getElementById('app')!
-        );
-    });
+    const container = ReactDOM.createRoot(window.document.getElementById('app')!);
+    container.render(
+        <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
+            <Provider store={runner.store}>
+                <App />
+            </Provider>
+        </Root>
+    );
 
     for (let step = 1; step <= 3; step++) {
-        await act(async () => {
-            jest.advanceTimersByTime(DELAY + 1);
-        });
+        await wait(DELAY * 20);
     }
 
     task.cancel();
