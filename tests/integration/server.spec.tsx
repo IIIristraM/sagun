@@ -10,9 +10,10 @@ import {
     useSaga,
 } from '_lib/';
 import React, { Suspense } from 'react';
+import { createDeferred } from '_lib/utils/createDeferred';
 import { getSagaRunner } from '_test/utils';
 import { Provider } from 'react-redux';
-import { renderToStringAsync } from '_lib/serverRender';
+import { renderToPipeableStream } from 'react-dom/server';
 
 const DELAY = 5;
 
@@ -38,7 +39,11 @@ test('execute sagas on server', async () => {
             },
         });
 
-        return <Operation operationId={operationId}>{() => <div />}</Operation>;
+        return (
+            <Suspense fallback="">
+                <Operation operationId={operationId}>{() => <div />}</Operation>;
+            </Suspense>
+        );
     };
 
     const App = () => {
@@ -58,9 +63,7 @@ test('execute sagas on server', async () => {
                             <DisableSsrContext.Provider value={true}>
                                 {/* should be separate suspense or siblings also will be aborted */}
                                 {/* https://github.com/overlookmotel/react-async-ssr#optimization-bail-out-of-rendering-when-suspended */}
-                                <Suspense fallback="">
-                                    <Item />
-                                </Suspense>
+                                <Item />
                             </DisableSsrContext.Provider>
                             <Item />
                         </>
@@ -70,15 +73,24 @@ test('execute sagas on server', async () => {
         );
     };
 
-    await renderToStringAsync(
+    const defer = createDeferred();
+    renderToPipeableStream(
         <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
             <Provider store={runner.store}>
                 <App />
             </Provider>
         </Root>,
-        { fallbackFast: true }
+        {
+            onAllReady() {
+                defer.resolve();
+            },
+            onError(err) {
+                console.error(err);
+            },
+        }
     );
 
+    await defer.promise;
     task.cancel();
     await task.toPromise();
 
@@ -116,9 +128,11 @@ test('execute nested sagas on server', async () => {
         );
 
         return (
-            <Operation operationId={operationId}>
-                {({ result }) => (result && result < 5 ? <Item x={result} /> : null)}
-            </Operation>
+            <Suspense fallback="">
+                <Operation operationId={operationId}>
+                    {({ result }) => (result && result < 5 ? <Item x={result} /> : null)}
+                </Operation>
+            </Suspense>
         );
     };
 
@@ -137,14 +151,24 @@ test('execute nested sagas on server', async () => {
         );
     };
 
-    await renderToStringAsync(
+    const defer = createDeferred();
+    renderToPipeableStream(
         <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
             <Provider store={runner.store}>
                 <App />
             </Provider>
-        </Root>
+        </Root>,
+        {
+            onAllReady() {
+                defer.resolve();
+            },
+            onError(err) {
+                console.error(err);
+            },
+        }
     );
 
+    await defer.promise;
     task.cancel();
     await task.toPromise();
 

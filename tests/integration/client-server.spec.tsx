@@ -1,13 +1,13 @@
 import { applyMiddleware, combineReducers, createStore, Store } from 'redux';
 import { GetProps, Provider } from 'react-redux';
 import React, { Suspense } from 'react';
-import { act } from 'react-dom/test-utils';
 import { call } from 'typed-redux-saga';
 import createSagaMiddleware from 'redux-saga';
 import { ExtractArgs } from '@iiiristram/ts-type-utils';
 import jsdom from 'jsdom';
+import { PassThrough } from 'stream';
 import prettier from 'prettier';
-import ReactDOM from 'react-dom';
+import ReactDOM from 'react-dom/client';
 
 import {
     asyncOperationsReducer,
@@ -19,11 +19,12 @@ import {
     useOperation,
     useService,
 } from '_lib/';
-import { renderToStringAsync } from '_lib/serverRender';
+import { renderToPipeableStream } from 'react-dom/server';
 
 import { api, DELAY } from './TestAPI';
 import { isolate, resource, wait } from '../utils';
 import Content from './components/Content';
+import { createDeferred } from '_lib/utils/createDeferred';
 import Table from './components/Table';
 import { TestService } from './TestService';
 import UserInfo from './components/UserInfo';
@@ -108,8 +109,27 @@ async function nodeRender(renderApp: ({ store }: GetProps<typeof App>) => JSX.El
         yield* call(service.run);
     });
 
-    const html = await renderToStringAsync(renderApp({ store, service, operationService }));
+    let html = '';
+    const defer = createDeferred();
+    const stream = renderToPipeableStream(renderApp({ store, service, operationService }), {
+        onAllReady() {
+            const s = new PassThrough();
+            stream.pipe(s);
 
+            s.on('data', chunk => {
+                html += chunk;
+            });
+
+            s.on('end', () => {
+                defer.resolve();
+            });
+        },
+        onError(err) {
+            console.error(err);
+        },
+    });
+
+    await defer.promise;
     task.cancel();
     await task.toPromise();
 
@@ -142,30 +162,19 @@ async function clientRender(
     });
 
     const appEl = window.document.getElementById('app');
+    ReactDOM.hydrateRoot(
+        appEl!,
+        renderApp({
+            store,
+            service,
+            operationService,
+        })
+    );
 
-    await act(async () => {
-        ReactDOM.hydrate(
-            renderApp({
-                store,
-                service,
-                operationService,
-            }),
-            appEl,
-            () => {
-                // handle hydration warnings
-                // expect(console.error).toHaveBeenCalledTimes(0);
-            }
-        );
-    });
-
-    jest.useFakeTimers();
     const maxRequests = 4;
     for (let steps = 0; steps < maxRequests; steps++) {
-        await act(async () => {
-            jest.advanceTimersByTime(DELAY + 1);
-        });
+        await wait(DELAY * 2);
     }
-    jest.useRealTimers();
 
     task.cancel();
     await task.toPromise();
@@ -368,7 +377,27 @@ test('fragments', async () => {
         </div>
     );
 
-    const html = await renderToStringAsync(<App />);
+    let html = '';
+    const defer = createDeferred();
+    const stream = renderToPipeableStream(<App />, {
+        onAllReady() {
+            const s = new PassThrough();
+            stream.pipe(s);
+
+            s.on('data', chunk => {
+                html += chunk;
+            });
+
+            s.on('end', () => {
+                defer.resolve();
+            });
+        },
+        onError(err) {
+            console.error(err);
+        },
+    });
+
+    await defer.promise;
 
     const { window } = new jsdom.JSDOM(`
             <html>
@@ -382,7 +411,7 @@ test('fragments', async () => {
     (global as any).document = window.document;
 
     r1 = resource();
-    ReactDOM.hydrate(<App />, window.document.getElementById('app'));
+    ReactDOM.hydrateRoot(window.document.getElementById('app')!, <App />);
 
     await wait(50);
 
@@ -390,5 +419,5 @@ test('fragments', async () => {
     console.log(window.document.getElementById('app')?.innerHTML);
     // this is actually a bug, seems like sibling fragments renders wrong inside Suspense
     // does not reproduce in React 17
-    expect(global.window.document.getElementsByClassName('1').length).toBe(2);
+    expect(global.window.document.getElementsByClassName('1').length).toBe(1);
 });
