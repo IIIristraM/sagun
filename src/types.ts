@@ -1,4 +1,4 @@
-import { Exact, ExtractArgs, ExtractByType, ReplaceReturn } from '@iiiristram/ts-type-utils';
+import { Exact, ExtractByType, ReplaceReturn } from '@iiiristram/ts-type-utils';
 import Redux from 'redux';
 
 export type Action<P, T = string> = Redux.Action<T> & {
@@ -13,7 +13,7 @@ export interface ActionCreator<P, T = any> {
 export type ActionAPI<T> = {
     [K in keyof (ExtractByType<T, Saga> & ExtractByType<T, NoYieldSaga>)]: ReplaceReturn<
         T[K],
-        Action<ExtractArgs<T[K]>>
+        T[K] extends (...args: any) => any ? Action<Parameters<T[K]>> : never
     >;
 };
 

@@ -1,12 +1,15 @@
-import { bindActionCreators, Store } from 'redux';
-import { Indexed } from '@iiiristram/ts-type-utils';
+import { ActionCreator, bindActionCreators, Store } from 'redux';
 
 import { ActionAPI, ExtractOperation } from '../types';
 import { BaseService } from './BaseService';
 import { createActions } from '../utils/createActions';
 
-function bindActions<A extends Indexed>(obj: A, store: Store) {
-    const result: Indexed = {};
+type ActionsMap = {
+    [key: string]: ActionCreator<unknown> | ActionsMap;
+};
+
+function bindActions<A extends ActionsMap>(obj: A, store: Store) {
+    const result: ActionsMap = {};
 
     function keyMap(key: string) {
         const subObj = obj[key];

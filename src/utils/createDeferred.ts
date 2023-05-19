@@ -4,7 +4,7 @@ export type Deferred<T> = {
     promise: Promise<T>;
 };
 
-function swallow() {
+function swallow(): undefined {
     return undefined;
 }
 

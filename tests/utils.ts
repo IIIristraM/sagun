@@ -1,12 +1,17 @@
 import { AnyAction, applyMiddleware, createStore, Reducer, Store } from 'redux';
-import createSagaMiddleware from 'redux-saga';
+import createSagaMiddleware, { SagaMiddleware } from 'redux-saga';
+import { Exact } from '@iiiristram/ts-type-utils';
 
+type Runner<S = any> = {
+    run: SagaMiddleware<object>['run'];
+    store: Store<S, AnyAction>;
+};
+
+export function getSagaRunner(): Runner;
+export function getSagaRunner<T extends Reducer<any, AnyAction>>(reducer: T): Runner<ReturnType<T>>;
 export function getSagaRunner<T extends Reducer<any, AnyAction>>(reducer?: T) {
     const sagaMiddleware = createSagaMiddleware();
-    const store = applyMiddleware(sagaMiddleware)(createStore)(reducer || (x => x)) as undefined extends T
-        ? Store<any, AnyAction>
-        : Store<ReturnType<T>, AnyAction>;
-
+    const store = applyMiddleware(sagaMiddleware)(createStore)(reducer || (x => x));
     return { run: sagaMiddleware.run, store };
 }
 
@@ -48,3 +53,7 @@ export const resource = () => {
         },
     };
 };
+
+export function exact<T, Expected>(result: Exact<T, Expected>) {
+    //
+}

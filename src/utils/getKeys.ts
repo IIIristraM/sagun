@@ -1,6 +1,4 @@
-import { Indexed } from '@iiiristram/ts-type-utils';
-
-export function getKeys(source: Indexed) {
+export function getKeys(source: {} | Function) {
     const props = new Set<string>();
 
     let obj = source;
@@ -17,7 +15,7 @@ export function getKeys(source: Indexed) {
     return Array.from(props);
 }
 
-export function getClassMethods<T extends Indexed | Function>(source: T) {
+export function getClassMethods<T extends {} | Function>(source: T) {
     let props = getKeys(source);
 
     const omitMethods = [

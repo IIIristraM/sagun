@@ -1,6 +1,5 @@
 import { useContext, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Indexed } from '@iiiristram/ts-type-utils';
 import { NO_SSR } from 'react-async-ssr/symbols';
 
 import { AsyncOperation, OperationId } from '../types';
@@ -58,7 +57,7 @@ export const useOperation = Object.assign(
             };
         }, []);
 
-        const operation = useSelector(function getOperation(state: Indexed) {
+        const operation = useSelector(function getOperation(state: Record<string, unknown>) {
             return (PATH?.(state)?.get(operationId) ||
                 defaultState ||
                 {}) as any as Partial<AsyncOperation<TRes, TArgs, TMeta, TErr>>;
