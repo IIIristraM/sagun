@@ -4,7 +4,6 @@ import React, { Suspense } from 'react';
 import { act } from 'react-dom/test-utils';
 import { call } from 'typed-redux-saga';
 import createSagaMiddleware from 'redux-saga';
-import { ExtractArgs } from '@iiiristram/ts-type-utils';
 import jsdom from 'jsdom';
 import prettier from 'prettier';
 import ReactDOM from 'react-dom';
@@ -34,11 +33,11 @@ type AppStore = {
 
 useOperation.setPath((state: AppStore) => state.asyncOperations);
 
-function load<T extends React.ComponentType<any>>(promise: () => Promise<{ default: T }>) {
+function load<T extends React.FC<any>>(promise: () => Promise<{ default: T }>) {
     let Component: T | undefined;
     let innerPromise: Promise<void>;
 
-    return function LoadComponent(props: ExtractArgs<T>[0]) {
+    return function LoadComponent(props: Parameters<T>[0]) {
         if (!innerPromise) {
             innerPromise = new Promise<void>(resolve => {
                 promise().then(res => {

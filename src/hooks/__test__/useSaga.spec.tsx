@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { act } from 'react-dom/test-utils';
 import { call } from 'typed-redux-saga';
 import createSagaMiddleware from 'redux-saga';
-import { Exact } from '@iiiristram/ts-type-utils';
 import jsdom from 'jsdom';
 import { Provider } from 'react-redux';
 import ReactDOM from 'react-dom';
@@ -17,14 +16,10 @@ import reducer from '../../reducer';
 import { Root } from '../../components/Root';
 import { useSaga } from '../useSaga';
 
-import { wait } from '_test/utils';
+import { exact, wait } from '_test/utils';
 
 const DELAY = 50;
 const ARGS = ['xxx'];
-
-function exact<T, Expected>(result: Exact<T, Expected>) {
-    //
-}
 
 type Props = {
     operationService: OperationService;
@@ -73,7 +68,7 @@ describe('useSaga', () => {
             x,
             processOperationId,
         }) => {
-            const { operationId, reload } = useSaga({ onLoad, onDispose }, [...ARGS, x]);
+            const { operationId, reload } = useSaga({ onLoad, onDispose }, [...ARGS, x] as [string, number]);
 
             if (processOperationId) {
                 processOperationId(operationId);
@@ -298,14 +293,14 @@ describe('useSaga', () => {
         const { sagaMiddleware, App } = initTest();
 
         const fn = jest.fn(() => {});
-        const id = 'test_id' as OperationId<void>;
+        const id = 'test_id' as OperationId<void, [number]>;
         class TestService extends Service {
             toString() {
                 return 'TestService';
             }
 
             @operation(id)
-            *method() {
+            *method(x: number) {
                 fn();
             }
         }
@@ -321,7 +316,7 @@ describe('useSaga', () => {
         const componentLifecycleService = new ComponentLifecycleService(operationService);
         const service = new TestService(operationService);
 
-        const TestComponent = ({ x }: { x: number }) => {
+        const TestComponent = ({ x }: { x: number }): null => {
             useSaga({ onLoad: service.method }, [x]);
             return null;
         };

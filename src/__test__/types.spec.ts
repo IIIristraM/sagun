@@ -1,11 +1,8 @@
 import { call } from 'typed-redux-saga';
-import { Exact } from '@iiiristram/ts-type-utils';
+
+import { exact } from '_test/utils';
 
 import { Callable } from '../types';
-
-function exact<T, Expected>(result: Exact<T, Expected>) {
-    //
-}
 
 function testFn<TArgs extends any[], TRes>(cb: Callable<TArgs, TRes>) {
     return function* (...args: TArgs) {
@@ -13,7 +10,7 @@ function testFn<TArgs extends any[], TRes>(cb: Callable<TArgs, TRes>) {
     };
 }
 
-test('Test Callable<TArgs, TRes>', () => {
+test('Test Callable<TArgs, TRes>', (): undefined => {
     function* testGen() {
         const sync = yield* call(testFn(() => 1));
         exact<typeof sync, number>(true);

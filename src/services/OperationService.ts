@@ -1,5 +1,4 @@
 import { apply, call } from 'typed-redux-saga';
-import { ExtractArgs, Indexed } from '@iiiristram/ts-type-utils';
 
 import { createDeferred, Deferred } from '../utils/createDeferred';
 import { daemon, DaemonMode } from '../decorators';
@@ -17,10 +16,10 @@ export class OperationService extends BaseService {
     }
 
     private _hash: SagaClientHash | undefined;
-    private _operations: Indexed<ReturnType<typeof createOperation> | undefined> = {};
-    private _operationConsumers: Indexed<Set<object>> = {};
-    private _consumerOperations = new WeakMap<object, Indexed<string>>();
-    private _operationSubscriptions: Indexed<Deferred<unknown> | undefined> = {};
+    private _operations: Record<string, ReturnType<typeof createOperation> | undefined> = {};
+    private _operationConsumers: Record<string, Set<object>> = {};
+    private _consumerOperations = new WeakMap<object, Record<string, string>>();
+    private _operationSubscriptions: Record<string, Deferred<unknown> | undefined> = {};
 
     private createSubscription<TArgs extends any[], TRes>(id: string, run: Saga<TArgs, TRes>) {
         const self = this;
@@ -59,7 +58,7 @@ export class OperationService extends BaseService {
         operationArgs,
         ssr = false,
     }: {
-        operationArgs: ExtractArgs<typeof createOperation>;
+        operationArgs: Parameters<typeof createOperation>;
         ssr?: boolean;
     }) {
         const self = this;

@@ -1,5 +1,4 @@
 import { createContext } from 'react';
-import { Indexed } from '@iiiristram/ts-type-utils';
 
 import { Ctr, CtrWithInject, DependencyKey, InjectionKey } from './types';
 import { Dependency } from './services/Dependency';
@@ -7,10 +6,13 @@ import { serviceActionsFactory } from './services';
 
 const EMPTY_ARR: Ctr<Dependency>[] = [];
 
-export type SagaClientHash = Indexed<{
-    args: any[];
-    result: any;
-}>;
+export type SagaClientHash = Record<
+    string,
+    {
+        args: any[];
+        result: any;
+    }
+>;
 
 export const DisableSsrContext = createContext<boolean>(false);
 
@@ -26,7 +28,7 @@ export type IDIContext = {
 export type IDIContextFactory = () => IDIContext;
 
 export const getDIContext: IDIContextFactory = () => {
-    const container = {} as Indexed<any>;
+    const container = {} as Record<string, any>;
     const createServiceActions = serviceActionsFactory();
 
     function registerDependency<D>(key: DependencyKey<D>, dependency: D) {

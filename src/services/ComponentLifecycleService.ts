@@ -1,5 +1,4 @@
 import { call, fork, put, take } from 'typed-redux-saga';
-import { Indexed } from '@iiiristram/ts-type-utils';
 
 import { daemon, DaemonMode } from '../decorators';
 import { emptyFlow } from '../utils/emptyFlow';
@@ -29,7 +28,7 @@ export class ComponentLifecycleService extends Service {
         return 'ComponentLifecycleService';
     }
 
-    private EXECUTION_MAP: Indexed<LoadOptions<any[], any> | undefined> = {};
+    private EXECUTION_MAP: Record<string, LoadOptions<any[], any> | undefined> = {};
 
     @daemon(DaemonMode.Every)
     *load<TArgs extends any[]>(options: LoadOptions<TArgs, any>) {

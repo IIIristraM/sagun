@@ -1,5 +1,3 @@
-import { Indexed } from '@iiiristram/ts-type-utils';
-
 import { Action, ActionAPI, ResolveActionCreator } from '../types';
 import { getClassMethods } from './getKeys';
 
@@ -37,11 +35,11 @@ export function createActionType(apiString: string, methodKey: string) {
     return apiWords.concat(methodWords).join('_').toUpperCase();
 }
 
-export function createActions<T extends Indexed>(source: T, postfix?: string) {
+export function createActions<T extends {}>(source: T, postfix?: string) {
     // takes only public methods (private starts with _)
     const methodsKeys = getClassMethods(source);
 
-    function keyReducer(actions: Indexed, methodKey: string) {
+    function keyReducer(actions: Record<string, unknown>, methodKey: string) {
         const type = createActionType(source.toString(), methodKey);
         const fullType = postfix !== undefined ? `${type}_${postfix}` : type;
         actions[methodKey] = createAction<unknown[], string, unknown>(fullType, (...args) => args);

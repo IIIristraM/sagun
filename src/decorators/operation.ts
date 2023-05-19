@@ -1,4 +1,3 @@
-import { ExtractArgs, Indexed, IsAny } from '@iiiristram/ts-type-utils';
 import { call } from 'typed-redux-saga';
 
 import { IOperationUpdateStrategy, OperationId, ReplaceSaga } from '../types';
@@ -25,7 +24,7 @@ function createDescriptor<TRes, TArgs extends any[]>(options: {
 
     const origin = descriptor.value;
     const operationId = id || (createActionType(target.toString(), key) as OperationId<TRes, TArgs>);
-    descriptor.value.destroy = {} as Indexed<string>;
+    descriptor.value.destroy = {} as Record<string, string>;
 
     if (isStringId(operationId)) {
         // WARNING: внешняя операция скроет под собой внутренние
@@ -73,11 +72,11 @@ export function operation<TRes, TArgs extends any[] = any>(
               id: OperationId<TRes, TArgs> | ((...args: TArgs) => OperationId<TRes, TArgs>);
               ssr?: boolean;
           }
-): <TVal>(
+): <TVal extends (...args: any) => any>(
     target: any,
     key: string,
     descriptor: TypedPropertyDescriptor<TVal>
-) => TypedPropertyDescriptor<ReplaceSaga<TVal, IsAny<TArgs> extends true ? ExtractArgs<TVal> : TArgs, TRes>>;
+) => TypedPropertyDescriptor<ReplaceSaga<TVal, TArgs, TRes>>;
 
 export function operation(options: {
     ssr: boolean;

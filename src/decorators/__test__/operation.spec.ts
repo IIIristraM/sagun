@@ -1,5 +1,4 @@
 import { call, select } from 'typed-redux-saga';
-import { Indexed } from '@iiiristram/ts-type-utils';
 
 import { getSagaRunner } from '_test/utils';
 
@@ -52,12 +51,12 @@ test('handle exceptions', () => {
             try {
                 yield* call(testService.operation);
             } catch (error) {
-                const state = (yield* select()) as any as Indexed;
+                const state = (yield* select()) as any as Map<string, AsyncOperation>;
                 const operationId = getId(testService.operation);
                 expect(state.get(operationId)).toBeTruthy();
-                expect(state.get(operationId).isLoading).toBe(false);
-                expect(state.get(operationId).isError).toBe(true);
-                expect(state.get(operationId).error).toBe(error);
+                expect(state.get(operationId)!.isLoading).toBe(false);
+                expect(state.get(operationId)!.isError).toBe(true);
+                expect(state.get(operationId)!.error).toBe(error);
             }
         })
         .toPromise();
@@ -119,6 +118,21 @@ test('with object', () => {
         // @ts-expect-error
         @operation({ id: TEST_ID })
         *operation4(x: string) {
+            return 1;
+        }
+
+        @operation({
+            id: (x: number) => 'xxx' as OperationId<number, [number]>,
+        })
+        *operation5(x: number) {
+            return 1;
+        }
+
+        // @ts-expect-error
+        @operation({
+            id: (x: number) => 'xxx' as OperationId<number, [string]>,
+        })
+        *operation6(x: string) {
             return 1;
         }
     }
@@ -392,7 +406,7 @@ test('service correctly handle operations', () => {
             yield* call(service.method3, 12);
             yield* call(service.method3, 13);
 
-            let state = (yield* select()) as any as Indexed;
+            let state = (yield* select()) as any as Map<string, AsyncOperation>;
             expect(state.get(getId(service.method)!)).toBeTruthy();
             expect(state.get('10')).toBeTruthy();
             expect(state.get('11')).toBeTruthy();
@@ -401,7 +415,7 @@ test('service correctly handle operations', () => {
 
             yield* call(service.destroy);
 
-            state = (yield* select()) as any as Indexed;
+            state = (yield* select()) as any as Map<string, AsyncOperation>;
             expect(state.get(getId(service.method)!)).toBe(undefined);
             expect(state.get('10')).toBe(undefined);
             expect(state.get('11')).toBe(undefined);

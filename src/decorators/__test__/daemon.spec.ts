@@ -1,10 +1,10 @@
 import { call, delay, put, select } from 'typed-redux-saga';
-import { Indexed } from '@iiiristram/ts-type-utils';
 
 import { getSagaRunner } from '_test/utils';
 
 import { daemon, DaemonMode } from '../daemon';
 import { getId, OperationService, Service, serviceActionsFactory } from '../../services';
+import { AsyncOperation } from '../../types';
 import { operation } from '../operation';
 import reducer from '../../reducer';
 
@@ -37,7 +37,7 @@ test('each service instance has uniq actions', () => {
 
         @daemon()
         *method() {
-            return null;
+            return null as null;
         }
     }
 
@@ -132,12 +132,12 @@ test('handle exceptions', () => {
             yield* put(actions.operation());
             yield* delay(0);
 
-            const state = (yield* select()) as any as Indexed;
+            const state = (yield* select()) as any as Map<string, AsyncOperation>;
             const operationId = getId(testService.operation);
             expect(state.get(operationId)).toBeTruthy();
-            expect(state.get(operationId).isLoading).toBe(false);
-            expect(state.get(operationId).isError).toBe(true);
-            expect(state.get(operationId).error).toBeTruthy();
+            expect(state.get(operationId)!.isLoading).toBe(false);
+            expect(state.get(operationId)!.isError).toBe(true);
+            expect(state.get(operationId)!.error).toBeTruthy();
             yield* call(testService.destroy);
         })
         .toPromise();
