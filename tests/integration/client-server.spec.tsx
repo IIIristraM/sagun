@@ -389,6 +389,6 @@ test('fragments', async () => {
     console.log(window.document.getElementById('app')?.innerHTML);
     // this is actually a bug for React 16, seems like sibling fragments renders wrong inside Suspense
     // does not reproduce in React 17
-    // expect(global.window.document.getElementsByClassName('1').length).toBe(2);
-    expect(global.window.document.getElementsByClassName('1').length).toBe(1);
+    const [major] = React.version.split('.');
+    expect(global.window.document.getElementsByClassName('1').length).toBe(major === '16' ? 2 : 1);
 });
