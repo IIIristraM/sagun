@@ -7,8 +7,7 @@ Currently compatible only with typescript codebase with following options enable
 ```json
 {
     "compilerOptions": {
-        "experimentalDecorators": true,
-        "emitDecoratorMetadata": true
+        "experimentalDecorators": true
     }
 }
 ```

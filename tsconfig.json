@@ -1,7 +1,6 @@
 {
     "compilerOptions": {
         "experimentalDecorators": true,
-        "emitDecoratorMetadata": true,
         "declarationDir": "lib/types",
         "declaration": true,
         "importHelpers": true,
