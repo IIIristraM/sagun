@@ -130,7 +130,7 @@ test('with object', () => {
 
         // @ts-expect-error
         @operation({
-            id: (x: number) => 'xxx' as OperationId<number, [string]>,
+            id: (x: number) => 'xxx' as OperationId<number, [number]>,
         })
         *operation6(x: string) {
             return 1;

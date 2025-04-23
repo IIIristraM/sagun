@@ -10,6 +10,7 @@
         "allowSyntheticDefaultImports": true,
         "noUnusedLocals": true,
         "noImplicitAny": true,
+        "skipLibCheck": true,
         "jsx": "react",
         "target": "ES5",
         "downlevelIteration": true,
