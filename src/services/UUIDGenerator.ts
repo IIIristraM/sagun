@@ -5,9 +5,16 @@ export class UUIDGenerator extends Dependency {
         return 'UUIDGenerator';
     }
 
-    private id = 0;
+    private id = {} as Record<string, number>;
 
     uuid(prefix?: string) {
-        return `${prefix ? `${prefix}_` : ''}${this.id++}`;
+        const id = this.id[prefix ?? '__common__'] ?? 0;
+        const uuid = `${prefix ? `${prefix}_` : ''}${id}`;
+        this.id[prefix ?? '__common__'] = id + 1;
+        return uuid;
+    }
+
+    reset() {
+        this.id = {};
     }
 }

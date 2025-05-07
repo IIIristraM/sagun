@@ -24,6 +24,7 @@ type WithServiceProp<P extends object, TRes, TArgs extends any[], TServ extends 
 
 type OuterProps<P> = P & {
     fallback?: SuspenseProps['fallback'];
+    operationId: string;
 };
 
 type ArgsMapper<P extends object, TArgs extends any[]> = (props: P) => TArgs;
@@ -50,9 +51,9 @@ export function withSaga<P extends object, TRes, TArgs extends any[]>({
 }) {
     return (Component: React.ComponentType<WithSagaProp<P, TRes, TArgs>>) => {
         return function SagaBind(props: OuterProps<P>) {
-            const { fallback, ...rest } = props;
+            const { fallback, operationId: externalId, ...rest } = props;
             const diContext = useDI();
-            const { operationId } = useSaga(sagaFactory(diContext), argsMapper(props), options);
+            const { operationId } = useSaga(externalId, sagaFactory(diContext), argsMapper(props), options);
 
             return (
                 <Suspense fallback={fallback || null}>

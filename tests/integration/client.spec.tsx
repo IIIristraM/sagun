@@ -3,7 +3,7 @@ import React, { memo, Suspense, useContext, useEffect, useState } from 'react';
 import { combineReducers } from 'redux';
 import jsdom from 'jsdom';
 import { Provider } from 'react-redux';
-import ReactDOM from 'react-dom';
+import ReactDOM from 'react-dom/client';
 
 import {
     ComponentLifecycleService,
@@ -63,6 +63,7 @@ const OperationWaiter: React.FC<{ operationId: any; setState: (x: number) => voi
 
         useEffect(function mutation() {
             context?.resolve();
+            console.log('OP', operation.result);
         });
 
         useEffect(() => {
@@ -80,7 +81,10 @@ const InnerComponent: React.FC<{}> = () => {
     const { service: testService } = useServiceConsumer(TestService);
     const [state, setState] = useState(context?.counter());
 
+    console.log('InnerComponent');
+
     const { operationId } = useSaga(
+        'test-id',
         {
             onLoad: testService.operation0,
         },
@@ -132,7 +136,8 @@ test('Nested operations with global Suspense ', async () => {
             yield* call(componentLifecycleService.run);
 
             const el = window.document.getElementById('app');
-            ReactDOM.render(
+            const container = ReactDOM.createRoot(el!);
+            container.render(
                 <Context.Provider
                     value={{
                         counter: () => counter,
@@ -146,11 +151,10 @@ test('Nested operations with global Suspense ', async () => {
                             </Suspense>
                         </Provider>
                     </Root>
-                </Context.Provider>,
-                el!
+                </Context.Provider>
             );
 
-            expect(el?.innerHTML).toEqual('Loading...');
+            expect(el?.innerHTML).toEqual('');
             yield defer[0].promise;
             expect(el?.innerHTML).not.toEqual('Loading...');
             yield defer[1].promise;
@@ -181,6 +185,7 @@ test('Execute nested sagas on client', async () => {
 
     const Item = (props: { x: number }) => {
         const { operationId } = useSaga(
+            `op_${props.x}`,
             {
                 onLoad: function* (x: number) {
                     yield* delay(DELAY);
@@ -200,7 +205,7 @@ test('Execute nested sagas on client', async () => {
     };
 
     const App = () => {
-        const { operationId } = useSaga({
+        const { operationId } = useSaga('init-app', {
             onLoad: function* () {
                 yield* delay(DELAY);
                 return fn(); // step 1
@@ -214,13 +219,13 @@ test('Execute nested sagas on client', async () => {
         );
     };
 
-    ReactDOM.render(
+    const container = ReactDOM.createRoot(window.document.getElementById('app')!);
+    container.render(
         <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
             <Provider store={runner.store}>
                 <App />
             </Provider>
-        </Root>,
-        window.document.getElementById('app')!
+        </Root>
     );
 
     for (let step = 1; step <= 3; step++) {
@@ -238,7 +243,7 @@ test('Execute nested sagas on client', async () => {
     expect(values[2]?.result).toBe(5);
 });
 
-test.skip('useSaga + useOperation in same component', async () => {
+test('useSaga + useOperation in same component', async () => {
     const operationService = new OperationService({ hash: {} });
     const componentLifecycleService = new ComponentLifecycleService(operationService);
 
@@ -256,7 +261,7 @@ test.skip('useSaga + useOperation in same component', async () => {
             yield* call(componentLifecycleService.run);
 
             function App() {
-                const { operationId } = useSaga({
+                const { operationId } = useSaga('init-app', {
                     onLoad: function* () {
                         return 1;
                     },
@@ -277,18 +282,18 @@ test.skip('useSaga + useOperation in same component', async () => {
             }
 
             const el = window.document.getElementById('app');
-            ReactDOM.render(
+            const container = ReactDOM.createRoot(el!);
+            container.render(
                 <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
                     <Provider store={runner.store}>
                         <Suspense fallback="Loading...">
                             <App />
                         </Suspense>
                     </Provider>
-                </Root>,
-                el!
+                </Root>
             );
 
-            expect(el?.innerHTML).toEqual('Loading...');
+            expect(el?.innerHTML).toEqual('');
             yield defer.promise;
             expect(el?.innerHTML).not.toEqual('Loading...');
 
@@ -298,7 +303,7 @@ test.skip('useSaga + useOperation in same component', async () => {
         .toPromise();
 });
 
-test.skip('useSaga + double useOperation in same component', async () => {
+test('useSaga + double useOperation in same component', async () => {
     const operationService = new OperationService({ hash: {} });
     const componentLifecycleService = new ComponentLifecycleService(operationService);
     const service = new TestService(operationService);
@@ -317,7 +322,7 @@ test.skip('useSaga + double useOperation in same component', async () => {
             yield* call(componentLifecycleService.run);
 
             function App() {
-                useSaga({
+                useSaga('init-app', {
                     onLoad: function* () {
                         yield* call(service.operation0, 0);
                         yield* call(service.operation1, 1);
@@ -345,18 +350,18 @@ test.skip('useSaga + double useOperation in same component', async () => {
             }
 
             const el = window.document.getElementById('app');
-            ReactDOM.render(
+            const container = ReactDOM.createRoot(el!);
+            container.render(
                 <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
                     <Provider store={runner.store}>
                         <Suspense fallback="Loading...">
                             <App />
                         </Suspense>
                     </Provider>
-                </Root>,
-                el!
+                </Root>
             );
 
-            expect(el?.innerHTML).toEqual('Loading...');
+            expect(el?.innerHTML).toEqual('');
             yield defer.promise;
             expect(el?.innerHTML).not.toEqual('Loading...');
 

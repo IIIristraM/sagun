@@ -12,7 +12,7 @@ const configFabric = (context = __dirname, isolatedModules = false) => {
         preset: 'ts-jest',
         testEnvironment: 'node',
         transform: {
-            ['.tsx?$']: [
+            '^.+.tsx?$': [
                 'ts-jest',
                 {
                     isolatedModules,

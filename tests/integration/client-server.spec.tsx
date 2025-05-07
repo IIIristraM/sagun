@@ -4,9 +4,10 @@ import React, { Suspense } from 'react';
 import { call } from 'typed-redux-saga';
 import createSagaMiddleware from 'redux-saga';
 import jsdom from 'jsdom';
+import { PassThrough } from 'stream';
+// @ts-ignore
 import prettier from 'prettier';
-import ReactDOM from 'react-dom';
-import { renderToStringAsync } from '_lib/serverRender';
+import ReactDOM from 'react-dom/client';
 
 import {
     asyncOperationsReducer,
@@ -18,10 +19,12 @@ import {
     useOperation,
     useService,
 } from '_lib/';
+import { renderToPipeableStream } from 'react-dom/server';
 
 import { api, DELAY } from './TestAPI';
 import { resource, wait } from '../utils';
 import Content from './components/Content';
+import { createDeferred } from '_lib/utils/createDeferred';
 import Table from './components/Table';
 import { TestService } from './TestService';
 import UserInfo from './components/UserInfo';
@@ -108,8 +111,27 @@ async function nodeRender(renderApp: ({ store }: GetProps<typeof App>) => JSX.El
         yield* call(service.run);
     });
 
-    const html = await renderToStringAsync(renderApp({ store, service, operationService }));
+    let html = '';
+    const defer = createDeferred();
+    const stream = renderToPipeableStream(renderApp({ store, service, operationService }), {
+        onAllReady() {
+            const s = new PassThrough();
+            stream.pipe(s);
 
+            s.on('data', chunk => {
+                html += chunk;
+            });
+
+            s.on('end', () => {
+                defer.resolve();
+            });
+        },
+        onError(err) {
+            console.error(err);
+        },
+    });
+
+    await defer.promise;
     task.cancel();
     await task.toPromise();
 
@@ -142,13 +164,13 @@ async function clientRender(
     });
 
     const appEl = window.document.getElementById('app');
-    ReactDOM.hydrate(
+    ReactDOM.hydrateRoot(
+        appEl!,
         renderApp({
             store,
             service,
             operationService,
-        }),
-        appEl!
+        })
     );
 
     const maxRequests = 4;
@@ -182,10 +204,10 @@ test('sync independent sagas', async () => {
     const renderApp = ({ store, service, operationService }: GetProps<typeof App>) => (
         <App store={store} service={service} operationService={operationService}>
             <Header>
-                <UserInfo id="" fallback="" />
+                <UserInfo operationId="user-info" id="" fallback="" />
             </Header>
             <Content>
-                <Table fallback="" />
+                <Table operationId="table" fallback="" />
             </Content>
         </App>
     );
@@ -212,10 +234,10 @@ test('async independent sagas', async () => {
     const renderApp = ({ store, service, operationService }: GetProps<typeof App>) => (
         <App store={store} service={service} operationService={operationService}>
             <HeaderAsync>
-                <UserInfo id="" fallback="" />
+                <UserInfo operationId="user-info" id="" fallback="" />
             </HeaderAsync>
             <Content>
-                <Table fallback="" />
+                <Table operationId="table" fallback="" />
             </Content>
         </App>
     );
@@ -244,12 +266,12 @@ test('async dependent sagas', async () => {
     const renderApp = ({ store, service, operationService }: GetProps<typeof App>) => (
         <App store={store} service={service} operationService={operationService}>
             <HeaderAsync>
-                <UserInfo id="1" fallback="">
+                <UserInfo operationId="user-info" id="1" fallback="">
                     <UserDetailsAsync id="1" />
                 </UserInfo>
             </HeaderAsync>
             <Content>
-                <Table fallback="" />
+                <Table operationId="table" fallback="" />
             </Content>
         </App>
     );
@@ -283,10 +305,10 @@ test('async dependent siblings', async () => {
         <App store={store} service={service} operationService={operationService}>
             <UserDetailsAsync id="1" />
             <HeaderAsync>
-                <UserInfo id="1" fallback="" />
+                <UserInfo operationId="user-info" id="1" fallback="" />
             </HeaderAsync>
             <Content>
-                <Table fallback="" />
+                <Table operationId="table" fallback="" />
             </Content>
         </App>
     );
@@ -319,10 +341,10 @@ test('multiple component instances', async () => {
     const renderApp = ({ store, service, operationService }: GetProps<typeof App>) => (
         <App store={store} service={service} operationService={operationService}>
             <HeaderAsync>
-                <UserInfo id="1" fallback="">
+                <UserInfo operationId="user-info-1" id="1" fallback="">
                     <UserDetailsAsync id="1" />
                 </UserInfo>
-                <UserInfo id="2" fallback="">
+                <UserInfo operationId="user-info-2" id="2" fallback="">
                     <UserDetailsAsync id="2" />
                 </UserInfo>
             </HeaderAsync>
@@ -364,7 +386,27 @@ test('fragments', async () => {
         </div>
     );
 
-    const html = await renderToStringAsync(<App />);
+    let html = '';
+    const defer = createDeferred();
+    const stream = renderToPipeableStream(<App />, {
+        onAllReady() {
+            const s = new PassThrough();
+            stream.pipe(s);
+
+            s.on('data', chunk => {
+                html += chunk;
+            });
+
+            s.on('end', () => {
+                defer.resolve();
+            });
+        },
+        onError(err) {
+            console.error(err);
+        },
+    });
+
+    await defer.promise;
 
     const { window } = new jsdom.JSDOM(`
             <html>
@@ -378,7 +420,7 @@ test('fragments', async () => {
     (global as any).document = window.document;
 
     r1 = resource();
-    ReactDOM.hydrate(<App />, window.document.getElementById('app')!);
+    ReactDOM.hydrateRoot(window.document.getElementById('app')!, <App />);
 
     await wait(50);
 
