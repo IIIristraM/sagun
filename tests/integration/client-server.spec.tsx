@@ -169,7 +169,9 @@ async function clientRender(
     await task.toPromise();
 
     console.log(
-        await (await import("prettier")).format(window.document.documentElement.outerHTML, {
+        await (
+            await import('prettier')
+        ).format(window.document.documentElement.outerHTML, {
             parser: 'html',
             htmlWhitespaceSensitivity: 'ignore',
         })
