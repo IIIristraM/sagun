@@ -20,5 +20,5 @@ export function useService<TArgs extends any[]>(service: BaseService<TArgs>, arg
         return yield* call(service.destroy, ...args);
     };
 
-    return useSaga({ onLoad, onDispose }, args || []);
+    return useSaga({ id: `init-${service.toString()}`, onLoad, onDispose }, args || []);
 }

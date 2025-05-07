@@ -1,27 +1,33 @@
 import { call } from 'typed-redux-saga';
-import React from 'react';
+import React, { Suspense } from 'react';
 
-import { withSaga } from '../../../src';
+import { Operation, useSaga, useServiceConsumer } from '../../../src';
 
 import { TestService } from '../TestService';
 
-export default withSaga({
-    sagaFactory: ({ getService }) => ({
+export default function Table() {
+    const { service } = useServiceConsumer(TestService);
+
+    const { operationId } = useSaga({
+        id: "table",
         onLoad: function* () {
-            const service = getService(TestService);
             return yield* call(service.getList);
         },
-    }),
-})(function Table({ operation }) {
-    const result = operation.result;
+    })
 
     return (
-        <div>
-            {result?.map(item => (
-                <span className="table-item" key={item}>
-                    {item}
-                </span>
-            ))}
-        </div>
+        <Suspense fallback="">
+            <Operation operationId={operationId}>
+                {({result}) => (
+                    <div>
+                        {result?.map(item => (
+                            <span className="table-item" key={item}>
+                                {item}
+                            </span>
+                        ))}
+                    </div>
+                )}
+            </Operation>
+        </Suspense>
     );
-});
+};

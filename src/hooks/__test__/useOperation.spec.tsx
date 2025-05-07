@@ -373,7 +373,7 @@ test('Components release operations', () => {
     const destroyDefer = createDeferred();
 
     const App: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
-        useSaga({ onLoad: testService.getResult });
+        useSaga({ id: 'init-app', onLoad: testService.getResult });
         const [visible, toggle] = useState(true);
 
         return (
@@ -383,8 +383,7 @@ test('Components release operations', () => {
                     id="switch"
                     onClick={() => {
                         toggle(false);
-                    }}
-                >
+                    }}>
                     click
                 </button>
             </>

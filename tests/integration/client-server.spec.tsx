@@ -4,8 +4,8 @@ import React, { Suspense } from 'react';
 import { call } from 'typed-redux-saga';
 import createSagaMiddleware from 'redux-saga';
 import jsdom from 'jsdom';
+import { PassThrough } from 'stream';
 import prettier from 'prettier';
-import { renderToStringAsync } from '_lib/serverRender';
 
 import {
     asyncOperationsReducer,
@@ -17,10 +17,12 @@ import {
     useOperation,
     useService,
 } from '_lib/';
+import { renderToPipeableStream } from 'react-dom/server';
 
 import { api, DELAY } from './TestAPI';
 import { hydrate, resource, wait } from '../utils';
 import Content from './components/Content';
+import { createDeferred } from '_lib/utils/createDeferred';
 import Table from './components/Table';
 import { TestService } from './TestService';
 import UserInfo from './components/UserInfo';
@@ -107,8 +109,27 @@ async function nodeRender(renderApp: ({ store }: GetProps<typeof App>) => JSX.El
         yield* call(service.run);
     });
 
-    const html = await renderToStringAsync(renderApp({ store, service, operationService }));
+    let html = '';
+    const defer = createDeferred();
+    const stream = renderToPipeableStream(renderApp({ store, service, operationService }), {
+        onAllReady() {
+            const s = new PassThrough();
+            stream.pipe(s);
 
+            s.on('data', chunk => {
+                html += chunk;
+            });
+
+            s.on('end', () => {
+                defer.resolve();
+            });
+        },
+        onError(err) {
+            console.error(err);
+        },
+    });
+
+    await defer.promise;
     task.cancel();
     await task.toPromise();
 
@@ -184,7 +205,7 @@ test('sync independent sagas', async () => {
                 </Suspense>
             </Header>
             <Content>
-                <Table fallback="" />
+                <Table />
             </Content>
         </App>
     );
@@ -216,7 +237,7 @@ test('async independent sagas', async () => {
                 </Suspense>
             </HeaderAsync>
             <Content>
-                <Table fallback="" />
+                <Table />
             </Content>
         </App>
     );
@@ -252,7 +273,7 @@ test('async dependent sagas', async () => {
                 </Suspense>
             </HeaderAsync>
             <Content>
-                <Table fallback="" />
+                <Table />
             </Content>
         </App>
     );
@@ -291,7 +312,7 @@ test('async dependent siblings', async () => {
                 </Suspense>
             </HeaderAsync>
             <Content>
-                <Table fallback="" />
+                <Table />
             </Content>
         </App>
     );
@@ -373,7 +394,27 @@ test('fragments', async () => {
         </div>
     );
 
-    const html = await renderToStringAsync(<App />);
+    let html = '';
+    const defer = createDeferred();
+    const stream = renderToPipeableStream(<App />, {
+        onAllReady() {
+            const s = new PassThrough();
+            stream.pipe(s);
+
+            s.on('data', chunk => {
+                html += chunk;
+            });
+
+            s.on('end', () => {
+                defer.resolve();
+            });
+        },
+        onError(err) {
+            console.error(err);
+        },
+    });
+
+    await defer.promise;
 
     const { window } = new jsdom.JSDOM(`
             <html>

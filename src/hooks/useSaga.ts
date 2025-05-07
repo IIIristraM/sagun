@@ -45,6 +45,10 @@ export function useSaga<TArgs extends any[], TRes>(
     ) as OperationId<TRes, TArgs>;
     const [reloadCount, updateCounter] = useState(0);
 
+    useEffect(() => {
+        console.log('mount', operationId);
+    }, []);
+
     const forceReload = useCallback(
         function () {
             updateCounter(reloadCount + 1);
@@ -68,6 +72,7 @@ export function useSaga<TArgs extends any[], TRes>(
         const currentExecution = service.getCurrentExecution(operationId);
         // restore after Suspense resolved
         if (!sagaDispose.current && currentExecution) {
+            console.log('RESTORE', operationId);
             sagaDispose.current = function dispose() {
                 dispatch(actions.dispose(currentExecution.loadId));
             };
@@ -85,6 +90,7 @@ export function useSaga<TArgs extends any[], TRes>(
         }
 
         const loadId = uuidGen.uuid('load');
+        console.log('LOAD', operationId, args);
         dispatch(
             actions.load({
                 loadId,

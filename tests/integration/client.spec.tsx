@@ -62,6 +62,7 @@ const OperationWaiter: React.FC<{ operationId: any; setState: (x: number) => voi
 
         useEffect(function mutation() {
             context?.resolve();
+            console.log('OP', operation.result);
         });
 
         useEffect(() => {
@@ -79,8 +80,11 @@ const InnerComponent: React.FC<{}> = () => {
     const { service: testService } = useServiceConsumer(TestService);
     const [state, setState] = useState(context?.counter());
 
+    console.log('InnerComponent');
+
     const { operationId } = useSaga(
         {
+            id: 'test-id',
             onLoad: testService.operation0,
         },
         [state]
@@ -147,6 +151,7 @@ test('Nested operations with global Suspense ', async () => {
                 </Context.Provider>
             );
 
+            yield wait(0);
             expect(el?.innerHTML).toEqual('Loading...');
             yield defer[0].promise;
             expect(el?.innerHTML).not.toEqual('Loading...');
@@ -179,6 +184,7 @@ test('Execute nested sagas on client', async () => {
     const Item = (props: { x: number }) => {
         const { operationId } = useSaga(
             {
+                id: `op_${props.x}`,
                 onLoad: function* (x: number) {
                     yield* delay(DELAY);
                     return fn2(x); // step 2 and 3
@@ -198,6 +204,7 @@ test('Execute nested sagas on client', async () => {
 
     const App = () => {
         const { operationId } = useSaga({
+            id: 'init-app',
             onLoad: function* () {
                 yield* delay(DELAY);
                 return fn(); // step 1
@@ -284,6 +291,7 @@ test('useSaga + useOperation in same component', async () => {
                 </Root>
             );
 
+            yield wait(0);
             expect(el?.innerHTML).toEqual('Loading...');
             yield defer.promise;
             expect(el?.innerHTML).not.toEqual('Loading...');
@@ -351,6 +359,7 @@ test('useSaga + double useOperation in same component', async () => {
                 </Root>
             );
 
+            yield wait(0);
             expect(el?.innerHTML).toEqual('Loading...');
             yield defer.promise;
             expect(el?.innerHTML).not.toEqual('Loading...');

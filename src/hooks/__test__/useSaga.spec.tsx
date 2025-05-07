@@ -54,11 +54,12 @@ describe('useSaga', () => {
             processDisposing(...args);
         };
 
-        const TestComponent: React.FC<Pick<Props, 'processOperationId'> & { x: number }> = ({
+        const TestComponent: React.FC<Pick<Props, 'processOperationId'> & { x: number; operationId?: string }> = ({
             x,
+            operationId: externalId,
             processOperationId,
         }) => {
-            const { operationId, reload } = useSaga({ onLoad, onDispose }, [...ARGS, x]);
+            const { operationId, reload } = useSaga({ id: externalId ?? 'init-app', onLoad, onDispose }, [...ARGS, x]);
 
             if (processOperationId) {
                 processOperationId(operationId);
@@ -186,7 +187,7 @@ describe('useSaga', () => {
                 {() => (
                     <>
                         <TestComponent x={1} processOperationId={processOperationId1} />
-                        <TestComponent x={2} processOperationId={processOperationId2} />
+                        <TestComponent x={2} operationId="test-2" processOperationId={processOperationId2} />
                     </>
                 )}
             </App>
@@ -272,7 +273,7 @@ describe('useSaga', () => {
         const service = new TestService(operationService);
 
         const TestComponent = ({ x }: { x: number }) => {
-            useSaga({ onLoad: service.method }, [x]);
+            useSaga({ id: 'init-app', onLoad: service.method }, [x]);
             return null;
         };
 
@@ -317,6 +318,7 @@ describe('useSaga', () => {
 
             useSaga(
                 {
+                    id: 'op_1',
                     onLoad: function* (a, b) {
                         exact<typeof a, number>(true);
                         exact<typeof b, string>(true);
@@ -327,6 +329,7 @@ describe('useSaga', () => {
 
             useSaga(
                 {
+                    id: 'op_2',
                     onLoad: function* (a, b) {
                         exact<typeof a, 1>(true);
                         exact<typeof b, '1'>(true);
@@ -337,6 +340,7 @@ describe('useSaga', () => {
 
             useSaga<[number, string], void>(
                 {
+                    id: 'op_3',
                     onLoad: function* (a, b) {
                         exact<typeof a, number>(true);
                         exact<typeof b, string>(true);
@@ -347,6 +351,7 @@ describe('useSaga', () => {
 
             useSaga<[string, number], void>(
                 {
+                    id: 'op_4',
                     onLoad: function* (a, b) {},
                 },
                 // @ts-expect-error

@@ -56,7 +56,6 @@ export class ComponentLifecycleService extends Service {
                 });
 
                 const loadTask = yield* fork(loadOperation.run, ...args);
-
                 yield* take(isDisposeSignal(loadId));
                 loadTask.cancel();
 

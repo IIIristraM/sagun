@@ -24,6 +24,7 @@ type WithServiceProp<P extends object, TRes, TArgs extends any[], TServ extends 
 
 type OuterProps<P> = P & {
     fallback?: SuspenseProps['fallback'];
+    operationId: string;
 };
 
 type ArgsMapper<P extends object, TArgs extends any[]> = (props: P) => TArgs;

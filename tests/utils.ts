@@ -1,7 +1,7 @@
 import { AnyAction, applyMiddleware, createStore, Reducer, Store } from 'redux';
 import createSagaMiddleware, { SagaMiddleware } from 'redux-saga';
 import { Exact } from '@iiiristram/ts-type-utils';
-import ReactDOM from 'react-dom';
+import ReactDOM from 'react-dom/client';
 
 type Runner<S = any> = {
     run: SagaMiddleware<object>['run'];
@@ -32,7 +32,7 @@ export function isolate(fn: () => Promise<unknown>) {
 
 export function wait(ms: number) {
     return new Promise<void>(resolve => {
-        setTimeout(resolve, ms);
+        setTimeout(resolve, ms + Math.random() * 20);
     });
 }
 
@@ -61,11 +61,12 @@ export function exact<T, Expected>(result: Exact<T, Expected>) {
 
 export function render(reactEl: JSX.Element) {
     const el = window.document.getElementById('app')!;
-    ReactDOM.render(reactEl, el);
+    const container = ReactDOM.createRoot(el);
+    container.render(reactEl);
     return {
         el,
         unmount: async () => {
-            ReactDOM.unmountComponentAtNode(el);
+            container.unmount();
             await wait(0);
         },
     };
@@ -74,5 +75,5 @@ export function render(reactEl: JSX.Element) {
 export function hydrate(reactEl: JSX.Element) {
     const el = window.document.getElementById('app')!;
 
-    ReactDOM.hydrate(reactEl, el!);
+    ReactDOM.hydrateRoot(el!, reactEl);
 }
