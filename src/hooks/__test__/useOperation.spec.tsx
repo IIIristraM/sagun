@@ -389,7 +389,8 @@ test('Components release operations', () => {
                     id="switch"
                     onClick={() => {
                         toggle(false);
-                    }}>
+                    }}
+                >
                     click
                 </button>
             </>
