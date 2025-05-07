@@ -17,9 +17,8 @@ export type ActionAPI<T> = {
     >;
 };
 
-export type ResolveActionCreator<P, T> = Exact<P, never> extends true
-    ? () => Action<never, T>
-    : (payload: P) => Action<P, T>;
+export type ResolveActionCreator<P, T> =
+    Exact<P, never> extends true ? () => Action<never, T> : (payload: P) => Action<P, T>;
 
 export type AsyncOperation<TRes = unknown, TArgs = unknown[], TMeta = unknown, TErr = Error> = {
     id: OperationId<TRes, TArgs, TMeta, TErr>;
@@ -42,9 +41,8 @@ declare class OperationMetaClass<TRes, TArgs, TMeta, TErr> {
 export type OperationId<TRes, TArgs = unknown[], TMeta = unknown, TErr = Error> = string &
     OperationMetaClass<TRes, TArgs, TMeta, TErr>;
 
-export type OperationFromId<T> = T extends OperationId<infer R, infer A, infer M, infer E>
-    ? AsyncOperation<R, A, M, E>
-    : never;
+export type OperationFromId<T> =
+    T extends OperationId<infer R, infer A, infer M, infer E> ? AsyncOperation<R, A, M, E> : never;
 
 declare class DependencyMetaClass<D> {
     private _type: D;

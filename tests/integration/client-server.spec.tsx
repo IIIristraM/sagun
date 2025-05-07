@@ -5,7 +5,6 @@ import { act } from 'react-dom/test-utils';
 import { call } from 'typed-redux-saga';
 import createSagaMiddleware from 'redux-saga';
 import jsdom from 'jsdom';
-import prettier from 'prettier';
 import ReactDOM from 'react-dom';
 
 import {
@@ -170,7 +169,7 @@ async function clientRender(
     await task.toPromise();
 
     console.log(
-        prettier.format(window.document.documentElement.outerHTML, {
+        await (await import("prettier")).format(window.document.documentElement.outerHTML, {
             parser: 'html',
             htmlWhitespaceSensitivity: 'ignore',
         })

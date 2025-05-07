@@ -87,8 +87,8 @@ export function operation(...args: any[]) {
         const operationOptions = ['object'].includes(typeof args[0])
             ? args[0]
             : ['function', 'string'].includes(typeof args[0])
-            ? { id: args[0] }
-            : null;
+              ? { id: args[0] }
+              : null;
 
         if (!operationOptions) {
             throw new Error('Unexpected arguments');
