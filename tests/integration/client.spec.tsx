@@ -1,39 +1,106 @@
 import { call, delay } from 'typed-redux-saga';
-import {
-    ComponentLifecycleService,
-    Operation,
-    OperationService,
-    asyncOperationsReducer as reducer,
-    Root,
-    useOperation,
-    useSaga,
-} from '_lib/';
-import React, { Suspense } from 'react';
-import { act } from 'react-dom/test-utils';
+import React, { memo, Suspense, useContext, useEffect, useState } from 'react';
 import { combineReducers } from 'redux';
-import { getSagaRunner } from '_test/utils';
 import jsdom from 'jsdom';
 import { Provider } from 'react-redux';
 import ReactDOM from 'react-dom';
 
+import {
+    ComponentLifecycleService,
+    getId,
+    Operation,
+    operation,
+    OperationService,
+    asyncOperationsReducer as reducer,
+    Root,
+    Service,
+    useDI,
+    useOperation,
+    useSaga,
+    useService,
+    useServiceConsumer,
+} from '_lib/';
+import { getSagaRunner, wait } from '_test/utils';
+import { createDeferred } from '_lib/utils/createDeferred';
+
 const DELAY = 50;
+useOperation.setPath(state => state.asyncOperations);
 
-beforeAll(() => {
-    jest.useFakeTimers();
-});
+class TestService extends Service {
+    toString() {
+        return 'TestService';
+    }
 
-afterAll(() => {
-    jest.useRealTimers();
-});
+    @operation
+    *operation0(counter: number) {
+        yield* delay(DELAY);
+        return counter;
+    }
 
-test('execute nested sagas on client', async () => {
-    const runner = getSagaRunner(
-        combineReducers({
-            asyncOperations: reducer,
-        })
+    @operation
+    *operation1(counter: number) {
+        yield* delay(DELAY);
+        return counter;
+    }
+}
+
+const Context = React.createContext<{
+    counter: () => number;
+    resolve: () => void;
+} | null>(null);
+
+const OperationWaiter: React.FC<{ operationId: any; setState: (x: number) => void }> = memo(
+    ({ operationId, setState }) => {
+        const context = useContext(Context);
+
+        const operation = useOperation({
+            operationId: operationId,
+            suspense: true,
+        });
+
+        expect(operation?.isLoading).toBe(false);
+        expect(operation?.result).toBe(context?.counter());
+
+        useEffect(function mutation() {
+            context?.resolve();
+        });
+
+        useEffect(() => {
+            if (context && context.counter() < 2) {
+                setState(context.counter());
+            }
+        }, []);
+
+        return null;
+    }
+);
+
+const InnerComponent: React.FC<{}> = () => {
+    const context = useContext(Context);
+    const { service: testService } = useServiceConsumer(TestService);
+    const [state, setState] = useState(context?.counter());
+
+    const { operationId } = useSaga(
+        {
+            onLoad: testService.operation0,
+        },
+        [state]
     );
-    useOperation.setPath(x => x.asyncOperations);
 
+    return <OperationWaiter operationId={operationId} setState={setState} />;
+};
+
+const TestComponent: React.FC<{}> = () => {
+    const di = useDI();
+    const service = di.createService(TestService);
+    di.registerService(service);
+
+    const { operationId } = useService(service);
+
+    return <Operation operationId={operationId}>{() => <InnerComponent />}</Operation>;
+};
+
+beforeEach(() => {
     const { window } = new jsdom.JSDOM(`
         <html>
             <body>
@@ -44,6 +111,63 @@ test('execute nested sagas on client', async () => {
 
     (global as any).window = window;
     (global as any).document = window.document;
+});
+
+test('Nested operations with global Suspense ', async () => {
+    const operationService = new OperationService({ hash: {} });
+    const componentLifecycleService = new ComponentLifecycleService(operationService);
+
+    const runner = getSagaRunner(
+        combineReducers({
+            asyncOperations: reducer,
+        })
+    );
+
+    return runner
+        .run(function* () {
+            const defer = [createDeferred<unknown>(), createDeferred<unknown>()];
+            let counter = 0;
+
+            yield* call(operationService.run);
+            yield* call(componentLifecycleService.run);
+
+            const el = window.document.getElementById('app');
+            ReactDOM.render(
+                <Context.Provider
+                    value={{
+                        counter: () => counter,
+                        resolve: () => defer[counter++].resolve(),
+                    }}
+                >
+                    <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
+                        <Provider store={runner.store}>
+                            <Suspense fallback="Loading...">
+                                <TestComponent />
+                            </Suspense>
+                        </Provider>
+                    </Root>
+                </Context.Provider>,
+                el!
+            );
+
+            expect(el?.innerHTML).toEqual('Loading...');
+            yield defer[0].promise;
+            expect(el?.innerHTML).not.toEqual('Loading...');
+            yield defer[1].promise;
+            expect(el?.innerHTML).not.toEqual('Loading...');
+
+            yield* call(operationService.destroy);
+            yield* call(componentLifecycleService.destroy);
+        })
+        .toPromise();
+});
+
+test('Execute nested sagas on client', async () => {
+    const runner = getSagaRunner(
+        combineReducers({
+            asyncOperations: reducer,
+        })
+    );
 
     const fn = jest.fn(() => 1);
     const fn2 = jest.fn((x: number) => x + 2);
@@ -67,9 +191,11 @@ test('execute nested sagas on client', async () => {
         );
 
         return (
-            <Operation operationId={operationId}>
-                {({ result }) => (result && result < 5 ? <Item x={result} /> : null)}
-            </Operation>
+            <Suspense fallback="">
+                <Operation operationId={operationId}>
+                    {({ result }) => (result && result < 5 ? <Item x={result} /> : null)}
+                </Operation>
+            </Suspense>
         );
     };
 
@@ -88,21 +214,17 @@ test('execute nested sagas on client', async () => {
         );
     };
 
-    await act(async () => {
-        ReactDOM.render(
-            <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                <Provider store={runner.store}>
-                    <App />
-                </Provider>
-            </Root>,
-            window.document.getElementById('app')!
-        );
-    });
+    ReactDOM.render(
+        <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
+            <Provider store={runner.store}>
+                <App />
+            </Provider>
+        </Root>,
+        window.document.getElementById('app')!
+    );
 
     for (let step = 1; step <= 3; step++) {
-        await act(async () => {
-            jest.advanceTimersByTime(DELAY + 1);
-        });
+        await wait(DELAY * 20);
     }
 
     task.cancel();
@@ -114,4 +236,132 @@ test('execute nested sagas on client', async () => {
     expect(values[0]?.result).toBe(1);
     expect(values[1]?.result).toBe(3);
     expect(values[2]?.result).toBe(5);
+});
+
+test.skip('useSaga + useOperation in same component', async () => {
+    const operationService = new OperationService({ hash: {} });
+    const componentLifecycleService = new ComponentLifecycleService(operationService);
+
+    const runner = getSagaRunner(
+        combineReducers({
+            asyncOperations: reducer,
+        })
+    );
+
+    return runner
+        .run(function* () {
+            const defer = createDeferred<unknown>();
+
+            yield* call(operationService.run);
+            yield* call(componentLifecycleService.run);
+
+            function App() {
+                const { operationId } = useSaga({
+                    onLoad: function* () {
+                        return 1;
+                    },
+                });
+
+                const { result } = useOperation({
+                    operationId,
+                    suspense: true,
+                });
+
+                expect(result).toBe(1);
+
+                useEffect(() => {
+                    defer.resolve();
+                });
+
+                return null;
+            }
+
+            const el = window.document.getElementById('app');
+            ReactDOM.render(
+                <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
+                    <Provider store={runner.store}>
+                        <Suspense fallback="Loading...">
+                            <App />
+                        </Suspense>
+                    </Provider>
+                </Root>,
+                el!
+            );
+
+            expect(el?.innerHTML).toEqual('Loading...');
+            yield defer.promise;
+            expect(el?.innerHTML).not.toEqual('Loading...');
+
+            yield* call(operationService.destroy);
+            yield* call(componentLifecycleService.destroy);
+        })
+        .toPromise();
+});
+
+test.skip('useSaga + double useOperation in same component', async () => {
+    const operationService = new OperationService({ hash: {} });
+    const componentLifecycleService = new ComponentLifecycleService(operationService);
+    const service = new TestService(operationService);
+
+    const runner = getSagaRunner(
+        combineReducers({
+            asyncOperations: reducer,
+        })
+    );
+
+    return runner
+        .run(function* () {
+            const defer = createDeferred<unknown>();
+
+            yield* call(operationService.run);
+            yield* call(componentLifecycleService.run);
+
+            function App() {
+                useSaga({
+                    onLoad: function* () {
+                        yield* call(service.operation0, 0);
+                        yield* call(service.operation1, 1);
+                    },
+                });
+
+                const op1 = useOperation({
+                    operationId: getId(service.operation0),
+                    suspense: true,
+                });
+
+                const op2 = useOperation({
+                    operationId: getId(service.operation1),
+                    suspense: true,
+                });
+
+                expect(op1.result).toBe(0);
+                expect(op2.result).toBe(1);
+
+                useEffect(() => {
+                    defer.resolve();
+                });
+
+                return null;
+            }
+
+            const el = window.document.getElementById('app');
+            ReactDOM.render(
+                <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
+                    <Provider store={runner.store}>
+                        <Suspense fallback="Loading...">
+                            <App />
+                        </Suspense>
+                    </Provider>
+                </Root>,
+                el!
+            );
+
+            expect(el?.innerHTML).toEqual('Loading...');
+            yield defer.promise;
+            expect(el?.innerHTML).not.toEqual('Loading...');
+
+            yield* call(operationService.destroy);
+            yield* call(componentLifecycleService.destroy);
+        })
+        .toPromise();
 });

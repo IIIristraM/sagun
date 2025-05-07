@@ -4,10 +4,10 @@ import { ComponentLifecycleService, OperationService } from '../services';
 import { DIContext, getDIContext } from '../context';
 import { UUIDGenerator } from '../services/UUIDGenerator';
 
-export type Props = {
+export type Props = React.PropsWithChildren<{
     operationService: OperationService;
     componentLifecycleService: ComponentLifecycleService;
-};
+}>;
 
 function createDIContext() {
     return getDIContext();

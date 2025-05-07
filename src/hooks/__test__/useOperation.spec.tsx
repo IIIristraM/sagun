@@ -72,7 +72,7 @@ test('Component gets the operation', () => {
                         <TestComponent />
                     </Provider>
                 </Root>,
-                window.document.getElementById('app')
+                window.document.getElementById('app')!
             );
 
             yield renderDefer.promise;
@@ -110,7 +110,7 @@ test('No errors when no operation and no default state', () => {
                         <TestComponent />
                     </Provider>
                 </Root>,
-                window.document.getElementById('app')
+                window.document.getElementById('app')!
             );
 
             yield renderDefer.promise;
@@ -129,7 +129,6 @@ test('Component updates on operation changed', () => {
     let renderDefer = createDeferred();
     const TestComponent: React.FC<{}> = () => {
         const operation = useOperation({ operationId: OPERATION_ID });
-        renderDefer = createDeferred();
 
         useEffect(() => {
             func(operation?.isLoading);
@@ -149,12 +148,14 @@ test('Component updates on operation changed', () => {
                         <TestComponent />
                     </Provider>
                 </Root>,
-                window.document.getElementById('app')
+                window.document.getElementById('app')!
             );
 
             yield renderDefer.promise;
+            renderDefer = createDeferred();
             store.dispatch(actions.addOrUpdateOperation({ id: OPERATION_ID, isLoading: true }));
             yield renderDefer.promise;
+            renderDefer = createDeferred();
             store.dispatch(actions.addOrUpdateOperation({ id: OPERATION_ID, isLoading: false }));
             yield renderDefer.promise;
 
@@ -167,7 +168,7 @@ test('Component updates on operation changed', () => {
         .toPromise();
 });
 
-test('Component throws promise when suspense is true and operation is loading', () => {
+test('Nested operations with global Suspense', async () => {
     const sagaMiddleware = createSagaMiddleware();
     const store = applyMiddleware(sagaMiddleware)(createStore)(reducer);
     const operationService = new OperationService({ hash: {} });
@@ -179,49 +180,86 @@ test('Component throws promise when suspense is true and operation is loading', 
         }
 
         @operation
-        *operation() {
+        *operation0() {
             yield* delay(DELAY);
             return '0';
+        }
+
+        @operation
+        *operation1() {
+            yield* delay(DELAY);
+            return '1';
         }
     }
 
     const testService = new TestService(operationService);
 
-    const renderDefer = createDeferred();
-    const TestComponent: React.FC<{}> = () => {
-        const operation = useOperation({ operationId: getId(testService.operation)!, suspense: true });
-
-        useEffect(() => {
-            renderDefer.resolve();
-        });
-
-        return <span>{operation?.result}</span>;
-    };
-
     return sagaMiddleware
         .run(function* () {
+            const defer = createDeferred<unknown>();
+
+            const InnerComponent: React.FC<{}> = () => {
+                const operation2 = useOperation({
+                    operationId: getId(testService.operation1)!,
+                    suspense: true,
+                });
+
+                expect(operation2?.isLoading).toBe(false);
+                expect(operation2?.result).toBe('1');
+
+                useEffect(() => {
+                    defer.resolve();
+                });
+
+                return null;
+            };
+
+            const TestComponent: React.FC<{}> = () => {
+                const operation1 = useOperation({
+                    operationId: getId(testService.operation0)!,
+                    suspense: true,
+                });
+
+                expect(operation1?.isLoading).toBe(false);
+                expect(operation1?.result).toBe('0');
+
+                return <InnerComponent />;
+            };
+
+            const initDefer = createDeferred<unknown>();
+            const Wrapper = () => {
+                useEffect(() => {
+                    initDefer.resolve();
+                });
+
+                return (
+                    <Suspense fallback="Loading...">
+                        <TestComponent />
+                    </Suspense>
+                );
+            };
+
             yield* call(operationService.run);
 
-            try {
-                ReactDOM.render(
-                    <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                        <Provider store={store}>
-                            <TestComponent />
-                        </Provider>
-                    </Root>,
-                    window.document.getElementById('app')
-                );
+            const el = window.document.getElementById('app');
+            ReactDOM.render(
+                <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
+                    <Provider store={store}>
+                        <Wrapper />
+                    </Provider>
+                </Root>,
+                el!
+            );
 
-                yield renderDefer.promise;
-                yield* call(testService.operation);
-            } catch (e) {
-                expect(e.message.includes('no fallback')).toBe(true);
-                return;
-            } finally {
-                yield* call(operationService.destroy);
-            }
+            yield initDefer.promise;
+            expect(el?.innerHTML).toEqual('Loading...');
 
-            throw new Error('Promise was not thrown');
+            yield* call(testService.operation0);
+            yield* call(testService.operation1);
+            yield defer.promise;
+
+            expect(el?.innerHTML).not.toEqual('Loading...');
+            yield* call(operationService.destroy);
         })
         .toPromise();
 });
@@ -256,6 +294,7 @@ test('Component renders after the longest operation is completed', async () => {
         .run(function* () {
             const defer = createDeferred<unknown>();
             const start = Date.now();
+
             const TestComponent: React.FC<{}> = () => {
                 const operation1 = useOperation({
                     operationId: getId(testService.operation0)!,
@@ -272,8 +311,24 @@ test('Component renders after the longest operation is completed', async () => {
                 expect(operation2?.result).toBe('1');
                 expect(Date.now() - start).toBeGreaterThanOrEqual(DELAY * 2);
 
-                defer.resolve();
+                useEffect(() => {
+                    defer.resolve();
+                });
+
                 return null;
+            };
+
+            const initDefer = createDeferred<unknown>();
+            const TestComponentWrap: React.FC<{}> = () => {
+                useEffect(() => {
+                    initDefer.resolve();
+                });
+
+                return (
+                    <Suspense fallback="Loading...">
+                        <TestComponent />
+                    </Suspense>
+                );
             };
 
             yield* call(operationService.run);
@@ -282,14 +337,13 @@ test('Component renders after the longest operation is completed', async () => {
             ReactDOM.render(
                 <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
                     <Provider store={store}>
-                        <Suspense fallback="Loading...">
-                            <TestComponent />
-                        </Suspense>
+                        <TestComponentWrap />
                     </Provider>
                 </Root>,
-                window.document.getElementById('app')
+                el!
             );
 
+            yield initDefer.promise;
             expect(el?.innerHTML).toEqual('Loading...');
 
             yield* call(testService.operation0);
@@ -324,7 +378,7 @@ test('Components release operations', () => {
     const renderDefer = createDeferred();
     const destroyDefer = createDeferred();
 
-    const App: React.FC = ({ children }) => {
+    const App: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
         useSaga({ onLoad: testService.getResult });
         const [visible, toggle] = useState(true);
 
@@ -373,7 +427,7 @@ test('Components release operations', () => {
                         </App>
                     </Provider>
                 </Root>,
-                el
+                el!
             );
 
             yield renderDefer.promise;

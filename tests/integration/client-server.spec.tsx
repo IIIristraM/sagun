@@ -1,11 +1,12 @@
 import { applyMiddleware, combineReducers, createStore, Store } from 'redux';
 import { GetProps, Provider } from 'react-redux';
 import React, { Suspense } from 'react';
-import { act } from 'react-dom/test-utils';
 import { call } from 'typed-redux-saga';
 import createSagaMiddleware from 'redux-saga';
 import jsdom from 'jsdom';
+import prettier from 'prettier';
 import ReactDOM from 'react-dom';
+import { renderToStringAsync } from '_lib/serverRender';
 
 import {
     asyncOperationsReducer,
@@ -17,10 +18,9 @@ import {
     useOperation,
     useService,
 } from '_lib/';
-import { renderToStringAsync } from '_lib/serverRender';
 
 import { api, DELAY } from './TestAPI';
-import { isolate, resource, wait } from '../utils';
+import { resource, wait } from '../utils';
 import Content from './components/Content';
 import Table from './components/Table';
 import { TestService } from './TestService';
@@ -37,13 +37,15 @@ function load<T extends React.FC<any>>(promise: () => Promise<{ default: T }>) {
     let innerPromise: Promise<void>;
 
     return function LoadComponent(props: Parameters<T>[0]) {
-        if (!innerPromise) {
-            innerPromise = new Promise<void>(resolve => {
-                promise().then(res => {
-                    Component = res.default;
-                    resolve();
+        if (!innerPromise || !Component) {
+            innerPromise =
+                innerPromise ||
+                new Promise<void>(resolve => {
+                    promise().then(res => {
+                        Component = res.default;
+                        resolve();
+                    });
                 });
-            });
 
             throw innerPromise;
         }
@@ -140,38 +142,25 @@ async function clientRender(
     });
 
     const appEl = window.document.getElementById('app');
+    ReactDOM.hydrate(
+        renderApp({
+            store,
+            service,
+            operationService,
+        }),
+        appEl!
+    );
 
-    await act(async () => {
-        ReactDOM.hydrate(
-            renderApp({
-                store,
-                service,
-                operationService,
-            }),
-            appEl,
-            () => {
-                // handle hydration warnings
-                // expect(console.error).toHaveBeenCalledTimes(0);
-            }
-        );
-    });
-
-    jest.useFakeTimers();
     const maxRequests = 4;
     for (let steps = 0; steps < maxRequests; steps++) {
-        await act(async () => {
-            jest.advanceTimersByTime(DELAY + 1);
-        });
+        await wait(DELAY * 2);
     }
-    jest.useRealTimers();
 
     task.cancel();
     await task.toPromise();
 
     console.log(
-        await (
-            await import('prettier')
-        ).format(window.document.documentElement.outerHTML, {
+        await prettier.format(window.document.documentElement.outerHTML, {
             parser: 'html',
             htmlWhitespaceSensitivity: 'ignore',
         })
@@ -185,166 +174,173 @@ afterEach(() => {
 });
 
 test('sync independent sagas', async () => {
-    return isolate(async () => {
-        const Header = require('./components/Header').default;
-
-        const renderApp = ({ store, service, operationService }: GetProps<typeof App>) => (
-            <App store={store} service={service} operationService={operationService}>
-                <Header>
-                    <UserInfo id="" fallback="" />
-                </Header>
-                <Content>
-                    <Table fallback="" />
-                </Content>
-            </App>
-        );
-
-        const { hash, store, html } = await nodeRender(renderApp);
-        expect(api.getUser).toHaveBeenCalledTimes(1);
-        expect(api.getList).toHaveBeenCalledTimes(1);
-
-        // console.error = jest.fn(originError);
-
-        await clientRender(renderApp, html, store.getState(), hash);
-        expect(api.getUser).toHaveBeenCalledTimes(1);
-        expect(api.getList).toHaveBeenCalledTimes(1);
-        expect(global.window.document.getElementsByClassName('user').length).toBe(1);
-        expect(global.window.document.getElementsByClassName('table-item').length).toBe(5);
+    let Header: any;
+    jest.isolateModules(() => {
+        Header = require('./components/Header').default;
     });
+
+    const renderApp = ({ store, service, operationService }: GetProps<typeof App>) => (
+        <App store={store} service={service} operationService={operationService}>
+            <Header>
+                <UserInfo id="" fallback="" />
+            </Header>
+            <Content>
+                <Table fallback="" />
+            </Content>
+        </App>
+    );
+
+    const { hash, store, html } = await nodeRender(renderApp);
+    expect(api.getUser).toHaveBeenCalledTimes(1);
+    expect(api.getList).toHaveBeenCalledTimes(1);
+
+    // console.error = jest.fn(originError);
+
+    await clientRender(renderApp, html, store.getState(), hash);
+    expect(api.getUser).toHaveBeenCalledTimes(1);
+    expect(api.getList).toHaveBeenCalledTimes(1);
+    expect(global.window.document.getElementsByClassName('user').length).toBe(1);
+    expect(global.window.document.getElementsByClassName('table-item').length).toBe(5);
 });
 
 test('async independent sagas', async () => {
-    return isolate(async () => {
-        const HeaderAsync = load(() => import('./components/Header'));
-
-        const renderApp = ({ store, service, operationService }: GetProps<typeof App>) => (
-            <App store={store} service={service} operationService={operationService}>
-                <HeaderAsync>
-                    <UserInfo id="" fallback="" />
-                </HeaderAsync>
-                <Content>
-                    <Table fallback="" />
-                </Content>
-            </App>
-        );
-
-        const { hash, store, html } = await nodeRender(renderApp);
-        expect(api.getUser).toHaveBeenCalledTimes(1);
-        expect(api.getList).toHaveBeenCalledTimes(1);
-
-        // console.error = jest.fn(originError);
-
-        await clientRender(renderApp, html, store.getState(), hash);
-        expect(api.getUser).toHaveBeenCalledTimes(1);
-        expect(api.getList).toHaveBeenCalledTimes(1);
-        expect(global.window.document.getElementsByClassName('user').length).toBe(1);
-        expect(global.window.document.getElementsByClassName('table-item').length).toBe(5);
+    let HeaderAsync: any;
+    jest.isolateModules(() => {
+        HeaderAsync = load(() => import('./components/Header'));
     });
+
+    const renderApp = ({ store, service, operationService }: GetProps<typeof App>) => (
+        <App store={store} service={service} operationService={operationService}>
+            <HeaderAsync>
+                <UserInfo id="" fallback="" />
+            </HeaderAsync>
+            <Content>
+                <Table fallback="" />
+            </Content>
+        </App>
+    );
+
+    const { hash, store, html } = await nodeRender(renderApp);
+    expect(api.getUser).toHaveBeenCalledTimes(1);
+    expect(api.getList).toHaveBeenCalledTimes(1);
+
+    // console.error = jest.fn(originError);
+
+    await clientRender(renderApp, html, store.getState(), hash);
+    expect(api.getUser).toHaveBeenCalledTimes(1);
+    expect(api.getList).toHaveBeenCalledTimes(1);
+    expect(global.window.document.getElementsByClassName('user').length).toBe(1);
+    expect(global.window.document.getElementsByClassName('table-item').length).toBe(5);
 });
 
 test('async dependent sagas', async () => {
-    return isolate(async () => {
-        const HeaderAsync = load(() => import('./components/Header'));
-        const UserDetailsAsync = load(() => import('./components/UserDetails'));
-
-        const renderApp = ({ store, service, operationService }: GetProps<typeof App>) => (
-            <App store={store} service={service} operationService={operationService}>
-                <HeaderAsync>
-                    <UserInfo id="1" fallback="">
-                        <UserDetailsAsync id="1" />
-                    </UserInfo>
-                </HeaderAsync>
-                <Content>
-                    <Table fallback="" />
-                </Content>
-            </App>
-        );
-
-        const { hash, html, store } = await nodeRender(renderApp);
-        expect(api.getUser).toHaveBeenCalledTimes(1);
-        expect(api.getList).toHaveBeenCalledTimes(1);
-        expect(api.getUserDetails).toHaveBeenCalledTimes(1);
-
-        // console.error = jest.fn(originError);
-
-        await clientRender(renderApp, html, store.getState(), hash);
-        expect(api.getUser).toHaveBeenCalledTimes(1);
-        expect(api.getList).toHaveBeenCalledTimes(1);
-        expect(api.getUserDetails).toHaveBeenCalledTimes(1);
-        expect(global.window.document.getElementsByClassName('user').length).toBe(1);
-        expect(global.window.document.getElementsByClassName('table-item').length).toBe(5);
-        expect(global.window.document.getElementsByClassName('card').length).toBe(1);
-        expect(global.window.document.getElementsByClassName('card')?.[0].innerHTML).toBe('**00');
+    let HeaderAsync: any;
+    let UserDetailsAsync: any;
+    jest.isolateModules(() => {
+        HeaderAsync = load(() => import('./components/Header'));
+        UserDetailsAsync = load(() => import('./components/UserDetails'));
     });
+
+    const renderApp = ({ store, service, operationService }: GetProps<typeof App>) => (
+        <App store={store} service={service} operationService={operationService}>
+            <HeaderAsync>
+                <UserInfo id="1" fallback="">
+                    <UserDetailsAsync id="1" />
+                </UserInfo>
+            </HeaderAsync>
+            <Content>
+                <Table fallback="" />
+            </Content>
+        </App>
+    );
+
+    const { hash, html, store } = await nodeRender(renderApp);
+    expect(api.getUser).toHaveBeenCalledTimes(1);
+    expect(api.getList).toHaveBeenCalledTimes(1);
+    expect(api.getUserDetails).toHaveBeenCalledTimes(1);
+
+    // console.error = jest.fn(originError);
+
+    await clientRender(renderApp, html, store.getState(), hash);
+    expect(api.getUser).toHaveBeenCalledTimes(1);
+    expect(api.getList).toHaveBeenCalledTimes(1);
+    expect(api.getUserDetails).toHaveBeenCalledTimes(1);
+    expect(global.window.document.getElementsByClassName('user').length).toBe(1);
+    expect(global.window.document.getElementsByClassName('table-item').length).toBe(5);
+    expect(global.window.document.getElementsByClassName('card').length).toBe(1);
+    expect(global.window.document.getElementsByClassName('card')?.[0].innerHTML).toBe('**00');
 });
 
 test('async dependent siblings', async () => {
-    return isolate(async () => {
-        const HeaderAsync = load(() => import('./components/Header'));
-
-        const UserDetailsAsync = load(() => import('./components/UserDetails'));
-
-        const renderApp = ({ store, service, operationService }: GetProps<typeof App>) => (
-            <App store={store} service={service} operationService={operationService}>
-                <UserDetailsAsync id="1" />
-                <HeaderAsync>
-                    <UserInfo id="1" fallback="" />
-                </HeaderAsync>
-                <Content>
-                    <Table fallback="" />
-                </Content>
-            </App>
-        );
-
-        const { hash, store, html } = await nodeRender(renderApp);
-        expect(api.getUser).toHaveBeenCalledTimes(1);
-        expect(api.getList).toHaveBeenCalledTimes(1);
-        expect(api.getUserDetails).toHaveBeenCalledTimes(1);
-
-        // console.error = jest.fn(originError);
-
-        await clientRender(renderApp, html, store.getState(), hash);
-        expect(api.getUser).toHaveBeenCalledTimes(1);
-        expect(api.getList).toHaveBeenCalledTimes(1);
-        expect(api.getUserDetails).toHaveBeenCalledTimes(1);
-        expect(global.window.document.getElementsByClassName('user').length).toBe(1);
-        expect(global.window.document.getElementsByClassName('table-item').length).toBe(5);
-        expect(global.window.document.getElementsByClassName('card').length).toBe(1);
-        expect(global.window.document.getElementsByClassName('card')?.[0].innerHTML).toBe('**00');
+    let HeaderAsync: any;
+    let UserDetailsAsync: any;
+    jest.isolateModules(() => {
+        HeaderAsync = load(() => import('./components/Header'));
+        UserDetailsAsync = load(() => import('./components/UserDetails'));
     });
+
+    const renderApp = ({ store, service, operationService }: GetProps<typeof App>) => (
+        <App store={store} service={service} operationService={operationService}>
+            <UserDetailsAsync id="1" />
+            <HeaderAsync>
+                <UserInfo id="1" fallback="" />
+            </HeaderAsync>
+            <Content>
+                <Table fallback="" />
+            </Content>
+        </App>
+    );
+
+    const { hash, store, html } = await nodeRender(renderApp);
+    expect(api.getUser).toHaveBeenCalledTimes(1);
+    expect(api.getList).toHaveBeenCalledTimes(1);
+    expect(api.getUserDetails).toHaveBeenCalledTimes(1);
+
+    // console.error = jest.fn(originError);
+
+    await clientRender(renderApp, html, store.getState(), hash);
+    expect(api.getUser).toHaveBeenCalledTimes(1);
+    expect(api.getList).toHaveBeenCalledTimes(1);
+    expect(api.getUserDetails).toHaveBeenCalledTimes(1);
+    expect(global.window.document.getElementsByClassName('user').length).toBe(1);
+    expect(global.window.document.getElementsByClassName('table-item').length).toBe(5);
+    expect(global.window.document.getElementsByClassName('card').length).toBe(1);
+    expect(global.window.document.getElementsByClassName('card')?.[0].innerHTML).toBe('**00');
 });
 
 test('multiple component instances', async () => {
-    return isolate(async () => {
-        const HeaderAsync = load(() => import('./components/Header'));
-        const UserDetailsAsync = load(() => import('./components/UserDetails'));
-
-        const renderApp = ({ store, service, operationService }: GetProps<typeof App>) => (
-            <App store={store} service={service} operationService={operationService}>
-                <HeaderAsync>
-                    <UserInfo id="1" fallback="">
-                        <UserDetailsAsync id="1" />
-                    </UserInfo>
-                    <UserInfo id="2" fallback="">
-                        <UserDetailsAsync id="2" />
-                    </UserInfo>
-                </HeaderAsync>
-            </App>
-        );
-
-        const { hash, store, html } = await nodeRender(renderApp);
-        expect(api.getUser).toHaveBeenCalledTimes(2);
-        expect(api.getUserDetails).toHaveBeenCalledTimes(2);
-
-        // console.error = jest.fn(originError);
-
-        await clientRender(renderApp, html, store.getState(), hash);
-        expect(api.getUser).toHaveBeenCalledTimes(2);
-        expect(api.getUserDetails).toHaveBeenCalledTimes(2);
-        expect(global.window.document.getElementsByClassName('card').length).toBe(2);
-        expect(global.window.document.getElementsByClassName('card')?.[0].innerHTML).toBe('**00');
-        expect(global.window.document.getElementsByClassName('card')?.[1].innerHTML).toBe('**00');
+    let HeaderAsync: any;
+    let UserDetailsAsync: any;
+    jest.isolateModules(() => {
+        HeaderAsync = load(() => import('./components/Header'));
+        UserDetailsAsync = load(() => import('./components/UserDetails'));
     });
+
+    const renderApp = ({ store, service, operationService }: GetProps<typeof App>) => (
+        <App store={store} service={service} operationService={operationService}>
+            <HeaderAsync>
+                <UserInfo id="1" fallback="">
+                    <UserDetailsAsync id="1" />
+                </UserInfo>
+                <UserInfo id="2" fallback="">
+                    <UserDetailsAsync id="2" />
+                </UserInfo>
+            </HeaderAsync>
+        </App>
+    );
+
+    const { hash, store, html } = await nodeRender(renderApp);
+    expect(api.getUser).toHaveBeenCalledTimes(2);
+    expect(api.getUserDetails).toHaveBeenCalledTimes(2);
+
+    // console.error = jest.fn(originError);
+
+    await clientRender(renderApp, html, store.getState(), hash);
+    expect(api.getUser).toHaveBeenCalledTimes(2);
+    expect(api.getUserDetails).toHaveBeenCalledTimes(2);
+    expect(global.window.document.getElementsByClassName('card').length).toBe(2);
+    expect(global.window.document.getElementsByClassName('card')?.[0].innerHTML).toBe('**00');
+    expect(global.window.document.getElementsByClassName('card')?.[1].innerHTML).toBe('**00');
 });
 
 test('fragments', async () => {
@@ -382,7 +378,7 @@ test('fragments', async () => {
     (global as any).document = window.document;
 
     r1 = resource();
-    ReactDOM.hydrate(<App />, window.document.getElementById('app'));
+    ReactDOM.hydrate(<App />, window.document.getElementById('app')!);
 
     await wait(50);
 
