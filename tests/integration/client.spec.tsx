@@ -3,7 +3,6 @@ import React, { memo, Suspense, useContext, useEffect, useState } from 'react';
 import { combineReducers } from 'redux';
 import jsdom from 'jsdom';
 import { Provider } from 'react-redux';
-import ReactDOM from 'react-dom';
 
 import {
     ComponentLifecycleService,
@@ -20,7 +19,7 @@ import {
     useService,
     useServiceConsumer,
 } from '_lib/';
-import { getSagaRunner, wait } from '_test/utils';
+import { getSagaRunner, render, wait } from '_test/utils';
 import { createDeferred } from '_lib/utils/createDeferred';
 
 const DELAY = 50;
@@ -131,8 +130,7 @@ test('Nested operations with global Suspense ', async () => {
             yield* call(operationService.run);
             yield* call(componentLifecycleService.run);
 
-            const el = window.document.getElementById('app');
-            ReactDOM.render(
+            const { el } = render(
                 <Context.Provider
                     value={{
                         counter: () => counter,
@@ -146,8 +144,7 @@ test('Nested operations with global Suspense ', async () => {
                             </Suspense>
                         </Provider>
                     </Root>
-                </Context.Provider>,
-                el!
+                </Context.Provider>
             );
 
             expect(el?.innerHTML).toEqual('Loading...');
@@ -214,13 +211,12 @@ test('Execute nested sagas on client', async () => {
         );
     };
 
-    ReactDOM.render(
+    render(
         <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
             <Provider store={runner.store}>
                 <App />
             </Provider>
-        </Root>,
-        window.document.getElementById('app')!
+        </Root>
     );
 
     for (let step = 1; step <= 3; step++) {
@@ -276,16 +272,15 @@ test.skip('useSaga + useOperation in same component', async () => {
                 return null;
             }
 
-            const el = window.document.getElementById('app');
-            ReactDOM.render(
+
+            const { el } = render(
                 <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
                     <Provider store={runner.store}>
                         <Suspense fallback="Loading...">
                             <App />
                         </Suspense>
                     </Provider>
-                </Root>,
-                el!
+                </Root>
             );
 
             expect(el?.innerHTML).toEqual('Loading...');
@@ -344,16 +339,14 @@ test.skip('useSaga + double useOperation in same component', async () => {
                 return null;
             }
 
-            const el = window.document.getElementById('app');
-            ReactDOM.render(
+            const { el } = render(
                 <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
                     <Provider store={runner.store}>
                         <Suspense fallback="Loading...">
                             <App />
                         </Suspense>
                     </Provider>
-                </Root>,
-                el!
+                </Root>
             );
 
             expect(el?.innerHTML).toEqual('Loading...');

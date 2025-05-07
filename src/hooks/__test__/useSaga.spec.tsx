@@ -4,7 +4,6 @@ import { call } from 'typed-redux-saga';
 import createSagaMiddleware from 'redux-saga';
 import jsdom from 'jsdom';
 import { Provider } from 'react-redux';
-import ReactDOM from 'react-dom';
 
 import { ComponentLifecycleService, Service } from '../../services';
 import { createDeferred } from '../../utils/createDeferred';
@@ -15,7 +14,7 @@ import reducer from '../../reducer';
 import { Root } from '../../components/Root';
 import { useSaga } from '../useSaga';
 
-import { exact, wait } from '_test/utils';
+import { exact, render, wait } from '_test/utils';
 
 const DELAY = 50;
 const ARGS = ['xxx'];
@@ -97,7 +96,6 @@ describe('useSaga', () => {
         const operationService = new OperationService({ hash: {} });
         const componentLifecycleService = new ComponentLifecycleService(operationService);
 
-        const appEl = window.document.getElementById('app')!;
         const unmountDefer = createDeferred();
 
         const task = sagaMiddleware.run(function* () {
@@ -106,9 +104,8 @@ describe('useSaga', () => {
             yield* call(componentLifecycleService.destroy);
         });
 
-        ReactDOM.render(
-            <App operationService={operationService} componentLifecycleService={componentLifecycleService} />,
-            appEl!
+        const { unmount } = render(
+            <App operationService={operationService} componentLifecycleService={componentLifecycleService} />
         );
 
         await wait(DELAY * 2);
@@ -116,8 +113,7 @@ describe('useSaga', () => {
         window.document.getElementById('update')?.click();
         await wait(DELAY * 2);
 
-        ReactDOM.unmountComponentAtNode(appEl);
-        await wait(0);
+        await unmount();
         unmountDefer.resolve();
         task.cancel();
         await task.toPromise();
@@ -138,7 +134,6 @@ describe('useSaga', () => {
         const operationService = new OperationService({ hash: {} });
         const componentLifecycleService = new ComponentLifecycleService(operationService);
 
-        const appEl = window.document.getElementById('app')!;
         const unmountDefer = createDeferred();
         let operationId: string;
         const processOperationId = (id: string) => (operationId = id);
@@ -149,20 +144,18 @@ describe('useSaga', () => {
             yield call(componentLifecycleService.destroy);
         });
 
-        ReactDOM.render(
+        const { unmount } = render(
             <App
                 operationService={operationService}
                 componentLifecycleService={componentLifecycleService}
                 processOperationId={processOperationId}
-            />,
-            appEl!
+            />
         );
 
         await wait(DELAY * 2);
 
         expect(store.getState().get(operationId!)).toBeTruthy();
-        ReactDOM.unmountComponentAtNode(appEl);
-        await wait(0);
+        await unmount();
         expect(store.getState().get(operationId!)).toBeFalsy();
 
         unmountDefer.resolve();
@@ -176,7 +169,6 @@ describe('useSaga', () => {
         const operationService = new OperationService({ hash: {} });
         const componentLifecycleService = new ComponentLifecycleService(operationService);
 
-        const appEl = window.document.getElementById('app')!;
         const unmountDefer = createDeferred();
         let operationId1 = '_init';
         let operationId2 = '_init';
@@ -189,7 +181,7 @@ describe('useSaga', () => {
             yield* call(componentLifecycleService.destroy);
         });
 
-        ReactDOM.render(
+        const { unmount } = render(
             <App operationService={operationService} componentLifecycleService={componentLifecycleService}>
                 {() => (
                     <>
@@ -197,8 +189,7 @@ describe('useSaga', () => {
                         <TestComponent x={2} processOperationId={processOperationId2} />
                     </>
                 )}
-            </App>,
-            appEl!
+            </App>
         );
 
         await wait(DELAY * 2);
@@ -208,7 +199,7 @@ describe('useSaga', () => {
         expect(processLoading.mock.calls).toContainEqual([...ARGS, 1]);
         expect(processLoading.mock.calls).toContainEqual([...ARGS, 2]);
 
-        ReactDOM.unmountComponentAtNode(appEl);
+        await unmount();
         unmountDefer.resolve();
 
         task.cancel();
@@ -222,7 +213,6 @@ describe('useSaga', () => {
         const componentLifecycleService = new ComponentLifecycleService(operationService);
 
         const reloadCount = 5;
-        const appEl = window.document.getElementById('app')!;
         const unmountDefer = createDeferred();
 
         const task = sagaMiddleware.run(function* () {
@@ -231,9 +221,8 @@ describe('useSaga', () => {
             yield* call(componentLifecycleService.destroy);
         });
 
-        ReactDOM.render(
-            <App operationService={operationService} componentLifecycleService={componentLifecycleService} />,
-            appEl!
+        const { unmount } = render(
+            <App operationService={operationService} componentLifecycleService={componentLifecycleService} />
         );
 
         await wait(DELAY * 2);
@@ -249,7 +238,7 @@ describe('useSaga', () => {
         expect(processDisposing).toHaveBeenCalledTimes(reloadCount);
         expect(processLoading).toHaveBeenCalledTimes(reloadCount + 1);
 
-        ReactDOM.unmountComponentAtNode(appEl);
+        await unmount();
         unmountDefer.resolve();
         task.cancel();
         await task.toPromise();
@@ -287,7 +276,6 @@ describe('useSaga', () => {
             return null;
         };
 
-        const appEl = window.document.getElementById('app')!;
         const unmountDefer = createDeferred();
 
         const task = sagaMiddleware.run(function* () {
@@ -296,11 +284,10 @@ describe('useSaga', () => {
             yield* call(componentLifecycleService.destroy);
         });
 
-        ReactDOM.render(
+        const { unmount } = render(
             <App operationService={operationService} componentLifecycleService={componentLifecycleService}>
                 {x => <TestComponent x={x} />}
-            </App>,
-            appEl!
+            </App>
         );
 
         await wait(DELAY * 2);
@@ -314,7 +301,7 @@ describe('useSaga', () => {
         // next load proceed as usual
         expect(fn).toHaveBeenCalledTimes(1);
 
-        ReactDOM.unmountComponentAtNode(appEl);
+        await unmount();
         unmountDefer.resolve();
 
         task.cancel();

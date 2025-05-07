@@ -5,7 +5,6 @@ import { call } from 'typed-redux-saga';
 import createSagaMiddleware from 'redux-saga';
 import jsdom from 'jsdom';
 import prettier from 'prettier';
-import ReactDOM from 'react-dom';
 import { renderToStringAsync } from '_lib/serverRender';
 
 import {
@@ -20,7 +19,7 @@ import {
 } from '_lib/';
 
 import { api, DELAY } from './TestAPI';
-import { resource, wait } from '../utils';
+import { hydrate, resource, wait } from '../utils';
 import Content from './components/Content';
 import Table from './components/Table';
 import { TestService } from './TestService';
@@ -141,14 +140,12 @@ async function clientRender(
         yield* call(service.run);
     });
 
-    const appEl = window.document.getElementById('app');
-    ReactDOM.hydrate(
+    hydrate(
         renderApp({
             store,
             service,
             operationService,
-        }),
-        appEl!
+        })
     );
 
     const maxRequests = 4;
@@ -378,7 +375,7 @@ test('fragments', async () => {
     (global as any).document = window.document;
 
     r1 = resource();
-    ReactDOM.hydrate(<App />, window.document.getElementById('app')!);
+    hydrate(<App />);
 
     await wait(50);
 
