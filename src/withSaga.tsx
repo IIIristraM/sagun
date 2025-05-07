@@ -28,17 +28,24 @@ type OuterProps<P> = P & {
 
 type ArgsMapper<P extends object, TArgs extends any[]> = (props: P) => TArgs;
 
+/**
+ * @deprecated
+ */
 export function withSaga<TRes>(options: {
     sagaFactory: (context: IDIContext) => ComponentSaga<[], TRes>;
     options?: UseSagaOptions<[], TRes>;
 }): <P extends object>(Component: React.ComponentType<WithSagaProp<P, TRes, []>>) => React.FC<OuterProps<P>>;
-
+/**
+ * @deprecated
+ */
 export function withSaga<P extends object, TRes, TArgs extends any[]>(options: {
     sagaFactory: (context: IDIContext) => ComponentSaga<TArgs, TRes>;
     argsMapper: ArgsMapper<P, TArgs>;
     options?: UseSagaOptions<TArgs, TRes>;
 }): (Component: React.ComponentType<WithSagaProp<P, TRes, TArgs>>) => React.FC<OuterProps<P>>;
-
+/**
+ * @deprecated
+ */
 export function withSaga<P extends object, TRes, TArgs extends any[]>({
     sagaFactory,
     argsMapper = () => [] as any as TArgs,
@@ -65,17 +72,24 @@ export function withSaga<P extends object, TRes, TArgs extends any[]>({
     };
 }
 
+/**
+ * @deprecated
+ */
 export function withService<TRes, TServ extends Service<[], TRes>>(options: {
     serviceFactory: (context: Pick<IDIContext, 'getService' | 'createService'>) => TServ;
     options?: UseSagaOptions<[], TRes>;
 }): <P extends object>(Component: React.ComponentType<WithServiceProp<P, TRes, [], TServ>>) => React.FC<OuterProps<P>>;
-
+/**
+ * @deprecated
+ */
 export function withService<P extends object, TRes, TArgs extends any[], TServ extends Service<TArgs, TRes>>(options: {
     serviceFactory: (context: Pick<IDIContext, 'getService' | 'createService'>) => TServ;
     argsMapper: ArgsMapper<P, TArgs>;
     options?: UseSagaOptions<TArgs, TRes>;
 }): (Component: React.ComponentType<WithServiceProp<P, TRes, TArgs, TServ>>) => React.FC<OuterProps<P>>;
-
+/**
+ * @deprecated
+ */
 export function withService<P extends object, TRes, TArgs extends any[], TServ extends Service<TArgs, TRes>>({
     serviceFactory,
     argsMapper = () => [] as any as TArgs,

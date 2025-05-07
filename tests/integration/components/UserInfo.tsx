@@ -1,21 +1,13 @@
 import { call } from 'typed-redux-saga';
 import React from 'react';
 
-import { useOperation, withSaga } from '../../../src';
+import { useOperation, useSaga, useServiceConsumer } from '../../../src';
 
 import { TestService, userOperationId } from '../TestService';
 
-type Props = { children?: React.ReactNode; id: string };
+type Props = React.PropsWithChildren<{ id: string }>;
 
-export default withSaga({
-    sagaFactory: ({ getService }) => ({
-        onLoad: function* (id: string) {
-            const service = getService(TestService);
-            yield* call(service.getUser, id);
-        },
-    }),
-    argsMapper: ({ id }: Props) => [id],
-})(function UserInfo({ children, id }) {
+function Inner({ id, children }: Props) {
     const { result: login } = useOperation({ operationId: userOperationId(id), suspense: true });
 
     return (
@@ -24,4 +16,18 @@ export default withSaga({
             {children}
         </div>
     );
-});
+}
+
+export default function UserInfo({ children, id }: Props) {
+    const { service } = useServiceConsumer(TestService);
+    useSaga(
+        {
+            onLoad: function* (id: string) {
+                yield* call(service.getUser, id);
+            },
+        },
+        [id]
+    );
+
+    return <Inner id={id}>{children}</Inner>;
+}

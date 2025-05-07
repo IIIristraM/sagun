@@ -179,7 +179,9 @@ test('sync independent sagas', async () => {
     const renderApp = ({ store, service, operationService }: GetProps<typeof App>) => (
         <App store={store} service={service} operationService={operationService}>
             <Header>
-                <UserInfo id="" fallback="" />
+                <Suspense fallback="">
+                    <UserInfo id="" />
+                </Suspense>
             </Header>
             <Content>
                 <Table fallback="" />
@@ -209,7 +211,9 @@ test('async independent sagas', async () => {
     const renderApp = ({ store, service, operationService }: GetProps<typeof App>) => (
         <App store={store} service={service} operationService={operationService}>
             <HeaderAsync>
-                <UserInfo id="" fallback="" />
+                <Suspense fallback="">
+                    <UserInfo id="" />
+                </Suspense>
             </HeaderAsync>
             <Content>
                 <Table fallback="" />
@@ -241,9 +245,11 @@ test('async dependent sagas', async () => {
     const renderApp = ({ store, service, operationService }: GetProps<typeof App>) => (
         <App store={store} service={service} operationService={operationService}>
             <HeaderAsync>
-                <UserInfo id="1" fallback="">
-                    <UserDetailsAsync id="1" />
-                </UserInfo>
+                <Suspense fallback="">
+                    <UserInfo id="1">
+                        <UserDetailsAsync id="1" />
+                    </UserInfo>
+                </Suspense>
             </HeaderAsync>
             <Content>
                 <Table fallback="" />
@@ -280,7 +286,9 @@ test('async dependent siblings', async () => {
         <App store={store} service={service} operationService={operationService}>
             <UserDetailsAsync id="1" />
             <HeaderAsync>
-                <UserInfo id="1" fallback="" />
+                <Suspense fallback="">
+                    <UserInfo id="1" />
+                </Suspense>
             </HeaderAsync>
             <Content>
                 <Table fallback="" />
@@ -316,12 +324,16 @@ test('multiple component instances', async () => {
     const renderApp = ({ store, service, operationService }: GetProps<typeof App>) => (
         <App store={store} service={service} operationService={operationService}>
             <HeaderAsync>
-                <UserInfo id="1" fallback="">
-                    <UserDetailsAsync id="1" />
-                </UserInfo>
-                <UserInfo id="2" fallback="">
-                    <UserDetailsAsync id="2" />
-                </UserInfo>
+                <Suspense fallback="">
+                    <UserInfo id="1">
+                        <UserDetailsAsync id="1" />
+                    </UserInfo>
+                </Suspense>
+                <Suspense fallback="">
+                    <UserInfo id="2">
+                        <UserDetailsAsync id="2" />
+                    </UserInfo>
+                </Suspense>
             </HeaderAsync>
         </App>
     );
