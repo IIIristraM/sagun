@@ -272,7 +272,6 @@ test.skip('useSaga + useOperation in same component', async () => {
                 return null;
             }
 
-
             const { el } = render(
                 <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
                     <Provider store={runner.store}>

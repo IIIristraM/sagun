@@ -62,20 +62,17 @@ export function exact<T, Expected>(result: Exact<T, Expected>) {
 export function render(reactEl: JSX.Element) {
     const el = window.document.getElementById('app')!;
     ReactDOM.render(reactEl, el);
-    return { 
+    return {
         el,
         unmount: async () => {
             ReactDOM.unmountComponentAtNode(el);
             await wait(0);
-        }
+        },
     };
 }
 
 export function hydrate(reactEl: JSX.Element) {
     const el = window.document.getElementById('app')!;
 
-    ReactDOM.hydrate(
-        reactEl,
-        el!
-    );
+    ReactDOM.hydrate(reactEl, el!);
 }
