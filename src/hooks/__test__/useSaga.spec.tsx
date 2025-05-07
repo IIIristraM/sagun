@@ -4,7 +4,7 @@ import { call } from 'typed-redux-saga';
 import createSagaMiddleware from 'redux-saga';
 import jsdom from 'jsdom';
 import { Provider } from 'react-redux';
-import ReactDOM from 'react-dom';
+import ReactDOMClient from 'react-dom/client';
 
 import { ComponentLifecycleService, Service } from '../../services';
 import { createDeferred } from '../../utils/createDeferred';
@@ -55,11 +55,12 @@ describe('useSaga', () => {
             processDisposing(...args);
         };
 
-        const TestComponent: React.FC<Pick<Props, 'processOperationId'> & { x: number }> = ({
+        const TestComponent: React.FC<Pick<Props, 'processOperationId'> & { x: number; operationId?: string }> = ({
             x,
+            operationId: externalId,
             processOperationId,
         }) => {
-            const { operationId, reload } = useSaga({ onLoad, onDispose }, [...ARGS, x]);
+            const { operationId, reload } = useSaga(externalId ?? 'init-app', { onLoad, onDispose }, [...ARGS, x]);
 
             if (processOperationId) {
                 processOperationId(operationId);
@@ -98,6 +99,7 @@ describe('useSaga', () => {
         const componentLifecycleService = new ComponentLifecycleService(operationService);
 
         const appEl = window.document.getElementById('app')!;
+        const container = ReactDOMClient.createRoot(appEl!);
         const unmountDefer = createDeferred();
 
         const task = sagaMiddleware.run(function* () {
@@ -106,9 +108,8 @@ describe('useSaga', () => {
             yield* call(componentLifecycleService.destroy);
         });
 
-        ReactDOM.render(
-            <App operationService={operationService} componentLifecycleService={componentLifecycleService} />,
-            appEl!
+        container.render(
+            <App operationService={operationService} componentLifecycleService={componentLifecycleService} />
         );
 
         await wait(DELAY * 2);
@@ -116,8 +117,7 @@ describe('useSaga', () => {
         window.document.getElementById('update')?.click();
         await wait(DELAY * 2);
 
-        ReactDOM.unmountComponentAtNode(appEl);
-        await wait(0);
+        container.unmount();
         unmountDefer.resolve();
         task.cancel();
         await task.toPromise();
@@ -139,6 +139,7 @@ describe('useSaga', () => {
         const componentLifecycleService = new ComponentLifecycleService(operationService);
 
         const appEl = window.document.getElementById('app')!;
+        const container = ReactDOMClient.createRoot(appEl);
         const unmountDefer = createDeferred();
         let operationId: string;
         const processOperationId = (id: string) => (operationId = id);
@@ -149,20 +150,18 @@ describe('useSaga', () => {
             yield call(componentLifecycleService.destroy);
         });
 
-        ReactDOM.render(
+        container.render(
             <App
                 operationService={operationService}
                 componentLifecycleService={componentLifecycleService}
                 processOperationId={processOperationId}
-            />,
-            appEl!
+            />
         );
 
         await wait(DELAY * 2);
 
         expect(store.getState().get(operationId!)).toBeTruthy();
-        ReactDOM.unmountComponentAtNode(appEl);
-        await wait(0);
+        container.unmount();
         expect(store.getState().get(operationId!)).toBeFalsy();
 
         unmountDefer.resolve();
@@ -177,6 +176,7 @@ describe('useSaga', () => {
         const componentLifecycleService = new ComponentLifecycleService(operationService);
 
         const appEl = window.document.getElementById('app')!;
+        const container = ReactDOMClient.createRoot(appEl);
         const unmountDefer = createDeferred();
         let operationId1 = '_init';
         let operationId2 = '_init';
@@ -189,16 +189,15 @@ describe('useSaga', () => {
             yield* call(componentLifecycleService.destroy);
         });
 
-        ReactDOM.render(
+        container.render(
             <App operationService={operationService} componentLifecycleService={componentLifecycleService}>
                 {() => (
                     <>
                         <TestComponent x={1} processOperationId={processOperationId1} />
-                        <TestComponent x={2} processOperationId={processOperationId2} />
+                        <TestComponent x={2} operationId="test-2" processOperationId={processOperationId2} />
                     </>
                 )}
-            </App>,
-            appEl!
+            </App>
         );
 
         await wait(DELAY * 2);
@@ -208,7 +207,7 @@ describe('useSaga', () => {
         expect(processLoading.mock.calls).toContainEqual([...ARGS, 1]);
         expect(processLoading.mock.calls).toContainEqual([...ARGS, 2]);
 
-        ReactDOM.unmountComponentAtNode(appEl);
+        container.unmount();
         unmountDefer.resolve();
 
         task.cancel();
@@ -223,6 +222,7 @@ describe('useSaga', () => {
 
         const reloadCount = 5;
         const appEl = window.document.getElementById('app')!;
+        const container = ReactDOMClient.createRoot(appEl);
         const unmountDefer = createDeferred();
 
         const task = sagaMiddleware.run(function* () {
@@ -231,9 +231,8 @@ describe('useSaga', () => {
             yield* call(componentLifecycleService.destroy);
         });
 
-        ReactDOM.render(
-            <App operationService={operationService} componentLifecycleService={componentLifecycleService} />,
-            appEl!
+        container.render(
+            <App operationService={operationService} componentLifecycleService={componentLifecycleService} />
         );
 
         await wait(DELAY * 2);
@@ -249,7 +248,7 @@ describe('useSaga', () => {
         expect(processDisposing).toHaveBeenCalledTimes(reloadCount);
         expect(processLoading).toHaveBeenCalledTimes(reloadCount + 1);
 
-        ReactDOM.unmountComponentAtNode(appEl);
+        container.unmount();
         unmountDefer.resolve();
         task.cancel();
         await task.toPromise();
@@ -283,11 +282,12 @@ describe('useSaga', () => {
         const service = new TestService(operationService);
 
         const TestComponent = ({ x }: { x: number }) => {
-            useSaga({ onLoad: service.method }, [x]);
+            useSaga('init-app', { onLoad: service.method }, [x]);
             return null;
         };
 
         const appEl = window.document.getElementById('app')!;
+        const container = ReactDOMClient.createRoot(appEl);
         const unmountDefer = createDeferred();
 
         const task = sagaMiddleware.run(function* () {
@@ -296,11 +296,10 @@ describe('useSaga', () => {
             yield* call(componentLifecycleService.destroy);
         });
 
-        ReactDOM.render(
+        container.render(
             <App operationService={operationService} componentLifecycleService={componentLifecycleService}>
                 {x => <TestComponent x={x} />}
-            </App>,
-            appEl!
+            </App>
         );
 
         await wait(DELAY * 2);
@@ -314,7 +313,7 @@ describe('useSaga', () => {
         // next load proceed as usual
         expect(fn).toHaveBeenCalledTimes(1);
 
-        ReactDOM.unmountComponentAtNode(appEl);
+        container.unmount();
         unmountDefer.resolve();
 
         task.cancel();
@@ -329,6 +328,7 @@ describe('useSaga', () => {
             const args: [number, string] = [arg0, arg1];
 
             useSaga(
+                'op_1',
                 {
                     onLoad: function* (a, b) {
                         exact<typeof a, number>(true);
@@ -339,6 +339,7 @@ describe('useSaga', () => {
             );
 
             useSaga(
+                'op_2',
                 {
                     onLoad: function* (a, b) {
                         exact<typeof a, 1>(true);
@@ -349,6 +350,7 @@ describe('useSaga', () => {
             );
 
             useSaga<[number, string], void>(
+                'op_3',
                 {
                     onLoad: function* (a, b) {
                         exact<typeof a, number>(true);
@@ -359,6 +361,7 @@ describe('useSaga', () => {
             );
 
             useSaga<[string, number], void>(
+                'op_4',
                 {
                     onLoad: function* (a, b) {},
                 },

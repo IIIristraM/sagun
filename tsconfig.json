@@ -26,5 +26,5 @@
         "strictNullChecks": true,
         "strictBindCallApply": true
     },
-    "include": ["src", "typings", "tests"]
+    "include": ["src", "typings", "tests", "playground"]
 }

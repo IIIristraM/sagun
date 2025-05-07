@@ -7,7 +7,7 @@ import { call, delay } from 'typed-redux-saga';
 import React, { Suspense, useEffect, useState } from 'react';
 import createSagaMiddleware from 'redux-saga';
 import { Provider } from 'react-redux';
-import ReactDOM from 'react-dom';
+import ReactDOM from 'react-dom/client';
 
 import { ComponentLifecycleService, getId, OperationService, Service } from '../../services';
 import reducer, { actions } from '../../reducer';
@@ -66,13 +66,13 @@ test('Component gets the operation', () => {
             yield* call(operationService.run);
             yield* call(testService.getResult);
 
-            ReactDOM.render(
+            const container = ReactDOM.createRoot(window.document.getElementById('app')!);
+            container.render(
                 <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
                     <Provider store={store}>
                         <TestComponent />
                     </Provider>
-                </Root>,
-                window.document.getElementById('app')!
+                </Root>
             );
 
             yield renderDefer.promise;
@@ -104,13 +104,13 @@ test('No errors when no operation and no default state', () => {
         .run(function* () {
             yield* call(operationService.run);
 
-            ReactDOM.render(
+            const container = ReactDOM.createRoot(window.document.getElementById('app')!);
+            container.render(
                 <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
                     <Provider store={store}>
                         <TestComponent />
                     </Provider>
-                </Root>,
-                window.document.getElementById('app')!
+                </Root>
             );
 
             yield renderDefer.promise;
@@ -142,13 +142,13 @@ test('Component updates on operation changed', () => {
         .run(function* () {
             yield* call(operationService.run);
 
-            ReactDOM.render(
+            const container = ReactDOM.createRoot(window.document.getElementById('app')!);
+            container.render(
                 <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
                     <Provider store={store}>
                         <TestComponent />
                     </Provider>
-                </Root>,
-                window.document.getElementById('app')!
+                </Root>
             );
 
             yield renderDefer.promise;
@@ -242,13 +242,13 @@ test('Nested operations with global Suspense', async () => {
             yield* call(operationService.run);
 
             const el = window.document.getElementById('app');
-            ReactDOM.render(
+            const container = ReactDOM.createRoot(el!);
+            container.render(
                 <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
                     <Provider store={store}>
                         <Wrapper />
                     </Provider>
-                </Root>,
-                el!
+                </Root>
             );
 
             yield initDefer.promise;
@@ -334,13 +334,13 @@ test('Component renders after the longest operation is completed', async () => {
             yield* call(operationService.run);
 
             const el = window.document.getElementById('app');
-            ReactDOM.render(
+            const container = ReactDOM.createRoot(el!);
+            container.render(
                 <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
                     <Provider store={store}>
                         <TestComponentWrap />
                     </Provider>
-                </Root>,
-                el!
+                </Root>
             );
 
             yield initDefer.promise;
@@ -379,7 +379,7 @@ test('Components release operations', () => {
     const destroyDefer = createDeferred();
 
     const App: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
-        useSaga({ onLoad: testService.getResult });
+        useSaga('init-app', { onLoad: testService.getResult });
         const [visible, toggle] = useState(true);
 
         return (
@@ -417,7 +417,8 @@ test('Components release operations', () => {
             yield* call(componentLifecycleService.run);
 
             const el = window.document.getElementById('app');
-            ReactDOM.render(
+            const container = ReactDOM.createRoot(el!);
+            container.render(
                 <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
                     <Provider store={store}>
                         <App>
@@ -426,8 +427,7 @@ test('Components release operations', () => {
                             </Suspense>
                         </App>
                     </Provider>
-                </Root>,
-                el!
+                </Root>
             );
 
             yield renderDefer.promise;

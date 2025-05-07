@@ -56,7 +56,6 @@ export class ComponentLifecycleService extends Service {
                 });
 
                 const loadTask = yield* fork(loadOperation.run, ...args);
-
                 yield* take(isDisposeSignal(loadId));
                 loadTask.cancel();
 
@@ -65,6 +64,10 @@ export class ComponentLifecycleService extends Service {
         }
 
         this.EXECUTION_MAP[operationId] = undefined;
+    }
+
+    getCurrentExecution(operationId: string) {
+        return this.EXECUTION_MAP[operationId];
     }
 
     @daemon(DaemonMode.Every)

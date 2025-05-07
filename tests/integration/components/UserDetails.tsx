@@ -15,7 +15,8 @@ const Card = withSaga({
         onLoad: function* (id: string, login?: string) {
             if (!login) return;
             const service = getService(TestService);
-            return yield* call(service.getUserDetails, id);
+            const res = yield* call(service.getUserDetails, id);
+            return res;
         },
     }),
     argsMapper: ({ login, id }: CardProps) => [id, login],
@@ -25,7 +26,7 @@ const Card = withSaga({
 
 const UserDetails: React.FC<{ id: string }> = function UserDetails({ id }) {
     const { result: login } = useOperation({ operationId: userOperationId(id), suspense: true });
-    return <Card login={login} id={id} fallback="" />;
+    return <Card operationId={`op_${id}`} login={login} id={id} fallback="" />;
 };
 
 export default UserDetails;

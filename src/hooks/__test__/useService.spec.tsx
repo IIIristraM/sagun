@@ -4,7 +4,7 @@ import { call } from 'typed-redux-saga';
 import createSagaMiddleware from 'redux-saga';
 import jsdom from 'jsdom';
 import { Provider } from 'react-redux';
-import ReactDOM from 'react-dom';
+import ReactDOM from 'react-dom/client';
 
 import { ComponentLifecycleService, OperationService, Service } from '../../services';
 import { daemon, DaemonMode } from '../../decorators';
@@ -60,6 +60,7 @@ test('useService runs and destroys service', async () => {
     (global as any).document = window.document;
 
     const appEl = window.document.getElementById('app')!;
+    const container = ReactDOM.createRoot(appEl);
     const mountDefer = createDeferred();
     const unmountDefer = createDeferred();
 
@@ -81,17 +82,16 @@ test('useService runs and destroys service', async () => {
         return null;
     };
 
-    ReactDOM.render(
+    container.render(
         <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
             <Provider store={store}>
                 <TestComponent />
             </Provider>
-        </Root>,
-        appEl
+        </Root>
     );
 
     await mountDefer.promise;
-    ReactDOM.unmountComponentAtNode(appEl);
+    container.unmount();
     await unmountDefer.promise;
     task.cancel();
 
