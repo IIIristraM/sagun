@@ -75,6 +75,7 @@ export type ExtractOperation<T> = T extends Saga<infer TArgs, infer TRes> ? Oper
 export type ServiceMethod<T> = T & { id?: ExtractOperation<T> };
 
 export type ComponentSaga<TArgs extends any[] | readonly any[], TRes> = {
+    id?: string;
     onLoad?: Saga<TArgs, TRes>;
     onDispose?: Saga<TArgs>;
 };
