@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 
 import { ComponentLifecycleService, LoadOptions } from '../services';
@@ -36,9 +36,13 @@ export function useSaga<TArgs extends any[], TRes>(
     const uuidGen = diContext.getService(UUIDGenerator);
 
     const dispatch = useDispatch();
-    const operationId = useMemo(function () {
-        return uuidGen.uuid('operation');
-    }, EMPTY_ARR) as OperationId<TRes, TArgs>;
+    const operationId = useMemo(
+        function () {
+            // https://github.com/facebook/react/issues/24669
+            return saga.id ?? uuidGen.uuid('operation');
+        },
+        saga.id ? [saga.id] : EMPTY_ARR
+    ) as OperationId<TRes, TArgs>;
     const [reloadCount, updateCounter] = useState(0);
 
     const forceReload = useCallback(
@@ -51,45 +55,61 @@ export function useSaga<TArgs extends any[], TRes>(
     const service = diContext.getService(ComponentLifecycleService);
     const actions = diContext.createServiceActions(service);
 
-    // reload on args changed
-    useEffect(
-        function load() {
-            const loadId = uuidGen.uuid('load');
-            dispatch(
-                actions.load({
-                    loadId,
-                    operationId,
-                    saga,
-                    args,
-                    options: options?.operationOptions,
-                })
-            );
+    const sagaDispose = useRef<(() => void) | undefined>(undefined);
 
-            return function dispose() {
-                dispatch(actions.dispose(loadId));
+    // reload on args changed.
+    // useMemo cause starting from React v18 Suspense changes behavior so useEffect
+    // no longer called on Suspense children
+    useMemo(() => {
+        if (isNodeEnv() && disableSSR) {
+            return;
+        }
+
+        const currentExecution = service.getCurrentExecution(operationId);
+        // restore after Suspense resolved
+        if (!sagaDispose.current && currentExecution) {
+            sagaDispose.current = function dispose() {
+                dispatch(actions.dispose(currentExecution.loadId));
             };
-        },
-        [...args, reloadCount]
-    );
 
-    // remove underlying operation on unmount
-    useEffect(function initClean() {
-        return function clean() {
-            dispatch(actions.cleanup({ operationId }));
-        };
-    }, EMPTY_ARR);
+            if (
+                currentExecution?.args.length === args.length &&
+                currentExecution?.args.every((val, index) => args[index] === val)
+            ) {
+                return;
+            }
+        }
 
-    if (isNodeEnv() && !disableSSR) {
+        if (sagaDispose.current) {
+            sagaDispose.current();
+        }
+
+        const loadId = uuidGen.uuid('load');
         dispatch(
             actions.load({
-                loadId: uuidGen.uuid('load'),
-                operationId,
+                loadId,
+                operationId: operationId as OperationId<TRes, TArgs>,
                 saga,
                 args,
                 options: options?.operationOptions,
             })
         );
-    }
+
+        sagaDispose.current = function dispose() {
+            dispatch(actions.dispose(loadId));
+        };
+    }, [...args, reloadCount, operationId]);
+
+    // remove underlying operation on unmount
+    useEffect(function initClean() {
+        return function clean() {
+            if (sagaDispose.current) {
+                sagaDispose.current();
+            }
+
+            dispatch(actions.cleanup({ operationId }));
+        };
+    }, EMPTY_ARR);
 
     return { operationId, reload: forceReload };
 }

@@ -234,7 +234,7 @@ test('Execute nested sagas on client', async () => {
     expect(values[2]?.result).toBe(5);
 });
 
-test.skip('useSaga + useOperation in same component', async () => {
+test('useSaga + useOperation in same component', async () => {
     const operationService = new OperationService({ hash: {} });
     const componentLifecycleService = new ComponentLifecycleService(operationService);
 
@@ -253,7 +253,9 @@ test.skip('useSaga + useOperation in same component', async () => {
 
             function App() {
                 const { operationId } = useSaga({
+                    id: 'app-init',
                     onLoad: function* () {
+                        yield wait(DELAY);
                         return 1;
                     },
                 });
@@ -292,7 +294,7 @@ test.skip('useSaga + useOperation in same component', async () => {
         .toPromise();
 });
 
-test.skip('useSaga + double useOperation in same component', async () => {
+test('useSaga + double useOperation in same component', async () => {
     const operationService = new OperationService({ hash: {} });
     const componentLifecycleService = new ComponentLifecycleService(operationService);
     const service = new TestService(operationService);
@@ -312,6 +314,7 @@ test.skip('useSaga + double useOperation in same component', async () => {
 
             function App() {
                 useSaga({
+                    id: 'app-init',
                     onLoad: function* () {
                         yield* call(service.operation0, 0);
                         yield* call(service.operation1, 1);

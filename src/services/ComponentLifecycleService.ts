@@ -67,6 +67,10 @@ export class ComponentLifecycleService extends Service {
         this.EXECUTION_MAP[operationId] = undefined;
     }
 
+    getCurrentExecution(operationId: string) {
+        return this.EXECUTION_MAP[operationId];
+    }
+
     @daemon(DaemonMode.Every)
     *dispose(id: string) {
         yield* put({ type: DISPOSE_SIGNAL, payload: id });
