@@ -14,7 +14,7 @@
         "test": "NODE_OPTIONS=--experimental-vm-modules jest",
         "init": "rm -rf ./node_modules && npm i --legacy-peer-deps",
         "lint": "eslint .",
-        "format": "prettier --write .",
+        "format": "eslint . --fix",
         "link:dev": "node ./scripts/link.js",
         "release:internal": "npm run test && npm run tsc && npm publish --registry https://npm.pkg.github.com",
         "release": "npm run test && npm publish --access public --registry https://registry.npmjs.org/",

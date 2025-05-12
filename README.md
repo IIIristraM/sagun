@@ -13,38 +13,38 @@ Currently compatible only with typescript codebase with following options enable
 ```
 
 - [sagun](#sagun)
-    - [Core concepts](#core-concepts)
-    - [Install](#install)
-    - [Get started](#get-started)
-    - [API](#api)
-        - [Operations](#operations)
-        - [Services](#services)
-            - [1. Basics](#1-basics)
-            - [2. Save results to store](#2-save-results-to-store)
-            - [3. Provide redux action for service method](#3-provide-redux-action-for-service-method)
-            - [4. Dependency injection](#4-dependency-injection)
-            - [5. Custom initialization and cleanup](#5-custom-initialization-and-cleanup)
-            - [6. Full service description](#6-full-service-description)
-        - [Decorators](#decorators)
-            - [1. operation](#1-operation)
-            - [2. daemon](#2-daemon)
-            - [3. inject](#3-inject)
-        - [Hooks](#hooks)
-            - [1. useSaga](#1-usesaga)
-            - [2. useService](#2-useservice)
-            - [3. useServiceConsumer](#3-useserviceconsumer)
-            - [4. useOperation](#4-useoperation)
-            - [4. useDI](#4-usedi)
-        - [Components](#components)
-            - [1. Root](#1-root)
-            - [2. Operation](#2-operation)
-        - [Contexts](#contexts)
-            - [1. DIContext](#1-dicontext)
-            - [2. DisableSsrContext](#2-disablessrcontext)
-        - [HoC](#hoc)
-            - [1. withSaga](#1-withsaga)
-            - [2. withService](#2-withservice)
-        - [SSR](#ssr)
+  - [Core concepts](#core-concepts)
+  - [Install](#install)
+  - [Get started](#get-started)
+  - [API](#api)
+    - [Operations](#operations)
+    - [Services](#services)
+      - [1. Basics](#1-basics)
+      - [2. Save results to store](#2-save-results-to-store)
+      - [3. Provide redux action for service method](#3-provide-redux-action-for-service-method)
+      - [4. Dependency injection](#4-dependency-injection)
+      - [5. Custom initialization and cleanup](#5-custom-initialization-and-cleanup)
+      - [6. Full service description](#6-full-service-description)
+    - [Decorators](#decorators)
+      - [1. operation](#1-operation)
+      - [2. daemon](#2-daemon)
+      - [3. inject](#3-inject)
+    - [Hooks](#hooks)
+      - [1. useSaga](#1-usesaga)
+      - [2. useService](#2-useservice)
+      - [3. useServiceConsumer](#3-useserviceconsumer)
+      - [4. useOperation](#4-useoperation)
+      - [4. useDI](#4-usedi)
+    - [Components](#components)
+      - [1. Root](#1-root)
+      - [2. Operation](#2-operation)
+    - [Contexts](#contexts)
+      - [1. DIContext](#1-dicontext)
+      - [2. DisableSsrContext](#2-disablessrcontext)
+    - [HoC](#hoc)
+      - [1. withSaga](#1-withsaga)
+      - [2. withService](#2-withservice)
+    - [SSR](#ssr)
 
 ## Core concepts
 
@@ -608,13 +608,13 @@ function MyComponent(props) {
         //
         // Id has to be uniq for each component instance (i.e. use `item_${id}` for list items).
         id: "operation-id",
-        // executes after reconciliation process finished
+        // executes on render
         onLoad: function*(arg_a, arg_b) {
             console.log('I am rendered')
             yield call(service1.foo, arg_a)
             yield call(service2.bazz, arg_b)
         },
-        // executes before new reconciliation
+        // executes if args before next onLoad changed and on unmount
         onDispose: function*(arg_a, arg_b) {
             console.log('I was changed')
         }
