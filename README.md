@@ -41,7 +41,7 @@ Currently compatible only with typescript codebase with following options enable
     - [Contexts](#contexts)
       - [1. DIContext](#1-dicontext)
       - [2. DisableSsrContext](#2-disablessrcontext)
-    - [HoC](#hoc)
+    - [HoC (deprecated)](#hoc-deprecated)
       - [1. withSaga](#1-withsaga)
       - [2. withService](#2-withservice)
     - [SSR](#ssr)
@@ -815,7 +815,9 @@ Provides IoC container, you shouldn't use this context directly, there is hook `
 
 Provides boolean flag, if `false` no sagas will be executed on server in a children subtrees.
 
-### HoC
+### HoC (deprecated)
+
+Will be removed in next major version.
 
 #### 1. withSaga
 
