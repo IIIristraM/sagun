@@ -608,13 +608,13 @@ function MyComponent(props) {
         //
         // Id has to be uniq for each component instance (i.e. use `item_${id}` for list items).
         id: "operation-id",
-        // executes on render
+        // executes on render and args changed
         onLoad: function*(arg_a, arg_b) {
             console.log('I am rendered')
             yield call(service1.foo, arg_a)
             yield call(service2.bazz, arg_b)
         },
-        // executes if args before next onLoad changed and on unmount
+        // executes before next onLoad and on unmount
         onDispose: function*(arg_a, arg_b) {
             console.log('I was changed')
         }
