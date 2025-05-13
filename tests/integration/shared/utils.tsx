@@ -1,7 +1,7 @@
 import { AnyAction, applyMiddleware, createStore, Reducer, Store } from 'redux';
 import createSagaMiddleware, { SagaMiddleware } from 'redux-saga';
 import { Exact } from '@iiiristram/ts-type-utils';
-import ReactDOM from 'react-dom';
+import React from "react";
 
 type Runner<S = any> = {
     run: SagaMiddleware<object>['run'];
@@ -16,23 +16,9 @@ export function getSagaRunner<T extends Reducer<any, AnyAction>>(reducer?: T) {
     return { run: sagaMiddleware.run, store };
 }
 
-// jest.resetModuleRegistry makes hooks to throw error so jest.isolateModules
-export function isolate(fn: () => Promise<unknown>) {
-    return new Promise<void>((resolve, reject) => {
-        jest.isolateModules(async () => {
-            try {
-                await fn();
-                resolve();
-            } catch (err) {
-                reject(err);
-            }
-        });
-    });
-}
-
 export function wait(ms: number) {
     return new Promise<void>(resolve => {
-        setTimeout(resolve, ms);
+        setTimeout(resolve, ms + Math.random() * 20);
     });
 }
 
@@ -59,20 +45,37 @@ export function exact<T, Expected>(result: Exact<T, Expected>) {
     //
 }
 
-export function render(reactEl: JSX.Element) {
-    const el = window.document.getElementById('app')!;
-    ReactDOM.render(reactEl, el);
-    return {
-        el,
-        unmount: async () => {
-            ReactDOM.unmountComponentAtNode(el);
-            await wait(0);
-        },
+let version = 0;
+
+// HACK
+// vitest doesn't have "isolateModules" and "resetModules" breaks React contexts somehow.
+// adding random part to a module allows to re-import module every time like "isolateModules"
+export function importComponent(name: string) {
+    return import(`./components/${name}?version=${version++}`);
+}
+
+function load<T extends React.FC<any>>(promise: () => Promise<{ default: T }>) {
+    let Component: T | undefined;
+    let innerPromise: Promise<void>;
+
+    return function LoadComponent(props: Parameters<T>[0]) {
+        if (!innerPromise || !Component) {
+            innerPromise =
+                innerPromise ||
+                new Promise<void>(resolve => {
+                    promise().then(res => {
+                        Component = res.default;
+                        resolve();
+                    });
+                });
+
+            throw innerPromise;
+        }
+
+        return Component ? <Component {...props} /> : null;
     };
 }
 
-export function hydrate(reactEl: JSX.Element) {
-    const el = window.document.getElementById('app')!;
-
-    ReactDOM.hydrate(reactEl, el!);
+export function loadComponent(name: string) {
+    return load(() => importComponent(name));
 }

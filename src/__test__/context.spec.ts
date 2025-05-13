@@ -1,3 +1,5 @@
+import { expect, test } from 'vitest';
+
 import { Dependency } from '../services/Dependency';
 import { DependencyKey } from '../types';
 import { getDIContext } from '../context';

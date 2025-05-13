@@ -1,8 +1,10 @@
-import { wait } from '_test/utils';
+import { vi } from 'vitest'
+
+import { wait } from './utils';
 
 export const DELAY = 20;
 
-export type UserDetails = {
+export type UserDetailsDto = {
     cardLastDigits: string;
 };
 
@@ -13,21 +15,21 @@ export class TestAPI {
         this._delay = delay;
     }
 
-    getUser = jest.fn(async (id: string) => {
+    getUser = vi.fn(async (id: string) => {
         await wait(this._delay);
         return {
             login: 'iiiristram',
         };
     });
 
-    getUserDetails = jest.fn(async (login: string): Promise<UserDetails> => {
+    getUserDetails = vi.fn(async (login: string): Promise<UserDetailsDto> => {
         await wait(this._delay);
         return {
             cardLastDigits: '**00',
         };
     });
 
-    getList = jest.fn(async () => {
+    getList = vi.fn(async () => {
         await wait(this._delay);
         return {
             items: [1, 2, 3, 4, 5],

@@ -1,3 +1,5 @@
+import { describe, expect, test, vi } from 'vitest';
+
 import { call, delay } from 'typed-redux-saga';
 
 import { getSagaRunner } from '_test/utils';
@@ -10,7 +12,7 @@ const runner = getSagaRunner();
 
 describe('BaseService', () => {
     test('keeps this', () => {
-        const mockFn = jest.fn();
+        const mockFn = vi.fn();
 
         // tslint:disable-next-line: max-classes-per-file
         class TestService extends BaseService {
@@ -49,7 +51,7 @@ describe('BaseService', () => {
             });
     });
     test('propagates this for inherited methods', () => {
-        const mockFn = jest.fn();
+        const mockFn = vi.fn();
 
         // tslint:disable-next-line: max-classes-per-file
         class TestServiceA extends BaseService {

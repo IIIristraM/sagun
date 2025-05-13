@@ -1,0 +1,15 @@
+{
+    "name": "react-19-tests",
+    "version": "0.0.0",
+    "scripts": {
+        "init": "npm i && rm -rf ./shared ./src && ln -s ../shared ./shared && ln -s ../../../src ./src",
+        "test": "vitest --run"
+    },
+    "devDependencies": {
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0",
+        "react-redux": "^9.2.0",
+        "@types/react": "^19.0.0",
+        "@types/react-dom": "^19.0.0"
+    }
+}

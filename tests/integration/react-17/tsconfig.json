@@ -1,0 +1,12 @@
+{
+    "extends": "../../../tsconfig.json",
+    "include": ["src", "shared"],
+    "compilerOptions": {
+        "baseUrl": ".",
+        "typeRoots": ["../../../typings", "./node_modules/@types", "../../../node_modules/@types"],
+        "paths": {
+            "_test*": ["./shared*"],
+            "_root/*": ["./*"]
+        }
+    }
+}

@@ -1,3 +1,4 @@
+import { beforeEach, expect, test, vi } from 'vitest';
 import { call, delay } from 'typed-redux-saga';
 import React, { memo, Suspense, useContext, useEffect, useState } from 'react';
 import { combineReducers } from 'redux';
@@ -6,9 +7,10 @@ import { Provider } from 'react-redux';
 
 import {
     ComponentLifecycleService,
+    createDeferred,
     getId,
-    Operation,
     operation,
+    Operation,
     OperationService,
     asyncOperationsReducer as reducer,
     Root,
@@ -18,9 +20,9 @@ import {
     useSaga,
     useService,
     useServiceConsumer,
-} from '_lib/';
-import { getSagaRunner, render, wait } from '_test/utils';
-import { createDeferred } from '_lib/utils/createDeferred';
+} from '../';
+import { getSagaRunner, wait } from '_test/';
+import { render } from '_root/utils';
 
 const DELAY = 50;
 useOperation.setPath(state => state.asyncOperations);
@@ -81,6 +83,7 @@ const InnerComponent: React.FC<{}> = () => {
 
     const { operationId } = useSaga(
         {
+            id: 'test-id',
             onLoad: testService.operation0,
         },
         [state]
@@ -130,13 +133,12 @@ test('Nested operations with global Suspense ', async () => {
             yield* call(operationService.run);
             yield* call(componentLifecycleService.run);
 
-            const { el } = render(
+            const { el } = yield render(
                 <Context.Provider
                     value={{
                         counter: () => counter,
                         resolve: () => defer[counter++].resolve(),
-                    }}
-                >
+                    }}>
                     <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
                         <Provider store={runner.store}>
                             <Suspense fallback="Loading...">
@@ -166,8 +168,8 @@ test('Execute nested sagas on client', async () => {
         })
     );
 
-    const fn = jest.fn(() => 1);
-    const fn2 = jest.fn((x: number) => x + 2);
+    const fn = vi.fn(() => 1);
+    const fn2 = vi.fn((x: number) => x + 2);
     const operationService = new OperationService();
     const componentLifecycleService = new ComponentLifecycleService(operationService);
 
@@ -179,6 +181,7 @@ test('Execute nested sagas on client', async () => {
     const Item = (props: { x: number }) => {
         const { operationId } = useSaga(
             {
+                id: `op_${props.x}`,
                 onLoad: function* (x: number) {
                     yield* delay(DELAY);
                     return fn2(x); // step 2 and 3
@@ -198,6 +201,7 @@ test('Execute nested sagas on client', async () => {
 
     const App = () => {
         const { operationId } = useSaga({
+            id: 'init-app',
             onLoad: function* () {
                 yield* delay(DELAY);
                 return fn(); // step 1
@@ -274,7 +278,7 @@ test('useSaga + useOperation in same component', async () => {
                 return null;
             }
 
-            const { el } = render(
+            const { el } = yield render(
                 <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
                     <Provider store={runner.store}>
                         <Suspense fallback="Loading...">
@@ -341,7 +345,7 @@ test('useSaga + double useOperation in same component', async () => {
                 return null;
             }
 
-            const { el } = render(
+            const { el } = yield render(
                 <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
                     <Provider store={runner.store}>
                         <Suspense fallback="Loading...">

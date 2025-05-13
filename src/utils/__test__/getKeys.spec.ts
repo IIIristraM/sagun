@@ -1,3 +1,5 @@
+import { describe, expect, test } from 'vitest';
+
 import { getClassMethods, getKeys } from '../getKeys';
 
 describe('getKeys', () => {

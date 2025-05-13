@@ -1,3 +1,5 @@
+import { describe, expect, test, vi } from 'vitest';
+
 import { call, delay, fork, put } from 'typed-redux-saga';
 
 import { getSagaRunner } from '_test/utils';
@@ -33,7 +35,7 @@ describe('daemon', () => {
     });
 
     test('by default daemon does not run new operation till previous complete', () => {
-        const func = jest.fn(() => {
+        const func = vi.fn(() => {
             /* */
         });
         const actionType = 'CALL_FUNC';
@@ -166,7 +168,7 @@ describe('createDaemon', () => {
     });
 
     test('mode Every catch every call', () => {
-        const func = jest.fn(() => {
+        const func = vi.fn(() => {
             /* */
         });
         const actionType = 'CALL_FUNC';
@@ -192,7 +194,7 @@ describe('createDaemon', () => {
     });
 
     test('mode Every terminates on destroy', () => {
-        const func = jest.fn(() => {
+        const func = vi.fn(() => {
             /* */
         });
         const actionType = 'CALL_FUNC';
@@ -219,7 +221,7 @@ describe('createDaemon', () => {
     test('mode Every does not terminate on exceptions', () => {
         let isFirst = true;
         const error = new Error('Exception');
-        const func = jest.fn(() => {
+        const func = vi.fn(() => {
             /* */
         });
         const actionType = 'CALL_FUNC';
@@ -253,7 +255,7 @@ describe('createDaemon', () => {
 
     test('mode Last catch last call', () => {
         const defer = createDeferred();
-        const func = jest.fn((arg: any) => {
+        const func = vi.fn((arg: any) => {
             defer.resolve();
         });
 
@@ -288,7 +290,7 @@ describe('createDaemon', () => {
     });
 
     test('mode Last terminated on destroy', () => {
-        const func = jest.fn(() => {
+        const func = vi.fn(() => {
             /* */
         });
         const actionType = 'CALL_FUNC';
@@ -315,7 +317,7 @@ describe('createDaemon', () => {
     test('mode Last does note terminates on exceptions', () => {
         let isFirst = true;
         const error = new Error('Exception');
-        const func = jest.fn(() => {
+        const func = vi.fn(() => {
             if (isFirst) {
                 isFirst = false;
                 throw error;
@@ -347,7 +349,7 @@ describe('createDaemon', () => {
     test('mode Schedule works properly', () => {
         const timeout = 20;
         const expectedCalls = 5.2;
-        const func = jest.fn((arg: any) => {
+        const func = vi.fn((arg: any) => {
             /* */
         });
 

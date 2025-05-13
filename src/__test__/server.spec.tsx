@@ -8,11 +8,14 @@ import {
     Root,
     useOperation,
     useSaga,
-} from '_lib/';
+} from '..';
+import { expect, test, vi } from 'vitest';
 import React, { Suspense } from 'react';
-import { getSagaRunner } from '_test/utils';
+
 import { Provider } from 'react-redux';
-import { renderToStringAsync } from '_lib/serverRender';
+
+import { getSagaRunner } from '_test/';
+import { serverRender } from '_root/utils';
 
 const DELAY = 5;
 
@@ -20,8 +23,8 @@ test('execute sagas on server', async () => {
     const runner = getSagaRunner(reducer);
     useOperation.setPath(x => x);
 
-    const fn = jest.fn(() => 1);
-    const fn2 = jest.fn(() => 2);
+    const fn = vi.fn(() => 1);
+    const fn2 = vi.fn(() => 2);
     const operationService = new OperationService({ hash: {} });
     const componentLifecycleService = new ComponentLifecycleService(operationService);
 
@@ -30,8 +33,9 @@ test('execute sagas on server', async () => {
         yield* call(componentLifecycleService.run);
     });
 
-    const Item = () => {
+    const Item = ({ id }: { id: string }) => {
         const { operationId } = useSaga({
+            id,
             onLoad: function* () {
                 yield* delay(DELAY);
                 return fn2();
@@ -43,6 +47,7 @@ test('execute sagas on server', async () => {
 
     const App = () => {
         const { operationId } = useSaga({
+            id: 'app-init',
             onLoad: function* () {
                 yield* delay(DELAY);
                 return fn();
@@ -54,15 +59,13 @@ test('execute sagas on server', async () => {
                 <Operation operationId={operationId}>
                     {() => (
                         <>
-                            <Item />
+                            <Item id="item_1" />
                             <DisableSsrContext.Provider value={true}>
                                 {/* should be separate suspense or siblings also will be aborted */}
                                 {/* https://github.com/overlookmotel/react-async-ssr#optimization-bail-out-of-rendering-when-suspended */}
-                                <Suspense fallback="">
-                                    <Item />
-                                </Suspense>
+                                <Item id="item_2" />
                             </DisableSsrContext.Provider>
-                            <Item />
+                            <Item id="item_3" />
                         </>
                     )}
                 </Operation>
@@ -70,13 +73,12 @@ test('execute sagas on server', async () => {
         );
     };
 
-    await renderToStringAsync(
+    await serverRender(
         <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
             <Provider store={runner.store}>
                 <App />
             </Provider>
-        </Root>,
-        { fallbackFast: true }
+        </Root>
     );
 
     task.cancel();
@@ -94,8 +96,8 @@ test('execute nested sagas on server', async () => {
     const runner = getSagaRunner(reducer);
     useOperation.setPath(x => x);
 
-    const fn = jest.fn(() => 1);
-    const fn2 = jest.fn((x: number) => x + 2);
+    const fn = vi.fn(() => 1);
+    const fn2 = vi.fn((x: number) => x + 2);
     const operationService = new OperationService({ hash: {} });
     const componentLifecycleService = new ComponentLifecycleService(operationService);
 
@@ -107,6 +109,7 @@ test('execute nested sagas on server', async () => {
     const Item = (props: { x: number }) => {
         const { operationId } = useSaga(
             {
+                id: `op_${props.x}`,
                 onLoad: function* (x: number) {
                     yield* delay(DELAY);
                     return fn2(x);
@@ -124,6 +127,7 @@ test('execute nested sagas on server', async () => {
 
     const App = () => {
         const { operationId } = useSaga({
+            id: 'init-app',
             onLoad: function* () {
                 yield* delay(DELAY);
                 return fn();
@@ -137,7 +141,7 @@ test('execute nested sagas on server', async () => {
         );
     };
 
-    await renderToStringAsync(
+    await serverRender(
         <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
             <Provider store={runner.store}>
                 <App />
