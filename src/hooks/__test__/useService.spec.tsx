@@ -1,3 +1,5 @@
+import { beforeEach, expect, test, vi } from 'vitest';
+
 import { applyMiddleware, createStore } from 'redux';
 import React, { useEffect } from 'react';
 import { call } from 'typed-redux-saga';
@@ -12,15 +14,15 @@ import reducer from '../../reducer';
 import { Root } from '../../components/Root';
 import { useService } from '../useService';
 
-import { render } from '_test/utils';
+import { render } from '_root/utils';
 
 const sagaMiddleware = createSagaMiddleware();
 const store = applyMiddleware(sagaMiddleware)(createStore)(reducer);
 const operationService = new OperationService({ hash: {} });
 const componentLifecycleService = new ComponentLifecycleService(operationService);
 
-const processLoading = jest.fn((x: string, y: number) => ({}));
-const processDisposing = jest.fn(() => ({}));
+const processLoading = vi.fn((x: string, y: number) => ({}));
+const processDisposing = vi.fn(() => ({}));
 
 class TestServiceClass extends Service<[string, number]> {
     toString() {
@@ -81,7 +83,7 @@ test('useService runs and destroys service', async () => {
         return null;
     };
 
-    const { unmount } = render(
+    const { unmount } = await render(
         <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
             <Provider store={store}>
                 <TestComponent />

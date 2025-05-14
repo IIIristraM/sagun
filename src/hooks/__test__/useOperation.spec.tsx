@@ -2,6 +2,8 @@
  * @jest-environment jsdom
  */
 
+import { beforeEach, expect, test, vi } from 'vitest';
+
 import { applyMiddleware, createStore } from 'redux';
 import { call, delay } from 'typed-redux-saga';
 import React, { Suspense, useEffect, useState } from 'react';
@@ -17,7 +19,7 @@ import { Root } from '../../components/Root';
 import { useOperation } from '../useOperation';
 import { useSaga } from '../useSaga';
 
-import { render } from '_test/utils';
+import { render } from '_root/utils';
 
 const OPERATION_ID = 'OPERATION_ID' as OperationId<string>;
 const DELAY = 50;
@@ -123,7 +125,7 @@ test('Component updates on operation changed', () => {
     const store = applyMiddleware(sagaMiddleware)(createStore)(reducer);
     const operationService = new OperationService({ hash: {} });
     const componentLifecycleService = new ComponentLifecycleService(operationService);
-    const func = jest.fn((isLoading?: boolean) => ({}));
+    const func = vi.fn((isLoading?: boolean) => ({}));
 
     let renderDefer = createDeferred();
     const TestComponent: React.FC<{}> = () => {
@@ -239,7 +241,7 @@ test('Nested operations with global Suspense', async () => {
 
             yield* call(operationService.run);
 
-            const { el } = render(
+            const { el } = yield render(
                 <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
                     <Provider store={store}>
                         <Wrapper />
@@ -329,7 +331,7 @@ test('Component renders after the longest operation is completed', async () => {
 
             yield* call(operationService.run);
 
-            const { el } = render(
+            const { el } = yield render(
                 <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
                     <Provider store={store}>
                         <TestComponentWrap />
@@ -373,7 +375,7 @@ test('Components release operations', () => {
     const destroyDefer = createDeferred();
 
     const App: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
-        useSaga({ onLoad: testService.getResult });
+        useSaga({ id: 'init-app', onLoad: testService.getResult });
         const [visible, toggle] = useState(true);
 
         return (

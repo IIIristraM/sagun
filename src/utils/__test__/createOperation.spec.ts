@@ -1,3 +1,5 @@
+import { expect, test } from 'vitest';
+
 import { call } from 'typed-redux-saga';
 
 import { getSagaRunner } from '_test/utils';

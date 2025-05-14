@@ -1,3 +1,5 @@
+import { describe, expect, test, vi } from 'vitest';
+
 import { applyMiddleware, createStore } from 'redux';
 import React, { JSX, useState } from 'react';
 import { call } from 'typed-redux-saga';
@@ -14,7 +16,8 @@ import reducer from '../../reducer';
 import { Root } from '../../components/Root';
 import { useSaga } from '../useSaga';
 
-import { exact, render, wait } from '_test/utils';
+import { exact, wait } from '_test/utils';
+import { render } from '_root/utils';
 
 const DELAY = 50;
 const ARGS = ['xxx'];
@@ -42,8 +45,8 @@ describe('useSaga', () => {
         (global as any).window = window;
         (global as any).document = window.document;
 
-        const processLoading = jest.fn((...args: any[]) => ({}));
-        const processDisposing = jest.fn((...args: any[]) => ({}));
+        const processLoading = vi.fn((...args: any[]) => ({}));
+        const processDisposing = vi.fn((...args: any[]) => ({}));
 
         const onLoad = function* (...args: [string, number]) {
             yield wait(DELAY);
@@ -54,11 +57,12 @@ describe('useSaga', () => {
             processDisposing(...args);
         };
 
-        const TestComponent: React.FC<Pick<Props, 'processOperationId'> & { x: number }> = ({
+        const TestComponent: React.FC<Pick<Props, 'processOperationId'> & { x: number; operationId?: string }> = ({
             x,
+            operationId: externalId,
             processOperationId,
         }) => {
-            const { operationId, reload } = useSaga({ onLoad, onDispose }, [...ARGS, x]);
+            const { operationId, reload } = useSaga({ id: externalId ?? 'init-app', onLoad, onDispose }, [...ARGS, x]);
 
             if (processOperationId) {
                 processOperationId(operationId);
@@ -104,7 +108,7 @@ describe('useSaga', () => {
             yield* call(componentLifecycleService.destroy);
         });
 
-        const { unmount } = render(
+        const { unmount } = await render(
             <App operationService={operationService} componentLifecycleService={componentLifecycleService} />
         );
 
@@ -144,7 +148,7 @@ describe('useSaga', () => {
             yield call(componentLifecycleService.destroy);
         });
 
-        const { unmount } = render(
+        const { unmount } = await render(
             <App
                 operationService={operationService}
                 componentLifecycleService={componentLifecycleService}
@@ -181,12 +185,12 @@ describe('useSaga', () => {
             yield* call(componentLifecycleService.destroy);
         });
 
-        const { unmount } = render(
+        const { unmount } = await render(
             <App operationService={operationService} componentLifecycleService={componentLifecycleService}>
                 {() => (
                     <>
                         <TestComponent x={1} processOperationId={processOperationId1} />
-                        <TestComponent x={2} processOperationId={processOperationId2} />
+                        <TestComponent x={2} operationId="test-2" processOperationId={processOperationId2} />
                     </>
                 )}
             </App>
@@ -221,7 +225,7 @@ describe('useSaga', () => {
             yield* call(componentLifecycleService.destroy);
         });
 
-        const { unmount } = render(
+        const { unmount } = await render(
             <App operationService={operationService} componentLifecycleService={componentLifecycleService} />
         );
 
@@ -247,7 +251,7 @@ describe('useSaga', () => {
     test('hash collected from ssr applied', async () => {
         const { sagaMiddleware, App } = initTest();
 
-        const fn = jest.fn(() => {});
+        const fn = vi.fn(() => {});
         const id = 'test_id' as OperationId<void, [number]>;
         class TestService extends Service {
             toString() {
@@ -272,7 +276,7 @@ describe('useSaga', () => {
         const service = new TestService(operationService);
 
         const TestComponent = ({ x }: { x: number }) => {
-            useSaga({ onLoad: service.method }, [x]);
+            useSaga({ id: 'init-app', onLoad: service.method }, [x]);
             return null;
         };
 
@@ -284,7 +288,7 @@ describe('useSaga', () => {
             yield* call(componentLifecycleService.destroy);
         });
 
-        const { unmount } = render(
+        const { unmount } = await render(
             <App operationService={operationService} componentLifecycleService={componentLifecycleService}>
                 {x => <TestComponent x={x} />}
             </App>
@@ -317,6 +321,7 @@ describe('useSaga', () => {
 
             useSaga(
                 {
+                    id: 'op_1',
                     onLoad: function* (a, b) {
                         exact<typeof a, number>(true);
                         exact<typeof b, string>(true);
@@ -327,6 +332,7 @@ describe('useSaga', () => {
 
             useSaga(
                 {
+                    id: 'op_2',
                     onLoad: function* (a, b) {
                         exact<typeof a, 1>(true);
                         exact<typeof b, '1'>(true);
@@ -337,6 +343,7 @@ describe('useSaga', () => {
 
             useSaga<[number, string], void>(
                 {
+                    id: 'op_3',
                     onLoad: function* (a, b) {
                         exact<typeof a, number>(true);
                         exact<typeof b, string>(true);
@@ -347,6 +354,7 @@ describe('useSaga', () => {
 
             useSaga<[string, number], void>(
                 {
+                    id: 'op_4',
                     onLoad: function* (a, b) {},
                 },
                 // @ts-expect-error

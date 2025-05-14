@@ -1,0 +1,16 @@
+{
+    "name": "react-16-tests",
+    "version": "0.0.0",
+    "scripts": {
+        "init": "npm i --legacy-peer-deps && rm -rf ./shared ./src && ln -s ../shared ./shared && ln -s ../../../src ./src",
+        "test": "vitest --run"
+    },
+    "devDependencies": {
+        "react": "^16.0.0",
+        "react-dom": "^16.0.0",
+        "react-redux": "^7.2.2",
+        "react-async-ssr": "^0.7.2",
+        "@types/react": "^16.0.0",
+        "@types/react-dom": "^16.0.0"
+    }
+}

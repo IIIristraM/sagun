@@ -1,11 +1,11 @@
 import { applyMiddleware, combineReducers, createStore, Store } from 'redux';
+import { beforeEach, expect, test, vi } from 'vitest';
 import { GetProps, Provider } from 'react-redux';
-import React, { Suspense } from 'react';
+import React, { JSX, Suspense } from 'react';
 import { call } from 'typed-redux-saga';
 import createSagaMiddleware from 'redux-saga';
 import jsdom from 'jsdom';
 import prettier from 'prettier';
-import { renderToStringAsync } from '_lib/serverRender';
 
 import {
     asyncOperationsReducer,
@@ -16,42 +16,17 @@ import {
     useDI,
     useOperation,
     useService,
-} from '_lib/';
+} from '_root/src';
 
-import { api, DELAY } from './TestAPI';
-import { hydrate, resource, wait } from '../utils';
-import Content from './components/Content';
-import Table from './components/Table';
-import { TestService } from './TestService';
-import UserInfo from './components/UserInfo';
+import { api, DELAY } from '_test/TestAPI';
+import { Content, importComponent, loadComponent, resource, Table, TestService, UserInfo, wait } from '_root/shared';
+import { hydrate, serverRender } from '_root/utils';
 
 type AppStore = {
     asyncOperations: ReturnType<typeof asyncOperationsReducer>;
 };
 
 useOperation.setPath((state: AppStore) => state.asyncOperations);
-
-function load<T extends React.FC<any>>(promise: () => Promise<{ default: T }>) {
-    let Component: T | undefined;
-    let innerPromise: Promise<void>;
-
-    return function LoadComponent(props: Parameters<T>[0]) {
-        if (!innerPromise || !Component) {
-            innerPromise =
-                innerPromise ||
-                new Promise<void>(resolve => {
-                    promise().then(res => {
-                        Component = res.default;
-                        resolve();
-                    });
-                });
-
-            throw innerPromise;
-        }
-
-        return Component ? <Component {...props} /> : null;
-    };
-}
 
 function buildStore(initialState?: AppStore) {
     const sagaMiddleware = createSagaMiddleware();
@@ -107,7 +82,7 @@ async function nodeRender(renderApp: ({ store }: GetProps<typeof App>) => JSX.El
         yield* call(service.run);
     });
 
-    const html = await renderToStringAsync(renderApp({ store, service, operationService }));
+    const html = await serverRender(renderApp({ store, service, operationService }));
 
     task.cancel();
     await task.toPromise();
@@ -164,17 +139,13 @@ async function clientRender(
     );
 }
 
-afterEach(() => {
+beforeEach(() => {
     (global as any).window = undefined;
-    // console.error = originError;
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 });
 
 test('sync independent sagas', async () => {
-    let Header: any;
-    jest.isolateModules(() => {
-        Header = require('./components/Header').default;
-    });
+    const Header = (await importComponent('Header')).default;
 
     const renderApp = ({ store, service, operationService }: GetProps<typeof App>) => (
         <App store={store} service={service} operationService={operationService}>
@@ -184,7 +155,7 @@ test('sync independent sagas', async () => {
                 </Suspense>
             </Header>
             <Content>
-                <Table fallback="" />
+                <Table />
             </Content>
         </App>
     );
@@ -193,7 +164,7 @@ test('sync independent sagas', async () => {
     expect(api.getUser).toHaveBeenCalledTimes(1);
     expect(api.getList).toHaveBeenCalledTimes(1);
 
-    // console.error = jest.fn(originError);
+    // console.error = vi.fn(originError);
 
     await clientRender(renderApp, html, store.getState(), hash);
     expect(api.getUser).toHaveBeenCalledTimes(1);
@@ -203,10 +174,7 @@ test('sync independent sagas', async () => {
 });
 
 test('async independent sagas', async () => {
-    let HeaderAsync: any;
-    jest.isolateModules(() => {
-        HeaderAsync = load(() => import('./components/Header'));
-    });
+    const HeaderAsync = loadComponent('Header');
 
     const renderApp = ({ store, service, operationService }: GetProps<typeof App>) => (
         <App store={store} service={service} operationService={operationService}>
@@ -216,7 +184,7 @@ test('async independent sagas', async () => {
                 </Suspense>
             </HeaderAsync>
             <Content>
-                <Table fallback="" />
+                <Table />
             </Content>
         </App>
     );
@@ -225,7 +193,7 @@ test('async independent sagas', async () => {
     expect(api.getUser).toHaveBeenCalledTimes(1);
     expect(api.getList).toHaveBeenCalledTimes(1);
 
-    // console.error = jest.fn(originError);
+    // console.error = vi.fn(originError);
 
     await clientRender(renderApp, html, store.getState(), hash);
     expect(api.getUser).toHaveBeenCalledTimes(1);
@@ -235,12 +203,8 @@ test('async independent sagas', async () => {
 });
 
 test('async dependent sagas', async () => {
-    let HeaderAsync: any;
-    let UserDetailsAsync: any;
-    jest.isolateModules(() => {
-        HeaderAsync = load(() => import('./components/Header'));
-        UserDetailsAsync = load(() => import('./components/UserDetails'));
-    });
+    const HeaderAsync = loadComponent('Header');
+    const UserDetailsAsync = loadComponent('UserDetails');
 
     const renderApp = ({ store, service, operationService }: GetProps<typeof App>) => (
         <App store={store} service={service} operationService={operationService}>
@@ -252,7 +216,7 @@ test('async dependent sagas', async () => {
                 </Suspense>
             </HeaderAsync>
             <Content>
-                <Table fallback="" />
+                <Table />
             </Content>
         </App>
     );
@@ -262,7 +226,7 @@ test('async dependent sagas', async () => {
     expect(api.getList).toHaveBeenCalledTimes(1);
     expect(api.getUserDetails).toHaveBeenCalledTimes(1);
 
-    // console.error = jest.fn(originError);
+    // console.error = vi.fn(originError);
 
     await clientRender(renderApp, html, store.getState(), hash);
     expect(api.getUser).toHaveBeenCalledTimes(1);
@@ -275,12 +239,8 @@ test('async dependent sagas', async () => {
 });
 
 test('async dependent siblings', async () => {
-    let HeaderAsync: any;
-    let UserDetailsAsync: any;
-    jest.isolateModules(() => {
-        HeaderAsync = load(() => import('./components/Header'));
-        UserDetailsAsync = load(() => import('./components/UserDetails'));
-    });
+    const HeaderAsync = loadComponent('Header');
+    const UserDetailsAsync = loadComponent('UserDetails');
 
     const renderApp = ({ store, service, operationService }: GetProps<typeof App>) => (
         <App store={store} service={service} operationService={operationService}>
@@ -291,7 +251,7 @@ test('async dependent siblings', async () => {
                 </Suspense>
             </HeaderAsync>
             <Content>
-                <Table fallback="" />
+                <Table />
             </Content>
         </App>
     );
@@ -301,7 +261,7 @@ test('async dependent siblings', async () => {
     expect(api.getList).toHaveBeenCalledTimes(1);
     expect(api.getUserDetails).toHaveBeenCalledTimes(1);
 
-    // console.error = jest.fn(originError);
+    // console.error = vi.fn(originError);
 
     await clientRender(renderApp, html, store.getState(), hash);
     expect(api.getUser).toHaveBeenCalledTimes(1);
@@ -314,12 +274,8 @@ test('async dependent siblings', async () => {
 });
 
 test('multiple component instances', async () => {
-    let HeaderAsync: any;
-    let UserDetailsAsync: any;
-    jest.isolateModules(() => {
-        HeaderAsync = load(() => import('./components/Header'));
-        UserDetailsAsync = load(() => import('./components/UserDetails'));
-    });
+    const HeaderAsync = loadComponent('Header');
+    const UserDetailsAsync = loadComponent('UserDetails');
 
     const renderApp = ({ store, service, operationService }: GetProps<typeof App>) => (
         <App store={store} service={service} operationService={operationService}>
@@ -342,7 +298,7 @@ test('multiple component instances', async () => {
     expect(api.getUser).toHaveBeenCalledTimes(2);
     expect(api.getUserDetails).toHaveBeenCalledTimes(2);
 
-    // console.error = jest.fn(originError);
+    // console.error = vi.fn(originError);
 
     await clientRender(renderApp, html, store.getState(), hash);
     expect(api.getUser).toHaveBeenCalledTimes(2);
@@ -373,7 +329,7 @@ test('fragments', async () => {
         </div>
     );
 
-    const html = await renderToStringAsync(<App />);
+    const html = await serverRender(<App />);
 
     const { window } = new jsdom.JSDOM(`
             <html>
@@ -393,8 +349,6 @@ test('fragments', async () => {
 
     console.log(html);
     console.log(window.document.getElementById('app')?.innerHTML);
-    // this is actually a bug for React 16, seems like sibling fragments renders wrong inside Suspense
-    // does not reproduce in React 17
-    const [major] = React.version.split('.');
-    expect(global.window.document.getElementsByClassName('1').length).toBe(major === '16' ? 2 : 1);
+
+    expect(global.window.document.getElementsByClassName('1').length).toBe(1);
 });

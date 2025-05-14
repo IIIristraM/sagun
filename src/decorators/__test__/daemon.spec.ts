@@ -1,3 +1,5 @@
+import { expect, test, vi } from 'vitest';
+
 import { call, delay, put, select } from 'typed-redux-saga';
 
 import { getSagaRunner } from '_test/utils';
@@ -77,7 +79,7 @@ test('propagates return value', () => {
 });
 
 test('keeps this', () => {
-    const mock = jest.fn();
+    const mock = vi.fn();
 
     class TestService extends Service {
         toString() {

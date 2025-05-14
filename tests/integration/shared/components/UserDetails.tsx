@@ -1,7 +1,7 @@
 import { call } from 'typed-redux-saga';
 import React, { Suspense } from 'react';
 
-import { Operation, useOperation, useSaga, useServiceConsumer } from '../../../src';
+import { Operation, useOperation, useSaga, useServiceConsumer } from '../../src';
 
 import { TestService, userOperationId } from '../TestService';
 

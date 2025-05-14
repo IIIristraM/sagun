@@ -1,4 +1,5 @@
 import { call } from 'typed-redux-saga';
+import { test } from 'vitest';
 
 import { exact } from '_test/utils';
 

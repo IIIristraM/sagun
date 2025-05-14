@@ -14,10 +14,12 @@
         "jsx": "react",
         "target": "ES5",
         "downlevelIteration": true,
+        "resolveJsonModule": true,
         "baseUrl": ".",
         "outDir": "lib",
         "paths": {
-            "_test*": ["./tests*"],
+            "_test*": ["./tests/integration/shared*"],
+            "_root*": ["./tests/integration/react-19*"],
             "_lib*": ["./src*"]
         },
         "typeRoots": ["./typings", "./node_modules/@types"],
@@ -26,5 +28,5 @@
         "strictNullChecks": true,
         "strictBindCallApply": true
     },
-    "include": ["src", "typings", "tests"]
+    "include": ["src", "typings"]
 }

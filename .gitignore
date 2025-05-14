@@ -3,3 +3,6 @@ lib
 package-lock.json
 tests/stress/*.js
 .npmrc
+tests/integration/*/specs
+tests/integration/*/shared
+tests/integration/*/src

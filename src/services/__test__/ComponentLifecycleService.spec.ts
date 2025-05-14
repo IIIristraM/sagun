@@ -1,3 +1,5 @@
+import { expect, test, vi } from 'vitest';
+
 import { call, delay, put } from 'typed-redux-saga';
 
 import { getSagaRunner } from '_test/utils';
@@ -66,7 +68,7 @@ test('onLoad / onDispose invoked in a right order', () => {
     let loadCounter = 0;
     let disposeCounter = 0;
     let history = '';
-    const mock = jest.fn((counter: number) => counter);
+    const mock = vi.fn((counter: number) => counter);
 
     function* inc(counter: number) {
         loadCounter++;
@@ -141,8 +143,8 @@ test('uniq onLoad / onDispose per instance', () => {
     const service = new ComponentLifecycleService(operationService);
     const createServiceActions = serviceActionsFactory();
     const serviceActions = createServiceActions(service);
-    const mockLoad = jest.fn((...options: any[]) => ({}));
-    const mockDispose = jest.fn((...options: any[]) => ({}));
+    const mockLoad = vi.fn((...options: any[]) => ({}));
+    const mockDispose = vi.fn((...options: any[]) => ({}));
 
     function* onLoad(i: string) {
         mockLoad(i);

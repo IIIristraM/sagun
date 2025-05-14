@@ -1,6 +1,5 @@
 import { useContext, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { NO_SSR } from 'react-async-ssr/symbols';
 
 import { AsyncOperation, OperationId } from '../types';
 import { DisableSsrContext } from '../context';
@@ -72,11 +71,9 @@ export const useOperation = Object.assign(
         if (suspense && isLoading) {
             const promise = service.subscribeOperation(operationId);
 
-            if (disableSSR && isNodeEnv()) {
-                (promise as any)[NO_SSR] = true;
+            if (!(disableSSR && isNodeEnv())) {
+                throw promise;
             }
-
-            throw promise;
         }
 
         if (suspense && error) {
