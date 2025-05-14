@@ -364,3 +364,88 @@ test('useSaga + double useOperation in same component', async () => {
         })
         .toPromise();
 });
+
+test('useSaga + useOperation + reload in same component', async () => {
+    const operationService = new OperationService({ hash: {} });
+    const componentLifecycleService = new ComponentLifecycleService(operationService);
+
+    const runner = getSagaRunner(
+        combineReducers({
+            asyncOperations: reducer,
+        })
+    );
+
+    return runner
+        .run(function* () {
+            const defer = createDeferred<unknown>();
+
+            yield* call(operationService.run);
+            yield* call(componentLifecycleService.run);
+
+            const reloadCount = 5;
+            const processLoading = vi.fn((...args: any[]) => ({}));
+            const processDisposing = vi.fn((...args: any[]) => ({}));
+
+            const onLoad = function* () {
+                yield wait(DELAY);
+                processLoading();
+                return 1;
+            };
+
+            const onDispose = function* () {
+                processDisposing();
+            };
+
+            function App() {
+                const { operationId, reload } = useSaga({
+                    id: 'app-init',
+                    onLoad,
+                    onDispose,
+                });
+
+                const { result } = useOperation({
+                    operationId,
+                    suspense: true,
+                });
+
+                useEffect(() => {
+                    defer.resolve();
+                }, []);
+
+                expect(result).toBe(1);
+
+                return (
+                    <div id="reload" onClick={reload}>
+                        {result}
+                    </div>
+                );
+            }
+
+            yield render(
+                <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
+                    <Provider store={runner.store}>
+                        <Suspense fallback="">
+                            <App />
+                        </Suspense>
+                    </Provider>
+                </Root>
+            );
+
+            yield defer.promise;
+
+            expect(processDisposing).toHaveBeenCalledTimes(0);
+            expect(processLoading).toHaveBeenCalledTimes(1);
+
+            for (let i = 0; i < reloadCount; i++) {
+                window.document.getElementById('reload')?.click();
+                yield wait(DELAY * 2);
+            }
+
+            expect(processDisposing).toHaveBeenCalledTimes(reloadCount);
+            expect(processLoading).toHaveBeenCalledTimes(reloadCount + 1);
+
+            yield* call(operationService.destroy);
+            yield* call(componentLifecycleService.destroy);
+        })
+        .toPromise();
+});
