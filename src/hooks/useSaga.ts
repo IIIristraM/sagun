@@ -52,7 +52,6 @@ export function useSaga<TArgs extends any[], TRes>(
 
     const forceReload = useCallback(
         function () {
-            console.log('RELOAD');
             updateCounter(reloadCount + 1);
         },
         [reloadCount]
