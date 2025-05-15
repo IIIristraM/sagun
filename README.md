@@ -35,7 +35,7 @@ Currently compatible only with typescript codebase with following options enable
       - [2. useService](#2-useservice)
       - [3. useServiceConsumer](#3-useserviceconsumer)
       - [4. useOperation](#4-useoperation)
-      - [4. useDI](#4-usedi)
+      - [5. useDI](#5-usedi)
     - [Components](#components)
       - [1. Root](#1-root)
       - [2. Operation](#2-operation)
@@ -733,7 +733,7 @@ Before using the hook your should provide path in store, where to look for opera
 useOperation.setPath(state => ...) // i.e. state => state.asyncOperations
 ```
 
-#### 4. useDI
+#### 5. useDI
 
 This hook return a context which is primally used to register and resolve dependencies for your services. Context API looks like
 
