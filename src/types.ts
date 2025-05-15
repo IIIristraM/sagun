@@ -80,6 +80,12 @@ export type ComponentSaga<TArgs extends any[] | readonly any[], TRes> = {
     onDispose?: Saga<TArgs>;
 };
 
+export type ComponentSagaSafe<TArgs extends any[] | readonly any[], TRes> = {
+    id: string;
+    onLoad?: Saga<TArgs, TRes>;
+    onDispose?: Saga<TArgs>;
+};
+
 export type IOperationUpdateStrategy<TRes, TArgs extends any[] | readonly any[]> = Callable<
     [AsyncOperation<TRes, TArgs>],
     AsyncOperation<TRes, TArgs>

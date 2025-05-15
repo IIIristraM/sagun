@@ -1,4 +1,4 @@
-export { useSaga } from './useSaga';
+export { useSagaUnsafe, useSaga } from './useSaga';
 export { useService } from './useService';
 export { useServiceConsumer } from './useServiceConsumer';
 export { useOperation } from './useOperation';

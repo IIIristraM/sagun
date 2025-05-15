@@ -5,5 +5,4 @@ export * from './types';
 export { default as asyncOperationsReducer } from './reducer';
 export * from './context';
 export * from './components';
-export * from './withSaga';
 export * from './utils/createDeferred';

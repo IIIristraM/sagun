@@ -31,6 +31,7 @@ Currently compatible only with typescript codebase with following options enable
       - [3. inject](#3-inject)
     - [Hooks](#hooks)
       - [1. useSaga](#1-usesaga)
+      - [1.1 useSagaUnsafe (deprecated)](#11-usesagaunsafe-deprecated)
       - [2. useService](#2-useservice)
       - [3. useServiceConsumer](#3-useserviceconsumer)
       - [4. useOperation](#4-useoperation)
@@ -41,9 +42,6 @@ Currently compatible only with typescript codebase with following options enable
     - [Contexts](#contexts)
       - [1. DIContext](#1-dicontext)
       - [2. DisableSsrContext](#2-disablessrcontext)
-    - [HoC (deprecated)](#hoc-deprecated)
-      - [1. withSaga](#1-withsaga)
-      - [2. withService](#2-withservice)
     - [SSR (experimental)](#ssr-experimental)
       - [React \<= v17](#react--v17)
       - [React \>= v18](#react--v18)
@@ -631,6 +629,10 @@ function MyComponent(props) {
 If changes happened in the middle of long running `onLoad`, this saga will be canceled (break on nearest yield) and `onDispose` will be called.
 It is guaranteed that `onDispose` will be fully executed before next `onLoad`, so if changes happened multiple times during long running `onDispose`, `onLoad` will be called only once with latest arguments. `onLoad` is wrapped into operation, so you are able to subscribe to its execution using `operationId`, provided by the hook.
 
+#### 1.1 useSagaUnsafe (deprecated)
+
+Same as `useSaga` but `id` parameter is optional, hook made for back-compatibility and easier migration to next major.
+
 #### 2. useService
 
 ```tsx
@@ -816,61 +818,6 @@ Provides IoC container, you shouldn't use this context directly, there is hook `
 #### 2. DisableSsrContext
 
 Provides boolean flag, if `false` no sagas will be executed on server in a children subtrees.
-
-### HoC (deprecated)
-
-Will be removed in next major version.
-
-#### 1. withSaga
-
-Encapsulates saga binding with operation subscription.
-Uses `useSaga`, `useOperation`, `useDI` and `Suspense` inside.
-
-```tsx
-const MyComponent = withSaga({
-    // factory provided with DIContext
-    sagaFactory: ({ getService }) => ({
-        onLoad: function* (id: string) {
-            const service = getService(MyService);
-            return yield call(service.fetch, id);
-        },
-    }),
-    // converts component props to useSaga "args" list
-    argsMapper: ({ id }: Props) => [id],
-})(({ operation }) => {
-    // rendered after operation finished,
-    return <div>{operation.result}</div>;
-});
-
-const Parent = () => {
-    // fallback to Loader till operation not finished
-    return <MyComponent id="1" fallback={<Loader />} />;
-};
-```
-
-#### 2. withService
-
-Encapsulates saga binding with operation subscription.
-Uses `useService`, `useServiceConsumer`, `useDI`, `useOperation` and `Suspense` inside.
-
-```tsx
-const MyComponent = withService({
-    // factory provided with DIContext
-    serviceFactory: ({ createService }) => {
-        return createService(MyService);
-    },
-    // converts component props to useService "args" list
-    argsMapper: ({ id }: Props) => [id],
-})(({ operation, service, action }) => {
-    // rendered after service registered and initialized,
-    return <div onClick={() => actions.foo()}>{service.getStatus()}</div>;
-});
-
-const Parent = () => {
-    // fallback to Loader till operation not finished
-    return <MyComponent id="1" fallback={<Loader />} />;
-};
-```
 
 ### SSR (experimental)
 

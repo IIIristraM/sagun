@@ -2,7 +2,7 @@ import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'r
 import { useDispatch } from 'react-redux';
 
 import { ComponentLifecycleService, LoadOptions } from '../services';
-import { ComponentSaga, OperationId } from '../types';
+import { ComponentSaga, ComponentSagaSafe, OperationId } from '../types';
 import { DisableSsrContext } from '../context';
 import { isNodeEnv } from '../utils/isNodeEnv';
 import { useDI } from './useDI';
@@ -19,14 +19,23 @@ export type UseSagaOutput<TRes, TArgs> = {
 
 const EMPTY_ARR = [] as any[];
 
-export function useSaga<TRes>(saga: ComponentSaga<[], TRes>): UseSagaOutput<TRes, []>;
-export function useSaga<TArgs extends any[] | readonly any[], TRes>(
+/**
+ * @deprecated
+ */
+export function useSagaUnsafe<TRes>(saga: ComponentSaga<[], TRes>): UseSagaOutput<TRes, []>;
+/**
+ * @deprecated
+ */
+export function useSagaUnsafe<TArgs extends any[] | readonly any[], TRes>(
     saga: ComponentSaga<TArgs, TRes>,
     args: TArgs,
     options?: UseSagaOptions<TArgs, TRes>
 ): UseSagaOutput<TRes, TArgs>;
 
-export function useSaga<TArgs extends any[], TRes>(
+/**
+ * @deprecated
+ */
+export function useSagaUnsafe<TArgs extends any[], TRes>(
     saga: ComponentSaga<TArgs, TRes>,
     args: TArgs = [] as any as TArgs,
     options?: UseSagaOptions<TArgs, TRes>
@@ -154,4 +163,19 @@ export function useSaga<TArgs extends any[], TRes>(
     }, EMPTY_ARR);
 
     return { operationId, reload: forceReload };
+}
+
+export function useSaga<TRes>(saga: ComponentSagaSafe<[], TRes>): UseSagaOutput<TRes, []>;
+export function useSaga<TArgs extends any[] | readonly any[], TRes>(
+    saga: ComponentSagaSafe<TArgs, TRes>,
+    args: TArgs,
+    options?: UseSagaOptions<TArgs, TRes>
+): UseSagaOutput<TRes, TArgs>;
+
+export function useSaga<TArgs extends any[], TRes>(
+    saga: ComponentSagaSafe<TArgs, TRes>,
+    args: TArgs = [] as any as TArgs,
+    options?: UseSagaOptions<TArgs, TRes>
+) {
+    return useSagaUnsafe(saga, args, options);
 }

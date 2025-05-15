@@ -361,6 +361,14 @@ describe('useSaga', () => {
                 [arg0, arg1]
             );
 
+            useSaga<[], void>(
+                // @ts-expect-error
+                {
+                    onLoad: function* () {},
+                },
+                []
+            );
+
             return null;
         }
     });
