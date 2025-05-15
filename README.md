@@ -44,7 +44,9 @@ Currently compatible only with typescript codebase with following options enable
     - [HoC (deprecated)](#hoc-deprecated)
       - [1. withSaga](#1-withsaga)
       - [2. withService](#2-withservice)
-    - [SSR](#ssr)
+    - [SSR (experimental)](#ssr-experimental)
+      - [React \<= v17](#react--v17)
+      - [React \>= v18](#react--v18)
 
 ## Core concepts
 
@@ -870,7 +872,7 @@ const Parent = () => {
 };
 ```
 
-### SSR
+### SSR (experimental)
 
 In order to make your sagas work with SSR you should do the following
 
@@ -917,9 +919,14 @@ function App() {
         </Suspense>
     )
 }
+```
 
+#### React <= v17
+
+```tsx
 // server.ts
-import { renderToStringAsync } from '@iiiristram/serverRender';
+import { Root, OperationService, ComponentLifecycleService } from '@iiiristram/sagun';
+import { renderToStringAsync } from '@iiiristram/sagun/server';
 
 useOperation.setPath(state => state);
 const render = async (req, res) => {
@@ -940,10 +947,7 @@ const render = async (req, res) => {
     // this will incrementally render application,
     // awaiting till all Suspense components resolved
     const html = await renderToStringAsync(
-        <Root
-            operationService={operationService}
-            componentLifecycleService={componentLifecycleService}
-        >
+        <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
             <Provider store={store}>
                 <App />
             </Provider>
@@ -988,13 +992,113 @@ sagaMiddleware.run(function* () {
 useOperation.setPath(state => state);
 
 ReactDOM.hydrate(
-    <Root operationService={operationService} componentLifecycleService={service}>
+    <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
         <Provider store={store}>
-            <BrowserRouter>
-                <App />
-            </BrowserRouter>
+            <App />
         </Provider>
     </Root>,
     window.document.getElementById('app'),
+);
+```
+
+#### React >= v18
+
+```tsx
+// server.ts
+import { createDeferred, Root, OperationService, ComponentLifecycleService } from '@iiiristram/sagun';
+import { renderToPipeableStream } from 'react-dom/server';
+import { PassThrough } from "stream";
+
+useOperation.setPath(state => state);
+const render = async (req, res) => {
+    const sagaMiddleware = createSagaMiddleware();
+    const store = applyMiddleware(sagaMiddleware)(createStore)(
+        asyncOperationsReducer
+    );
+
+    // provide "hash" option
+    const operationService = new OperationService({ hash: {} });
+    const componentLifecycleService = new ComponentLifecycleService(operationService);
+
+    const task = sagaMiddleware.run(function* () {
+        yield* call(operationService.run);
+        yield* call(componentLifecycleService.run);
+    });
+
+    // this will incrementally render application,
+    // awaiting till all Suspense components resolved
+    let html = '';
+    const defer = createDeferred();
+    renderToPipeableStream(
+        <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
+            <Provider store={store}>
+                <App />
+            </Provider>
+        </Root>, 
+        {
+            onAllReady() {
+                const s = new PassThrough();
+                stream.pipe(s);
+
+                s.on('data', chunk => {
+                    html += chunk;
+                });
+
+                s.on('end', () => {
+                    defer.resolve();
+                });
+            },
+            onError(err) {
+                console.error(err);
+            },
+        }
+    );
+
+    await defer.promise;
+
+    // cleanup sagas
+    task.cancel();
+    await task.toPromise();
+
+    res.write(`
+        <html>
+            <body>
+                <script id="state">
+                    window.__STATE_FROM_SERVER__ = ${JSON.stringify(store.getState())};
+                </script>
+                <script id="hash">
+                    window.__SSR_CONTEXT__ = ${JSON.stringify(operationService.getHash())};
+                </script>
+                <div id="app">${html}</div>
+            </body>
+        </html>
+    `.trim());
+    res.end();
+});
+
+// client.ts
+const sagaMiddleware = createSagaMiddleware();
+const store = applyMiddleware(sagaMiddleware)(createStore)(
+    asyncOperationsReducer,
+    window.__STATE_FROM_SERVER__
+);
+
+const operationService = new OperationService({ hash: window.__SSR_CONTEXT__ });
+const componentLifecycleService = new ComponentLifecycleService(operationService);
+
+sagaMiddleware.run(function* () {
+    yield* call(operationService.run);
+    yield* call(componentLifecycleService.run);
+});
+
+useOperation.setPath(state => state);
+
+ReactDOM.hydrateRoot(
+    window.document.getElementById('app'),
+    <Root operationService={operationService} componentLifecycleService={service}>
+        <Provider store={store}>
+            <App />
+        </Provider>
+    </Root>
 );
 ```
