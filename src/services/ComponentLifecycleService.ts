@@ -51,14 +51,20 @@ export class ComponentLifecycleService extends Service {
                 const { loadId, saga, args, operationId, options } = next;
                 const { onLoad = emptyFlow, onDispose = emptyFlow } = saga;
 
+                let running = 0;
                 const loadOperation = this._operationsService.createOperation({
                     operationArgs: [operationId, onLoad, options?.updateStrategy],
+                    ssr: false,
+                    setRunning: () => {
+                        running = 1;
+                    },
                 });
 
                 const loadTask = yield* fork(loadOperation.run, ...args);
                 yield* take(isDisposeSignal(loadId));
-                loadTask.cancel();
 
+                loadTask.cancel();
+                if (!running) continue;
                 yield* call(onDispose, ...args);
             }
         }
