@@ -14,6 +14,7 @@ function Card({ login, id }: CardProps) {
     const { service } = useServiceConsumer(TestService);
     const { operationId } = useSaga(
         {
+            id: `card_${login}_${id}`,
             onLoad: function* (id: string, login?: string) {
                 if (!login) return;
                 return yield* call(service.getUserDetails, id);

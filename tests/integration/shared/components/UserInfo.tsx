@@ -22,6 +22,7 @@ export default function UserInfo({ children, id }: Props) {
     const { service } = useServiceConsumer(TestService);
     useSaga(
         {
+            id: `user_info_${id}`,
             onLoad: function* (id: string) {
                 yield* call(service.getUser, id);
             },
