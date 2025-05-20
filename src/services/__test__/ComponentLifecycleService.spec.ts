@@ -32,19 +32,17 @@ test('onLoad skip loads in between', () => {
         yield* call(service.run);
 
         for (let i = 1; i <= iterations; i++) {
-            const loadId = `LOAD_ID_${i}`;
-            yield* put(
-                serviceActions.load({
-                    loadId,
-                    operationId,
-                    saga: componentSaga,
-                    args: [i],
-                })
-            );
+            service.scheduleExecution({
+                operationId,
+                saga: componentSaga,
+                args: [i],
+            });
+
+            yield* put(serviceActions.load(operationId));
         }
 
         yield* delay(DELAY);
-        yield* put(serviceActions.dispose(`LOAD_ID_${1}`));
+        yield* put(serviceActions.cleanup({ operationId }));
         yield* delay(DELAY);
         yield* call(service.destroy);
     }
@@ -91,18 +89,18 @@ test('onLoad / onDispose invoked in a right order', () => {
 
         for (let i = 0; i < iterations; i++) {
             const loadId = `LOAD_ID_${i}`;
-            yield* put(
-                serviceActions.load({
-                    loadId,
-                    operationId,
-                    saga: componentSaga,
-                    args: [i],
-                })
-            );
+            service.scheduleExecution({
+                loadId,
+                operationId,
+                saga: componentSaga,
+                args: [i],
+            });
+
+            yield* put(serviceActions.load(operationId));
             yield* delay(DELAY / 2);
-            yield* put(serviceActions.dispose(loadId));
         }
 
+        yield* put(serviceActions.cleanup({ operationId }));
         yield* delay(DELAY / 2);
         yield* call(service.destroy);
     }
@@ -159,29 +157,29 @@ test('uniq onLoad / onDispose per instance', () => {
     function* main() {
         yield* call(service.run);
 
-        yield* put(
-            serviceActions.load({
-                loadId: 'xxx',
-                operationId: 'xxx' as OperationId<void, [string]>,
-                saga,
-                args: ['1'],
-            })
-        );
+        const operationId = 'xxx' as OperationId<void, [string]>;
+        service.scheduleExecution({
+            loadId: 'xxx',
+            operationId,
+            saga,
+            args: ['1'],
+        });
+        yield* put(serviceActions.load(operationId));
 
         yield* delay(0);
 
-        yield* put(
-            serviceActions.load({
-                loadId: 'yyy',
-                operationId: 'yyy' as OperationId<void, [string]>,
-                saga,
-                args: ['2'],
-            })
-        );
+        const operationId2 = 'yyy' as OperationId<void, [string]>;
+        service.scheduleExecution({
+            loadId: 'yyy',
+            operationId: operationId2,
+            saga,
+            args: ['2'],
+        });
+        yield* put(serviceActions.load(operationId2));
 
         yield* delay(DELAY);
-        yield* put(serviceActions.dispose('xxx'));
-        yield* put(serviceActions.dispose('yyy'));
+        yield* put(serviceActions.cleanup({ operationId }));
+        yield* put(serviceActions.cleanup({ operationId: operationId2 }));
         yield* delay(DELAY);
         yield* call(service.destroy);
     }
