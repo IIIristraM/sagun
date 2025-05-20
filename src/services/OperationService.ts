@@ -1,4 +1,4 @@
-import { apply, call, delay } from 'typed-redux-saga';
+import { apply, call } from 'typed-redux-saga';
 
 import { createDeferred, Deferred } from '../utils/createDeferred';
 import { daemon, DaemonMode } from '../decorators';
@@ -57,11 +57,9 @@ export class OperationService extends BaseService {
     createOperation({
         operationArgs,
         ssr = false,
-        setRunning,
     }: {
         operationArgs: Parameters<typeof createOperation>;
         ssr?: boolean;
-        setRunning?: () => void;
     }) {
         const self = this;
         const id = operationArgs[0];
@@ -89,9 +87,6 @@ export class OperationService extends BaseService {
                 }
             }
 
-            // required to make update not in render phase
-            yield* delay(0);
-            setRunning?.();
             const result = yield* apply(this, originRun, args);
 
             if (isNode && ssr && self._hash) {

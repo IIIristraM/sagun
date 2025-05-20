@@ -15,6 +15,7 @@ import { Root } from '../../components/Root';
 import { useService } from '../useService';
 
 import { render } from '_root/utils';
+import { wait } from '_test/';
 
 const sagaMiddleware = createSagaMiddleware();
 const store = applyMiddleware(sagaMiddleware)(createStore)(reducer);
@@ -92,8 +93,10 @@ test('useService runs and destroys service', async () => {
     );
 
     await mountDefer.promise;
+    await wait(10);
     await unmount();
     await unmountDefer.promise;
+    await wait(10);
     task.cancel();
 
     expect(processLoading).toHaveBeenCalledTimes(1);

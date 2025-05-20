@@ -49,7 +49,7 @@ export function useSagaUnsafe<TArgs extends any[], TRes>(
     const dispatch = useDispatch();
     const [reloadCount, updateCounter] = useState(0);
     const prevReload = useRef(reloadCount);
-    const sagaDispose = useRef<(() => void) | undefined>(undefined);
+    const loadTimeout = useRef<any>(undefined);
 
     const operationId = useMemo(
         function () {
@@ -76,49 +76,39 @@ export function useSagaUnsafe<TArgs extends any[], TRes>(
 
         const currentExecution = service.getCurrentExecution(operationId);
         // restore after Suspense resolved
-        if (!sagaDispose.current && currentExecution) {
-            sagaDispose.current = function dispose() {
-                dispatch(actions.dispose(currentExecution.loadId));
-            };
-
-            if (
-                currentExecution?.args.length === args.length &&
-                currentExecution?.args.every((val, index) => args[index] === val)
-            ) {
-                return;
-            }
+        if (
+            currentExecution?.args.length === args.length &&
+            currentExecution?.args.every((val, index) => args[index] === val)
+        ) {
+            return;
         }
 
-        if (sagaDispose.current) {
-            sagaDispose.current();
+        if (loadTimeout.current) {
+            (typeof cancelAnimationFrame !== 'undefined' ? cancelAnimationFrame : clearTimeout)(loadTimeout.current);
+            loadTimeout.current = undefined;
         }
 
-        const loadId = uuidGen.uuid('load');
+        service.scheduleExecution({
+            operationId: operationId as OperationId<TRes, TArgs>,
+            saga,
+            args,
+            options: options?.operationOptions,
+        });
 
-        dispatch(
-            actions.load({
-                loadId,
-                operationId: operationId as OperationId<TRes, TArgs>,
-                saga,
-                args,
-                options: options?.operationOptions,
-            })
-        );
-
-        sagaDispose.current = function dispose() {
-            dispatch(actions.dispose(loadId));
-        };
+        if (typeof requestAnimationFrame !== 'undefined') {
+            loadTimeout.current = requestAnimationFrame(() => {
+                dispatch(actions.load(operationId));
+            });
+        } else {
+            loadTimeout.current = setTimeout(() => {
+                dispatch(actions.load(operationId));
+            }, 0);
+        }
     }, EMPTY_ARR);
 
     // next loads on args changed or force reload
     useEffect(
         function reloadSaga() {
-            function clean() {
-                if (sagaDispose.current) {
-                    sagaDispose.current();
-                }
-            }
-
             const currentExecution = service.getCurrentExecution(operationId);
             const isSameArgs =
                 currentExecution?.args.length === args.length &&
@@ -126,27 +116,24 @@ export function useSagaUnsafe<TArgs extends any[], TRes>(
 
             // prevent double call in useMemo and useEffect on initialRender
             if (isSameArgs && prevReload.current === reloadCount) {
-                return clean;
+                return;
+            }
+
+            if (loadTimeout.current) {
+                (typeof cancelAnimationFrame !== 'undefined' ? cancelAnimationFrame : clearTimeout)(
+                    loadTimeout.current
+                );
+                loadTimeout.current = undefined;
             }
 
             prevReload.current = reloadCount;
-            const loadId = uuidGen.uuid('load');
-
-            dispatch(
-                actions.load({
-                    loadId,
-                    operationId: operationId as OperationId<TRes, TArgs>,
-                    saga,
-                    args,
-                    options: options?.operationOptions,
-                })
-            );
-
-            sagaDispose.current = function dispose() {
-                dispatch(actions.dispose(loadId));
-            };
-
-            return clean;
+            service.scheduleExecution({
+                operationId: operationId as OperationId<TRes, TArgs>,
+                saga,
+                args,
+                options: options?.operationOptions,
+            });
+            dispatch(actions.load(operationId));
         },
         [...args, reloadCount, operationId]
     );
@@ -154,8 +141,11 @@ export function useSagaUnsafe<TArgs extends any[], TRes>(
     // remove underlying operation on unmount
     useEffect(function initClean() {
         return function clean() {
-            if (sagaDispose.current) {
-                sagaDispose.current();
+            if (loadTimeout.current) {
+                (typeof cancelAnimationFrame !== 'undefined' ? cancelAnimationFrame : clearTimeout)(
+                    loadTimeout.current
+                );
+                loadTimeout.current = undefined;
             }
 
             dispatch(actions.cleanup({ operationId }));
