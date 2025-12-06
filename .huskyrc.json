@@ -1,5 +1,0 @@
-{
-    "hooks": {
-        "pre-push": "npm run lint && npm run format && git add . && git commit --amend"
-    }
-}
