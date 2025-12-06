@@ -1,0 +1,71 @@
+{
+  "homepage.tagline": {
+    "message": "Строго типизированная сервис-ориентированная изоморфная архитектура на базе redux-saga",
+    "description": "The tagline on the homepage"
+  },
+  "homepage.getStarted": {
+    "message": "Начать",
+    "description": "The get started button on homepage"
+  },
+  "homepage.feature1.title": {
+    "message": "Отделённая бизнес-логика",
+    "description": "Feature 1 title"
+  },
+  "homepage.feature1.description": {
+    "message": "Держите бизнес-логику отдельно от React компонентов. Разделяйте её на небольшие переиспользуемые сервисы.",
+    "description": "Feature 1 description"
+  },
+  "homepage.feature2.title": {
+    "message": "Минимум Redux boilerplate",
+    "description": "Feature 2 title"
+  },
+  "homepage.feature2.description": {
+    "message": "Единый reducer для всех операций. Actions автоматически генерируются из методов сервисов.",
+    "description": "Feature 2 description"
+  },
+  "homepage.feature3.title": {
+    "message": "Совместимость с SSR",
+    "description": "Feature 3 title"
+  },
+  "homepage.feature3.description": {
+    "message": "Поддержка серверного рендеринга без дублирования логики. Работает с React 16-19.",
+    "description": "Feature 3 description"
+  },
+  "homepage.feature4.title": {
+    "message": "Dependency Injection",
+    "description": "Feature 4 title"
+  },
+  "homepage.feature4.description": {
+    "message": "Встроенный DI контейнер для управления зависимостями сервисов с TypeScript декораторами.",
+    "description": "Feature 4 description"
+  },
+  "homepage.feature5.title": {
+    "message": "Полная типизация",
+    "description": "Feature 5 title"
+  },
+  "homepage.feature5.description": {
+    "message": "Написан на TypeScript со строгой типизацией операций, сервисов и хуков.",
+    "description": "Feature 5 description"
+  },
+  "homepage.feature6.title": {
+    "message": "Готов к Suspense",
+    "description": "Feature 6 title"
+  },
+  "homepage.feature6.description": {
+    "message": "Нативная интеграция с React Suspense для состояний загрузки и обработки ошибок.",
+    "description": "Feature 6 description"
+  },
+  "theme.common.skipToMainContent": {
+    "message": "Перейти к основному содержимому",
+    "description": "The skip to content label used for accessibility"
+  },
+  "theme.docs.sidebar.collapseButtonTitle": {
+    "message": "Свернуть боковую панель",
+    "description": "The title attribute for collapse button of doc sidebar"
+  },
+  "theme.docs.sidebar.expandButtonTitle": {
+    "message": "Развернуть боковую панель",
+    "description": "The title attribute for expand button of doc sidebar"
+  }
+}
+

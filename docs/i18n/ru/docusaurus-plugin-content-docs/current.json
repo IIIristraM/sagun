@@ -1,0 +1,15 @@
+{
+  "sidebar.tutorialSidebar.category.Core Concepts": {
+    "message": "Основные концепции",
+    "description": "The label for category Core Concepts in sidebar tutorialSidebar"
+  },
+  "sidebar.tutorialSidebar.category.API Reference": {
+    "message": "API Reference",
+    "description": "The label for category API Reference in sidebar tutorialSidebar"
+  },
+  "sidebar.tutorialSidebar.category.Advanced": {
+    "message": "Продвинутое",
+    "description": "The label for category Advanced in sidebar tutorialSidebar"
+  }
+}
+
