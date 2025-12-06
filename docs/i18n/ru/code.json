@@ -1,59 +1,59 @@
 {
   "homepage.tagline": {
-    "message": "Строго типизированная сервис-ориентированная изоморфная архитектура на базе redux-saga",
+    "message": "Фреймворк для разработки SPA на базе redux-saga и MVC паттерна",
     "description": "The tagline on the homepage"
   },
   "homepage.getStarted": {
     "message": "Начать",
     "description": "The get started button on homepage"
   },
-  "homepage.feature1.title": {
-    "message": "Отделённая бизнес-логика",
+  "homepage.featureDecoupledLogic.title": {
+    "message": "Изолированная бизнес-логика",
     "description": "Feature 1 title"
   },
-  "homepage.feature1.description": {
-    "message": "Держите бизнес-логику отдельно от React компонентов. Разделяйте её на небольшие переиспользуемые сервисы.",
-    "description": "Feature 1 description"
+  "homepage.featureDecoupledLogic.description": {
+    "message": "Держите бизнес-логику отдельно от UI. Разделяйте её на небольшие переиспользуемые сервисы.",
+    "description": "Feature decoupled logic description"
   },
-  "homepage.feature2.title": {
-    "message": "Минимум Redux boilerplate",
+  "homepage.featureRedux.title": {
+    "message": "Redux без недостатков",
     "description": "Feature 2 title"
   },
-  "homepage.feature2.description": {
-    "message": "Единый reducer для всех операций. Actions автоматически генерируются из методов сервисов.",
-    "description": "Feature 2 description"
+  "homepage.featureRedux.description": {
+    "message": "Привычный единый стейт и никакого бойлерплейта. Просто интегрировать в существующее приложение на Redux.",
+    "description": "Feature redux description"
   },
-  "homepage.feature3.title": {
-    "message": "Совместимость с SSR",
+  "homepage.featureDI.title": {
+    "message": "Dependency Injection",
     "description": "Feature 3 title"
   },
-  "homepage.feature3.description": {
-    "message": "Поддержка серверного рендеринга без дублирования логики. Работает с React 16-19.",
-    "description": "Feature 3 description"
+  "homepage.featureDI.description": {
+    "message": "Встроенный DI контейнер для управления зависимостями сервисов. Тестировать бизнес-логику проще простого.",
+    "description": "Feature DI description"
   },
-  "homepage.feature4.title": {
-    "message": "Dependency Injection",
+  "homepage.featureSuspense.title": {
+    "message": "Совместимость с Suspense",
     "description": "Feature 4 title"
   },
-  "homepage.feature4.description": {
-    "message": "Встроенный DI контейнер для управления зависимостями сервисов с TypeScript декораторами.",
-    "description": "Feature 4 description"
+  "homepage.featureSuspense.description": {
+    "message": "Возможность использовать Suspense для произвольной асинхронной логики начиная с React 16.",
+    "description": "Feature Suspense description"
   },
-  "homepage.feature5.title": {
-    "message": "Полная типизация",
+  "homepage.featureReduxSaga.title": {
+    "message": "Вся мощь redux-saga под капотом.",
     "description": "Feature 5 title"
   },
-  "homepage.feature5.description": {
-    "message": "Написан на TypeScript со строгой типизацией операций, сервисов и хуков.",
-    "description": "Feature 5 description"
+  "homepage.featureReduxSaga.description": {
+    "message": "Автоматическая отмена неактуальных асинхронных операций, простой и мощный API для решения типовых проблем с гонками и дубликатами запросов.",
+    "description": "Feature redux saga description"
   },
-  "homepage.feature6.title": {
-    "message": "Готов к Suspense",
+  "homepage.featureMemoryManagement.title": {
+    "message": "Управление памятью",
     "description": "Feature 6 title"
   },
-  "homepage.feature6.description": {
-    "message": "Нативная интеграция с React Suspense для состояний загрузки и обработки ошибок.",
-    "description": "Feature 6 description"
+  "homepage.featureMemoryManagement.description": {
+    "message": "Фреймворк автоматически подчищает неиспользуемые данные в сторе.",
+    "description": "Feature memory management description"
   },
   "theme.common.skipToMainContent": {
     "message": "Перейти к основному содержимому",

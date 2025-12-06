@@ -17,7 +17,7 @@ function HomepageHeader() {
         </Heading>
         <p className="hero__subtitle">
           <Translate id="homepage.tagline">
-            Strongly-typed service-based isomorphic architecture on top of redux-saga
+            SPA development framework based on redux-saga and MVC pattern
           </Translate>
         </p>
         <div className={styles.buttons}>
@@ -40,45 +40,45 @@ type FeatureItem = {
 
 const FeatureList: FeatureItem[] = [
   {
-    title: translate({ id: 'homepage.feature1.title', message: 'Decoupled Business Logic' }),
+    title: translate({ id: 'homepage.featureDecoupledLogic.title', message: 'Decoupled business logic' }),
     description: translate({
-      id: 'homepage.feature1.description',
-      message: 'Keep your business logic separate from React components. Split it into small, reusable services.',
+      id: 'homepage.featureDecoupledLogic.description',
+      message: 'Keep your business logic separate from UI. Split it into small, reusable services.',
     }),
   },
   {
-    title: translate({ id: 'homepage.feature2.title', message: 'Reduced Redux Boilerplate' }),
+    title: translate({ id: 'homepage.featureDI.title', message: 'Dependency injection' }),
     description: translate({
-      id: 'homepage.feature2.description',
-      message: 'Single reducer for all operations. Actions are auto-generated from service methods.',
+      id: 'homepage.featureDI.description',
+      message: 'Built-in DI container for managing service dependencies. Testing business logic is a breeze.',
     }),
   },
   {
-    title: translate({ id: 'homepage.feature3.title', message: 'SSR Compatible' }),
+    title: translate({ id: 'homepage.featureMemoryManagement.title', message: 'Memory management' }),
     description: translate({
-      id: 'homepage.feature3.description',
-      message: 'Server-side rendering support without duplicating logic. Works with React 16-19.',
+      id: 'homepage.featureMemoryManagement.description',
+      message: 'The framework automatically cleans up unused data in the store.',
     }),
   },
   {
-    title: translate({ id: 'homepage.feature4.title', message: 'Dependency Injection' }),
+    title: translate({ id: 'homepage.featureRedux.title', message: 'Redux without drawbacks' }),
     description: translate({
-      id: 'homepage.feature4.description',
-      message: 'Built-in DI container for managing service dependencies with TypeScript decorators.',
+      id: 'homepage.featureRedux.description',
+      message: 'Familiar single state and no boilerplate. Easy to integrate into existing Redux applications.',
     }),
   },
   {
-    title: translate({ id: 'homepage.feature5.title', message: 'Fully Typed' }),
+    title: translate({ id: 'homepage.featureReduxSaga.title', message: 'Full power of redux-saga inside' }),
     description: translate({
-      id: 'homepage.feature5.description',
-      message: 'Written in TypeScript with strong typing for operations, services, and hooks.',
+      id: 'homepage.featureReduxSaga.description',
+      message: 'Automatic cancellation of outdated async operations, simple and powerful API for handling race conditions and duplicate requests.',
     }),
   },
   {
-    title: translate({ id: 'homepage.feature6.title', message: 'Suspense Ready' }),
+    title: translate({ id: 'homepage.featureSuspense.title', message: 'Suspense compatible' }),
     description: translate({
-      id: 'homepage.feature6.description',
-      message: 'Native React Suspense integration for loading states and error boundaries.',
+      id: 'homepage.featureSuspense.description',
+      message: 'Use Suspense for any async logic starting from React 16.',
     }),
   },
 ];
@@ -113,7 +113,7 @@ export default function Home(): JSX.Element {
   return (
     <Layout
       title={siteConfig.title}
-      description="Strongly-typed service-based isomorphic architecture on top of redux-saga"
+      description="SPA development framework based on redux-saga and MVC pattern"
     >
       <HomepageHeader />
       <main>

@@ -4,7 +4,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'Sagun',
-  tagline: 'Service-based isomorphic architecture on top of redux-saga',
+  tagline: 'SPA development framework based on redux-saga and MVC pattern',
   favicon: 'img/favicon.ico',
 
   url: 'https://iiiristram.github.io',
