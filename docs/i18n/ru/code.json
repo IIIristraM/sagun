@@ -1,6 +1,6 @@
 {
   "homepage.tagline": {
-    "message": "Фреймворк для разработки SPA на базе redux-saga и MVC паттерна",
+    "message": "Фреймворк для разработки React приложений на базе redux-saga и MVC паттерна",
     "description": "The tagline on the homepage"
   },
   "homepage.getStarted": {

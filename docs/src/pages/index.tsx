@@ -113,7 +113,7 @@ export default function Home(): JSX.Element {
   return (
     <Layout
       title={siteConfig.title}
-      description="SPA development framework based on redux-saga and MVC pattern"
+      description="Development framework for React applications based on redux-saga and MVC pattern"
     >
       <HomepageHeader />
       <main>
