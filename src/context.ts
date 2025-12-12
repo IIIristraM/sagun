@@ -18,8 +18,10 @@ export const DisableSsrContext = createContext<boolean>(false);
 
 export type IDIContext = {
     registerDependency<D>(key: DependencyKey<D>, dependency: D): void;
+    unregisterDependency<D>(key: DependencyKey<D>): void;
     getDependency<D>(key: DependencyKey<D>): D;
     registerService: (service: Dependency) => void;
+    unregisterService: <T extends Dependency>(Ctr: Ctr<T>) => void;
     createService: <T extends Dependency>(Ctr: Ctr<T>) => T;
     getService: <T extends Dependency>(Ctr: Ctr<T>) => T;
     createServiceActions: ReturnType<typeof serviceActionsFactory>;
@@ -39,6 +41,10 @@ export const getDIContext: IDIContextFactory = () => {
         container[key] = dependency;
     }
 
+    function unregisterDependency<D>(key: DependencyKey<D>) {
+        delete container[key];
+    }
+
     function getDependency<D>(key: DependencyKey<D>): D {
         const record = container[key];
 
@@ -51,9 +57,13 @@ export const getDIContext: IDIContextFactory = () => {
 
     const context: IDIContext = {
         registerDependency,
+        unregisterDependency,
         getDependency,
         registerService(service) {
             registerDependency(service.toString() as DependencyKey<Dependency>, service);
+        },
+        unregisterService<T extends Dependency>(Ctr: Ctr<T>) {
+            unregisterDependency(Ctr.prototype.toString() as DependencyKey<Dependency>);
         },
         getService<T extends Dependency>(Ctr: Ctr<T>) {
             return getDependency(Ctr.prototype.toString());

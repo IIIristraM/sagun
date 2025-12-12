@@ -18,6 +18,7 @@ export type UseSagaOutput<TRes, TArgs> = {
 };
 
 const EMPTY_ARR = [] as any[];
+const loadTimeoutMap = new Map<string, any>();
 
 /**
  * @deprecated
@@ -31,7 +32,6 @@ export function useSagaUnsafe<TArgs extends any[] | readonly any[], TRes>(
     args: TArgs,
     options?: UseSagaOptions<TArgs, TRes>
 ): UseSagaOutput<TRes, TArgs>;
-
 /**
  * @deprecated
  */
@@ -49,7 +49,6 @@ export function useSagaUnsafe<TArgs extends any[], TRes>(
     const dispatch = useDispatch();
     const [reloadCount, updateCounter] = useState(0);
     const prevReload = useRef(reloadCount);
-    const loadTimeout = useRef<any>(undefined);
 
     const operationId = useMemo(
         function () {
@@ -66,86 +65,65 @@ export function useSagaUnsafe<TArgs extends any[], TRes>(
         [reloadCount]
     );
 
-    // initial load.
-    // useMemo cause starting from React v18 Suspense changes behavior,
-    // so useEffect no longer called on Suspense children
-    useMemo(() => {
+    function reloadSaga() {
         if (isNodeEnv() && disableSSR) {
             return;
         }
 
         const currentExecution = service.getCurrentExecution(operationId);
+
+        const isSameArgs =
+            prevReload.current === reloadCount &&
+            currentExecution?.args?.length === args.length &&
+            currentExecution?.args?.every((val, index) => args[index] === val);
+
         // restore after Suspense resolved
-        if (
-            currentExecution?.args.length === args.length &&
-            currentExecution?.args.every((val, index) => args[index] === val)
-        ) {
+        if (isSameArgs) {
             return;
         }
 
-        if (loadTimeout.current) {
-            (typeof cancelAnimationFrame !== 'undefined' ? cancelAnimationFrame : clearTimeout)(loadTimeout.current);
-            loadTimeout.current = undefined;
-        }
-
-        service.scheduleExecution({
+        const loadOptions: LoadOptions<TArgs, TRes> = {
             operationId: operationId as OperationId<TRes, TArgs>,
             saga,
             args,
             options: options?.operationOptions,
-        });
+            loadId: uuidGen.uuid('load'),
+        };
 
-        if (typeof requestAnimationFrame !== 'undefined') {
-            loadTimeout.current = requestAnimationFrame(() => {
-                dispatch(actions.load(operationId));
-            });
-        } else {
-            loadTimeout.current = setTimeout(() => {
-                dispatch(actions.load(operationId));
-            }, 0);
+        const timer = loadTimeoutMap.get(operationId);
+        if (timer) {
+            (typeof cancelAnimationFrame !== 'undefined' ? cancelAnimationFrame : clearTimeout)(timer);
+            loadTimeoutMap.delete(operationId);
         }
-    }, EMPTY_ARR);
+
+        prevReload.current = reloadCount;
+
+        function load() {
+            dispatch(actions.load(operationId, loadOptions.loadId));
+        }
+
+        service.scheduleLoad(operationId, loadOptions);
+        loadTimeoutMap.set(
+            operationId,
+            typeof requestAnimationFrame !== 'undefined' ? requestAnimationFrame(load) : setTimeout(load, 0)
+        );
+    }
+
+    // initial load.
+    // useMemo cause starting from React v18 Suspense changes behavior,
+    // so useEffect no longer called on Suspense children
+    useMemo(reloadSaga, [...args, reloadCount, operationId]);
 
     // next loads on args changed or force reload
-    useEffect(
-        function reloadSaga() {
-            const currentExecution = service.getCurrentExecution(operationId);
-            const isSameArgs =
-                currentExecution?.args.length === args.length &&
-                currentExecution?.args.every((val, index) => args[index] === val);
-
-            // prevent double call in useMemo and useEffect on initialRender
-            if (isSameArgs && prevReload.current === reloadCount) {
-                return;
-            }
-
-            if (loadTimeout.current) {
-                (typeof cancelAnimationFrame !== 'undefined' ? cancelAnimationFrame : clearTimeout)(
-                    loadTimeout.current
-                );
-                loadTimeout.current = undefined;
-            }
-
-            prevReload.current = reloadCount;
-            service.scheduleExecution({
-                operationId: operationId as OperationId<TRes, TArgs>,
-                saga,
-                args,
-                options: options?.operationOptions,
-            });
-            dispatch(actions.load(operationId));
-        },
-        [...args, reloadCount, operationId]
-    );
+    useEffect(reloadSaga, [...args, reloadCount, operationId]);
 
     // remove underlying operation on unmount
     useEffect(function initClean() {
         return function clean() {
-            if (loadTimeout.current) {
-                (typeof cancelAnimationFrame !== 'undefined' ? cancelAnimationFrame : clearTimeout)(
-                    loadTimeout.current
-                );
-                loadTimeout.current = undefined;
+            const timer = loadTimeoutMap.get(operationId);
+            if (timer) {
+                (typeof cancelAnimationFrame !== 'undefined' ? cancelAnimationFrame : clearTimeout)(timer);
+                loadTimeoutMap.delete(operationId);
             }
 
             dispatch(actions.cleanup({ operationId }));

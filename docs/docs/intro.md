@@ -44,4 +44,3 @@ Thus, we wanted to create a solution that would take the best from both the Reac
 
 - [Getting Started](./getting-started) - Set up Sagun in your project
 - [Core Concepts](./concepts/operations) - Learn about Operations and Services
-- [API Reference](./api/services) - Detailed API documentation

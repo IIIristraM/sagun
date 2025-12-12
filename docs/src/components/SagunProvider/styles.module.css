@@ -1,0 +1,27 @@
+.error {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+}
+
+.retryButton {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: var(--ifm-button-border-radius);
+  background: var(--ifm-color-primary);
+  color: var(--ifm-color-white);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  margin: 0.75rem;
+  height: 50px;
+}
+
+.retryButton:hover {
+  background: var(--ifm-color-primary-dark);
+}
+
+.retryButton:active {
+  background: var(--ifm-color-primary-darker);
+}

@@ -6,6 +6,14 @@ const sidebars: SidebarsConfig = {
     'getting-started',
     {
       type: 'category',
+      label: 'Step-by-Step Guide',
+      items: [
+        'tutorial/data-load',
+        'tutorial/service',
+      ],
+    },
+    {
+      type: 'category',
       label: 'Core Concepts',
       items: ['concepts/operations', 'concepts/services'],
     },
@@ -13,10 +21,47 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'API Reference',
       items: [
-        'api/services',
-        'api/decorators',
-        'api/hooks',
-        'api/components',
+        {
+          type: 'category',
+          label: 'Services',
+          items: [
+            'api/services/dependency',
+            'api/services/base-service',
+            'api/services/service',
+            'api/services/operation-service',
+            'api/services/component-lifecycle-service',
+            'api/services/uuid-generator',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'Decorators',
+          items: [
+            'api/decorators/operation',
+            'api/decorators/daemon',
+            'api/decorators/inject',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'Hooks',
+          items: [
+            'api/hooks/use-saga',
+            'api/hooks/use-service',
+            'api/hooks/use-operation',
+            'api/hooks/use-service-consumer',
+            'api/hooks/use-di',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'Components',
+          items: [
+            'api/components/root',
+            'api/components/operation',
+            'api/components/contexts',
+          ],
+        },
       ],
     },
     {
@@ -28,4 +73,3 @@ const sidebars: SidebarsConfig = {
 };
 
 export default sidebars;
-

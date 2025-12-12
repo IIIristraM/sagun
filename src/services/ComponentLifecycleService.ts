@@ -1,47 +1,50 @@
-import { call, fork, put, take } from 'typed-redux-saga';
+import { call, spawn } from 'typed-redux-saga';
+import { Task } from 'redux-saga';
 
 import { daemon, DaemonMode } from '../decorators';
+import { createDeferred } from '../utils/createDeferred';
 import { emptyFlow } from '../utils/emptyFlow';
 import { isNodeEnv } from '../utils/isNodeEnv';
 import { OperationCreationOptions } from '../types';
 import { Service } from './Service';
-import { UUIDGenerator } from './UUIDGenerator';
 
-export type LoadOptions<TArgs extends any[] | readonly any[], TRes> = OperationCreationOptions<TRes, TArgs> & {
-    loadId?: string;
+export type LoadOptions<TArgs extends any[] | readonly any[], TRes> = Omit<
+    OperationCreationOptions<TRes, TArgs>,
+    'args'
+> & {
+    args?: TArgs;
+    loadId: string;
+    _failed?: boolean;
 };
 
-type DisposeAction = {
-    type: typeof DISPOSE_SIGNAL;
-    payload: string;
-};
-
-const DISPOSE_SIGNAL = 'DISPOSE_SIGNAL' as const;
-
-function isDisposeSignal(loadId: string) {
-    return function disposePattern({ type, payload }: DisposeAction) {
-        return type === DISPOSE_SIGNAL && payload === loadId;
-    };
-}
+const EMPTY_ARGS: any[] = [];
 
 export class ComponentLifecycleService extends Service {
     toString() {
         return 'ComponentLifecycleService';
     }
 
-    private uuidGen = new UUIDGenerator();
     private NEXT_EXECUTION_MAP: Record<string, LoadOptions<any[], any> | undefined> = {};
     private CURRENT_EXECUTION_MAP: Record<string, LoadOptions<any[], any> | undefined> = {};
+    private DISPOSE_SIGNAL_MAP: Record<string, AbortController | undefined> = {};
+    private TASKS = new Set<Task>();
 
     @daemon(DaemonMode.Every)
-    *load(loadOperationId: string) {
+    *load(loadOperationId: string, loadId: string) {
         if (!this.CURRENT_EXECUTION_MAP[loadOperationId] && !isNodeEnv()) {
             yield* call(this._operationsService.registerConsumer, this, loadOperationId);
         }
 
-        if (this.CURRENT_EXECUTION_MAP[loadOperationId]) {
-            const loadId = this.CURRENT_EXECUTION_MAP[loadOperationId].loadId;
-            yield* put({ type: DISPOSE_SIGNAL, payload: loadId! });
+        if (
+            this.NEXT_EXECUTION_MAP[loadOperationId]?.loadId !== loadId ||
+            this.CURRENT_EXECUTION_MAP[loadOperationId]?.loadId === loadId
+        ) {
+            return;
+        }
+
+        const currentAbortController = this.DISPOSE_SIGNAL_MAP[loadOperationId];
+        if (currentAbortController && !currentAbortController.signal.aborted) {
+            this.disposeSignal(loadOperationId);
             return;
         }
 
@@ -50,9 +53,10 @@ export class ComponentLifecycleService extends Service {
             this.CURRENT_EXECUTION_MAP[loadOperationId] !== this.NEXT_EXECUTION_MAP[loadOperationId]
         ) {
             const next = this.NEXT_EXECUTION_MAP[loadOperationId];
-            const { loadId, saga, args, operationId, options } = next;
+            const { saga, args = EMPTY_ARGS, operationId, options } = next;
 
             this.CURRENT_EXECUTION_MAP[operationId] = next;
+            const disposePromise = this.waitDisposeSignal(operationId);
 
             const { onLoad = emptyFlow, onDispose = emptyFlow } = saga;
 
@@ -61,34 +65,75 @@ export class ComponentLifecycleService extends Service {
                 ssr: false,
             });
 
-            const loadTask = yield* fork(loadOperation.run, ...args);
-            yield* take(isDisposeSignal(loadId!));
+            let loadTask: Task | undefined;
+            let disposed = false;
+            try {
+                loadTask = yield* spawn(loadOperation.run, ...args);
+                this.TASKS.add(loadTask);
 
-            loadTask.cancel();
-            yield* call(onDispose, ...args);
+                yield disposePromise;
+                disposed = true;
+            } finally {
+                if (!disposed) {
+                    yield disposePromise;
+                }
+
+                if (loadTask) {
+                    loadTask.cancel();
+                    this.TASKS.delete(loadTask);
+                }
+
+                yield* call(onDispose, ...args);
+            }
         }
 
-        this.NEXT_EXECUTION_MAP[loadOperationId] = undefined;
         this.CURRENT_EXECUTION_MAP[loadOperationId] = undefined;
+        this.DISPOSE_SIGNAL_MAP[loadOperationId] = undefined;
+        this.NEXT_EXECUTION_MAP[loadOperationId] = undefined;
+    }
+
+    scheduleLoad(operationId: string, loadOptions: LoadOptions<any[], any>) {
+        this.NEXT_EXECUTION_MAP[operationId] = loadOptions;
     }
 
     getCurrentExecution(operationId: string) {
         return this.CURRENT_EXECUTION_MAP[operationId] ?? this.NEXT_EXECUTION_MAP[operationId];
     }
 
-    scheduleExecution<TArgs extends any[]>(options: LoadOptions<TArgs, any>) {
-        options.loadId = this.uuidGen.uuid('load');
-        this.NEXT_EXECUTION_MAP[options.operationId] = options;
+    disposeSignal(operationId: string) {
+        this.DISPOSE_SIGNAL_MAP[operationId]?.abort();
+        this.DISPOSE_SIGNAL_MAP[operationId] = new AbortController();
+    }
+
+    waitDisposeSignal(operationId: string) {
+        this.DISPOSE_SIGNAL_MAP[operationId] = this.DISPOSE_SIGNAL_MAP[operationId] || new AbortController();
+        const ac = this.DISPOSE_SIGNAL_MAP[operationId];
+
+        const deferred = createDeferred<string>();
+        if (!ac || ac.signal.aborted) {
+            deferred.resolve();
+        } else {
+            ac.signal.addEventListener('abort', () => {
+                deferred.resolve();
+            });
+        }
+
+        return deferred.promise;
     }
 
     @daemon(DaemonMode.Every)
     *cleanup({ operationId }: { operationId: string }) {
-        const loadId = this.getCurrentExecution(operationId)?.loadId;
+        this.disposeSignal(operationId);
         this.CURRENT_EXECUTION_MAP[operationId] = undefined;
         this.NEXT_EXECUTION_MAP[operationId] = undefined;
-        if (loadId) {
-            yield* put({ type: DISPOSE_SIGNAL, payload: loadId });
+
+        if (!isNodeEnv()) {
             yield* call(this._operationsService.unregisterConsumer, this, operationId);
         }
+    }
+
+    *destroy() {
+        yield* call([this, super.destroy]);
+        Array.from(this.TASKS).forEach(task => task.cancel());
     }
 }

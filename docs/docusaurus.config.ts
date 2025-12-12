@@ -81,10 +81,6 @@ const config: Config = {
               label: 'Getting Started',
               to: '/docs/getting-started',
             },
-            {
-              label: 'API Reference',
-              to: '/docs/api/services',
-            },
           ],
         },
         {

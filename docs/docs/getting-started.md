@@ -201,7 +201,7 @@ function TodoList() {
 
 Now that you have Sagun set up, learn more about:
 
-- [Operations](./concepts/operations) - Understanding the core data structure
-- [Services](./concepts/services) - Deep dive into service patterns
-- [Dependency Injection](./advanced/dependency-injection) - Managing service dependencies
+- [Operations](./concepts/operations.md) - Understanding the core data structure
+- [Services](./concepts/services.md) - Deep dive into service patterns
+- [Dependency Injection](./advanced/dependency-injection.md) - Managing service dependencies
 

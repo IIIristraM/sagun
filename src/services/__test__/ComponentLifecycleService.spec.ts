@@ -32,13 +32,13 @@ test('onLoad skip loads in between', () => {
         yield* call(service.run);
 
         for (let i = 1; i <= iterations; i++) {
-            service.scheduleExecution({
+            service.scheduleLoad(operationId, {
+                loadId: `xxx_${i}`,
                 operationId,
                 saga: componentSaga,
                 args: [i],
             });
-
-            yield* put(serviceActions.load(operationId));
+            yield* put(serviceActions.load(operationId, `xxx_${i}`));
         }
 
         yield* delay(DELAY);
@@ -88,15 +88,13 @@ test('onLoad / onDispose invoked in a right order', () => {
         yield* call(service.run);
 
         for (let i = 0; i < iterations; i++) {
-            const loadId = `LOAD_ID_${i}`;
-            service.scheduleExecution({
-                loadId,
+            service.scheduleLoad(operationId, {
+                loadId: 'xxx',
                 operationId,
                 saga: componentSaga,
                 args: [i],
             });
-
-            yield* put(serviceActions.load(operationId));
+            yield* put(serviceActions.load(operationId, 'xxx'));
             yield* delay(DELAY / 2);
         }
 
@@ -158,24 +156,24 @@ test('uniq onLoad / onDispose per instance', () => {
         yield* call(service.run);
 
         const operationId = 'xxx' as OperationId<void, [string]>;
-        service.scheduleExecution({
+        service.scheduleLoad(operationId, {
             loadId: 'xxx',
             operationId,
             saga,
             args: ['1'],
         });
-        yield* put(serviceActions.load(operationId));
+        yield* put(serviceActions.load(operationId, 'xxx'));
 
         yield* delay(0);
 
         const operationId2 = 'yyy' as OperationId<void, [string]>;
-        service.scheduleExecution({
+        service.scheduleLoad(operationId2, {
             loadId: 'yyy',
             operationId: operationId2,
             saga,
             args: ['2'],
         });
-        yield* put(serviceActions.load(operationId2));
+        yield* put(serviceActions.load(operationId2, 'yyy'));
 
         yield* delay(DELAY);
         yield* put(serviceActions.cleanup({ operationId }));
@@ -195,5 +193,49 @@ test('uniq onLoad / onDispose per instance', () => {
             expect(mockDispose).toHaveBeenCalledTimes(2);
             expect(mockDispose).toHaveBeenCalledWith('1');
             expect(mockDispose).toHaveBeenLastCalledWith('2');
+        });
+});
+
+test('onDispose after onLoad with error', () => {
+    const runner = getSagaRunner();
+    const operationService = new OperationService({ hash: {} });
+    const service = new ComponentLifecycleService(operationService);
+    const createServiceActions = serviceActionsFactory();
+    const serviceActions = createServiceActions(service);
+    const mockLoad = vi.fn((...options: any[]) => ({}));
+    const mockDispose = vi.fn((...options: any[]) => ({}));
+
+    function* onLoad(i: string) {
+        mockLoad(i);
+        throw new Error('test error');
+    }
+
+    function* onDispose(i: string) {
+        mockDispose(i);
+    }
+
+    const saga = { onLoad, onDispose };
+    const operationId = 'xxx' as OperationId<void, [string]>;
+
+    function* main() {
+        yield* call(service.run);
+        service.scheduleLoad(operationId, {
+            loadId: 'xxx',
+            operationId,
+            saga,
+            args: ['1'],
+        });
+        yield* put(serviceActions.load(operationId, 'xxx'));
+        yield* delay(DELAY);
+        yield* put(serviceActions.cleanup({ operationId }));
+    }
+
+    return runner
+        .run(main)
+        .toPromise()
+        .then(() => {
+            expect(mockLoad).toHaveBeenCalledTimes(1);
+            expect(mockDispose).toHaveBeenCalledTimes(1);
+            expect(service.getCurrentExecution(operationId)).toBeUndefined();
         });
 });

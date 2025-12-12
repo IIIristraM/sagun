@@ -66,6 +66,10 @@
   "theme.docs.sidebar.expandButtonTitle": {
     "message": "Развернуть боковую панель",
     "description": "The title attribute for expand button of doc sidebar"
+  },
+  "playground.reset": {
+    "message": "Сбросить",
+    "description": "Reset button in playground"
   }
 }
 
