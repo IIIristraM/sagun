@@ -2,7 +2,7 @@ import { expect, test, vi } from 'vitest';
 
 import { call, delay, put } from 'typed-redux-saga';
 
-import { getSagaRunner } from '_test/utils';
+import { getSagaRunner } from '../../test-utils';
 
 import { ComponentLifecycleService } from '../ComponentLifecycleService';
 import { OperationId } from '../../types';
@@ -47,13 +47,10 @@ test('onLoad skip loads in between', () => {
         yield* call(service.destroy);
     }
 
-    return runner
-        .run(saga)
-        .toPromise()
-        .then(() => {
-            // first and last loads 1 + 15
-            expect(loadCounter).toBe(16);
-        });
+    return runner.run(saga).then(() => {
+        // first and last loads 1 + 15
+        expect(loadCounter).toBe(16);
+    });
 });
 
 test('onLoad / onDispose invoked in a right order', () => {
@@ -103,34 +100,31 @@ test('onLoad / onDispose invoked in a right order', () => {
         yield* call(service.destroy);
     }
 
-    return runner
-        .run(saga)
-        .toPromise()
-        .then(() => {
-            // callbacks called equal times
+    return runner.run(saga).then(() => {
+        // callbacks called equal times
+        expect(loadCounter).toBe(disposeCounter);
+        // last onDispose called with the latest arguments
+        expect(mock).toHaveBeenLastCalledWith(loadCounter);
+
+        const historyList = history.split('_').filter(Boolean);
+        // total count of callbacks should be even (onLoad + onDispose = 2)
+        expect(historyList.length % 2).toBe(0);
+
+        // each pair [onLoad, onDispose] was from the same cycle
+        for (let i = 0; i < historyList.length; i += 2) {
+            const loadItem = historyList[i];
+            const disposeItem = historyList[i + 1];
+
+            const loadType = loadItem[loadItem.length - 1];
+            const disposeType = disposeItem[disposeItem.length - 1];
+            expect(loadType).toBe('l');
+            expect(disposeType).toBe('d');
+
+            const loadCounter = loadItem.substring(0, loadItem.length - 1);
+            const disposeCounter = disposeItem.substring(0, disposeItem.length - 1);
             expect(loadCounter).toBe(disposeCounter);
-            // last onDispose called with the latest arguments
-            expect(mock).toHaveBeenLastCalledWith(loadCounter);
-
-            const historyList = history.split('_').filter(Boolean);
-            // total count of callbacks should be even (onLoad + onDispose = 2)
-            expect(historyList.length % 2).toBe(0);
-
-            // each pair [onLoad, onDispose] was from the same cycle
-            for (let i = 0; i < historyList.length; i += 2) {
-                const loadItem = historyList[i];
-                const disposeItem = historyList[i + 1];
-
-                const loadType = loadItem[loadItem.length - 1];
-                const disposeType = disposeItem[disposeItem.length - 1];
-                expect(loadType).toBe('l');
-                expect(disposeType).toBe('d');
-
-                const loadCounter = loadItem.substring(0, loadItem.length - 1);
-                const disposeCounter = disposeItem.substring(0, disposeItem.length - 1);
-                expect(loadCounter).toBe(disposeCounter);
-            }
-        });
+        }
+    });
 });
 
 test('uniq onLoad / onDispose per instance', () => {
@@ -182,18 +176,15 @@ test('uniq onLoad / onDispose per instance', () => {
         yield* call(service.destroy);
     }
 
-    return runner
-        .run(main)
-        .toPromise()
-        .then(() => {
-            expect(mockLoad).toHaveBeenCalledTimes(2);
-            expect(mockLoad).toHaveBeenCalledWith('1');
-            expect(mockLoad).toHaveBeenLastCalledWith('2');
+    return runner.run(main).then(() => {
+        expect(mockLoad).toHaveBeenCalledTimes(2);
+        expect(mockLoad).toHaveBeenCalledWith('1');
+        expect(mockLoad).toHaveBeenLastCalledWith('2');
 
-            expect(mockDispose).toHaveBeenCalledTimes(2);
-            expect(mockDispose).toHaveBeenCalledWith('1');
-            expect(mockDispose).toHaveBeenLastCalledWith('2');
-        });
+        expect(mockDispose).toHaveBeenCalledTimes(2);
+        expect(mockDispose).toHaveBeenCalledWith('1');
+        expect(mockDispose).toHaveBeenLastCalledWith('2');
+    });
 });
 
 test('onDispose after onLoad with error', () => {
@@ -230,12 +221,9 @@ test('onDispose after onLoad with error', () => {
         yield* put(serviceActions.cleanup({ operationId }));
     }
 
-    return runner
-        .run(main)
-        .toPromise()
-        .then(() => {
-            expect(mockLoad).toHaveBeenCalledTimes(1);
-            expect(mockDispose).toHaveBeenCalledTimes(1);
-            expect(service.getCurrentExecution(operationId)).toBeUndefined();
-        });
+    return runner.run(main).then(() => {
+        expect(mockLoad).toHaveBeenCalledTimes(1);
+        expect(mockDispose).toHaveBeenCalledTimes(1);
+        expect(service.getCurrentExecution(operationId)).toBeUndefined();
+    });
 });

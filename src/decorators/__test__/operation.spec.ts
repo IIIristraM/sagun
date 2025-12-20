@@ -1,14 +1,13 @@
 import { call, select } from 'typed-redux-saga';
 import { expect, test } from 'vitest';
 
-import { getSagaRunner } from '_test/utils';
+import { getSagaRunner } from '../../test-utils';
 
 import { AsyncOperation, OperationId } from '../../types';
 import { getId, OperationService, Service } from '../../services';
 import { operation } from '../operation';
-import reducer from '../../reducer';
 
-const runner = getSagaRunner(reducer);
+const runner = getSagaRunner();
 
 const TEST_ID = 'TEST_ID' as OperationId<number, [number?]>;
 const operationService = new OperationService({ hash: {} });
@@ -52,15 +51,16 @@ test('handle exceptions', () => {
             try {
                 yield* call(testService.operation);
             } catch (error) {
-                const state = (yield* select()) as any as Map<string, AsyncOperation>;
-                const operationId = getId(testService.operation);
-                expect(state.get(operationId)).toBeTruthy();
-                expect(state.get(operationId)!.isLoading).toBe(false);
-                expect(state.get(operationId)!.isError).toBe(true);
-                expect(state.get(operationId)!.error).toBe(error);
+                return error;
             }
         })
-        .toPromise();
+        .then(({ state, result: error }) => {
+            const operationId = getId(testService.operation);
+            expect(state.asyncOperations.get(operationId)).toBeTruthy();
+            expect(state.asyncOperations.get(operationId)!.isLoading).toBe(false);
+            expect(state.asyncOperations.get(operationId)!.isError).toBe(true);
+            expect(state.asyncOperations.get(operationId)!.error).toBe(error);
+        });
 });
 
 test('with id', () => {
@@ -202,9 +202,9 @@ test('propagates return value', () => {
         .run(function* () {
             return yield* call(testService.method);
         })
-        .toPromise()
-        .then(runResult => {
-            expect(runResult).toBe(1);
+
+        .then(({ result }) => {
+            expect(result).toBe(1);
         });
 });
 
@@ -253,9 +253,9 @@ test('properly invoke updateStrategy', () => {
         .run(function* () {
             return yield* call(testService.method);
         })
-        .toPromise()
-        .then(() => {
-            const { result } = runner.store.getState().get(getId(testService.method)!)!;
+
+        .then(({ state }) => {
+            const { result } = state.asyncOperations.get(getId(testService.method)!)!;
             expect(result).toBe(2);
         });
 });
@@ -288,9 +288,9 @@ test('keeps this', () => {
         .run(function* () {
             return yield* call(testService.method);
         })
-        .toPromise()
-        .then(runResult => {
-            expect(runResult).toBe(1);
+
+        .then(({ result }) => {
+            expect(result).toBe(1);
         });
 });
 
@@ -398,32 +398,30 @@ test('service correctly handle operations', () => {
 
     const service = new TestService(new OperationService({ hash: {} }));
 
-    return runner
-        .run(function* () {
-            yield* call(service.run);
-            yield* call(service.method);
-            yield* call(service.method2, 10);
-            yield* call(service.method2, 11);
-            yield* call(service.method3, 12);
-            yield* call(service.method3, 13);
+    return runner.run(function* () {
+        yield* call(service.run);
+        yield* call(service.method);
+        yield* call(service.method2, 10);
+        yield* call(service.method2, 11);
+        yield* call(service.method3, 12);
+        yield* call(service.method3, 13);
 
-            let state = (yield* select()) as any as Map<string, AsyncOperation>;
-            expect(state.get(getId(service.method)!)).toBeTruthy();
-            expect(state.get('10')).toBeTruthy();
-            expect(state.get('11')).toBeTruthy();
-            expect(state.get('12')).toBeTruthy();
-            expect(state.get('13')).toBeTruthy();
+        let state = (yield* select()).asyncOperations as any as Map<string, AsyncOperation>;
+        expect(state.get(getId(service.method)!)).toBeTruthy();
+        expect(state.get('10')).toBeTruthy();
+        expect(state.get('11')).toBeTruthy();
+        expect(state.get('12')).toBeTruthy();
+        expect(state.get('13')).toBeTruthy();
 
-            yield* call(service.destroy);
+        yield* call(service.destroy);
 
-            state = (yield* select()) as any as Map<string, AsyncOperation>;
-            expect(state.get(getId(service.method)!)).toBe(undefined);
-            expect(state.get('10')).toBe(undefined);
-            expect(state.get('11')).toBe(undefined);
-            expect(state.get('12')).toBe(undefined);
-            expect(state.get('13')).toBe(undefined);
-        })
-        .toPromise();
+        state = (yield* select()).asyncOperations as any as Map<string, AsyncOperation>;
+        expect(state.get(getId(service.method)!)).toBe(undefined);
+        expect(state.get('10')).toBe(undefined);
+        expect(state.get('11')).toBe(undefined);
+        expect(state.get('12')).toBe(undefined);
+        expect(state.get('13')).toBe(undefined);
+    });
 });
 
 test('ssr only', () => {

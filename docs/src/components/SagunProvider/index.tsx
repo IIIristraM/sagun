@@ -65,8 +65,7 @@ export default function getProvider() {
         return (
             <SagunContext.Provider value={{ reset: forceUpdate }}>
                 <Root operationService={operationService} componentLifecycleService={componentLifecycleService} key={key}>
-                    <ErrorBoundary
-                        fallback={params => <ErrorBoundaryErrorMessageFallback {...params} />}>
+                    <ErrorBoundary fallback={params => <ErrorBoundaryErrorMessageFallback {...params} />}>
                         <Provider store={store}>
                             {children}
                         </Provider>

@@ -2,7 +2,7 @@ import { describe, expect, test, vi } from 'vitest';
 
 import { call, delay } from 'typed-redux-saga';
 
-import { getSagaRunner } from '_test/utils';
+import { getSagaRunner } from '../../test-utils';
 
 import { BaseService } from '../BaseService';
 import { getId } from '../serviceUtils';
@@ -45,7 +45,6 @@ describe('BaseService', () => {
                 yield delay(0);
                 yield call(service.destroy);
             })
-            .toPromise()
             .then(() => {
                 expect(mockFn).toHaveBeenCalledTimes(3);
             });
@@ -85,7 +84,6 @@ describe('BaseService', () => {
                 yield call(service.run);
                 yield call(service.method);
             })
-            .toPromise()
             .then(() => {
                 expect(mockFn).toHaveBeenCalledTimes(2);
             });

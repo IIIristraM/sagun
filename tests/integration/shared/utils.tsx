@@ -1,20 +1,5 @@
-import { AnyAction, applyMiddleware, createStore, Reducer, Store } from 'redux';
-import createSagaMiddleware, { SagaMiddleware } from 'redux-saga';
 import { Exact } from '@iiiristram/ts-type-utils';
 import React from "react";
-
-type Runner<S = any> = {
-    run: SagaMiddleware<object>['run'];
-    store: Store<S, AnyAction>;
-};
-
-export function getSagaRunner(): Runner;
-export function getSagaRunner<T extends Reducer<any, AnyAction>>(reducer: T): Runner<ReturnType<T>>;
-export function getSagaRunner<T extends Reducer<any, AnyAction>>(reducer?: T) {
-    const sagaMiddleware = createSagaMiddleware();
-    const store = applyMiddleware(sagaMiddleware)(createStore)(reducer || (x => x));
-    return { run: sagaMiddleware.run, store };
-}
 
 export function wait(ms: number) {
     return new Promise<void>(resolve => {

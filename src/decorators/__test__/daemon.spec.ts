@@ -2,17 +2,16 @@ import { expect, test, vi } from 'vitest';
 
 import { call, delay, put, select } from 'typed-redux-saga';
 
-import { getSagaRunner } from '_test/utils';
+import { getSagaRunner } from '../../test-utils';
 
 import { daemon, DaemonMode } from '../daemon';
 import { getId, OperationService, Service, serviceActionsFactory } from '../../services';
 import { AsyncOperation } from '../../types';
 import { operation } from '../operation';
-import reducer from '../../reducer';
 
 const createServiceActions = serviceActionsFactory();
 const operationService = new OperationService({ hash: {} });
-const runner = getSagaRunner(reducer);
+const runner = getSagaRunner();
 
 test('default mode is DaemonMode.Sync', () => {
     // tslint:disable-next-line: max-classes-per-file
@@ -72,9 +71,8 @@ test('propagates return value', () => {
         .run(function* () {
             return yield* call(testService.method);
         })
-        .toPromise()
-        .then(runResult => {
-            expect(runResult).toBe(1);
+        .then(({ result }) => {
+            expect(result).toBe(1);
         });
 });
 
@@ -104,7 +102,6 @@ test('keeps this', () => {
             yield delay(0);
             yield* call(testService.destroy);
         })
-        .toPromise()
         .then(() => {
             expect(mock).toHaveBeenCalledTimes(1);
         });
@@ -128,19 +125,17 @@ test('handle exceptions', () => {
     const testService = new TestService(operationService);
     const actions = createServiceActions(testService);
 
-    return runner
-        .run(function* () {
-            yield* call(testService.run);
-            yield* put(actions.operation());
-            yield* delay(0);
+    return runner.run(function* () {
+        yield* call(testService.run);
+        yield* put(actions.operation());
+        yield* delay(0);
 
-            const state = (yield* select()) as any as Map<string, AsyncOperation>;
-            const operationId = getId(testService.operation);
-            expect(state.get(operationId)).toBeTruthy();
-            expect(state.get(operationId)!.isLoading).toBe(false);
-            expect(state.get(operationId)!.isError).toBe(true);
-            expect(state.get(operationId)!.error).toBeTruthy();
-            yield* call(testService.destroy);
-        })
-        .toPromise();
+        const state = (yield* select()).asyncOperations as any as Map<string, AsyncOperation>;
+        const operationId = getId(testService.operation);
+        expect(state.get(operationId)).toBeTruthy();
+        expect(state.get(operationId)!.isLoading).toBe(false);
+        expect(state.get(operationId)!.isError).toBe(true);
+        expect(state.get(operationId)!.error).toBeTruthy();
+        yield* call(testService.destroy);
+    });
 });

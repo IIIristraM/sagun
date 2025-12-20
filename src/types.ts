@@ -32,10 +32,10 @@ export type AsyncOperation<TRes = unknown, TArgs = unknown[], TMeta = unknown, T
 };
 
 declare class OperationMetaClass<TRes, TArgs, TMeta, TErr> {
-    private _res: TRes;
-    private _args: TArgs;
-    private _meta: TMeta;
-    private _err: TErr;
+    protected _res: TRes;
+    protected _args: TArgs;
+    protected _meta: TMeta;
+    protected _err: TErr;
 }
 
 export type OperationId<TRes, TArgs = unknown[], TMeta = unknown, TErr = Error> = string &
@@ -45,7 +45,7 @@ export type OperationFromId<T> =
     T extends OperationId<infer R, infer A, infer M, infer E> ? AsyncOperation<R, A, M, E> : never;
 
 declare class DependencyMetaClass<D> {
-    private _type: D;
+    protected _type: D;
 }
 
 export type DependencyKey<D> = string & DependencyMetaClass<D>;
