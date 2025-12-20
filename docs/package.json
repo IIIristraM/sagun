@@ -15,13 +15,14 @@
     "write-heading-ids": "docusaurus write-heading-ids"
   },
   "dependencies": {
-    "@babel/standalone": "^7.28.5",
+    "@babel/standalone": "7.8.0",
     "@codesandbox/sandpack-react": "^2.20.0",
     "@docusaurus/core": "^3.6.0",
     "@docusaurus/preset-classic": "^3.6.0",
     "@docusaurus/theme-live-codeblock": "^3.6.0",
     "@mdx-js/react": "^3.0.0",
     "clsx": "^2.0.0",
+    "path-browserify": "^1.0.1",
     "prism-react-renderer": "^2.3.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
@@ -32,6 +33,7 @@
     "@docusaurus/module-type-aliases": "^3.6.0",
     "@docusaurus/tsconfig": "^3.6.0",
     "@docusaurus/types": "^3.6.0",
+    "babel-plugin-parameter-decorator": "^1.0.16",
     "typescript": "~5.6.2"
   },
   "browserslist": {

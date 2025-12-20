@@ -10,6 +10,8 @@ const sidebars: SidebarsConfig = {
       items: [
         'tutorial/data-load',
         'tutorial/service',
+        'tutorial/data-edit',
+        'tutorial/di',
       ],
     },
     {
@@ -67,7 +69,7 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Advanced',
-      items: ['advanced/dependency-injection', 'advanced/ssr'],
+      items: ['advanced/dependency-injection', 'advanced/ssr', 'advanced/memory-cleanup'],
     },
   ],
 };

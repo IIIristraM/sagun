@@ -28,13 +28,10 @@ export class ComponentLifecycleService extends Service {
     private CURRENT_EXECUTION_MAP: Record<string, LoadOptions<any[], any> | undefined> = {};
     private DISPOSE_SIGNAL_MAP: Record<string, AbortController | undefined> = {};
     private TASKS = new Set<Task>();
+    private LOAD_TIMEOUT_MAP = new Map<string, any>();
 
     @daemon(DaemonMode.Every)
     *load(loadOperationId: string, loadId: string) {
-        if (!this.CURRENT_EXECUTION_MAP[loadOperationId] && !isNodeEnv()) {
-            yield* call(this._operationsService.registerConsumer, this, loadOperationId);
-        }
-
         if (
             this.NEXT_EXECUTION_MAP[loadOperationId]?.loadId !== loadId ||
             this.CURRENT_EXECUTION_MAP[loadOperationId]?.loadId === loadId
@@ -68,6 +65,10 @@ export class ComponentLifecycleService extends Service {
             let loadTask: Task | undefined;
             let disposed = false;
             try {
+                if (!isNodeEnv()) {
+                    yield* call(this._operationsService.registerConsumer, this, loadOperationId);
+                }
+
                 loadTask = yield* spawn(loadOperation.run, ...args);
                 this.TASKS.add(loadTask);
 
@@ -119,6 +120,10 @@ export class ComponentLifecycleService extends Service {
         }
 
         return deferred.promise;
+    }
+
+    getTimeoutsMap() {
+        return this.LOAD_TIMEOUT_MAP;
     }
 
     @daemon(DaemonMode.Every)

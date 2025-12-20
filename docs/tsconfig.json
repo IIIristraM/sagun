@@ -1,7 +1,9 @@
 {
   "extends": "@docusaurus/tsconfig",
   "compilerOptions": {
-    "baseUrl": "."
+    "baseUrl": ".",
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
   }
 }
 

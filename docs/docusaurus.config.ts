@@ -1,6 +1,23 @@
 import { themes as prismThemes } from 'prism-react-renderer';
-import type { Config } from '@docusaurus/types';
+import type { Config, Plugin } from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
+
+// Plugin to add webpack polyfills for Node.js modules (needed for babel-plugin-parameter-decorator)
+function webpackPolyfillsPlugin(): Plugin {
+  return {
+    name: 'webpack-polyfills',
+    configureWebpack() {
+      return {
+        resolve: {
+          fallback: {
+            path: require.resolve('path-browserify'),
+            // assert: require.resolve('assert'),
+          },
+        },
+      };
+    },
+  };
+}
 
 const config: Config = {
   title: 'Sagun',
@@ -49,6 +66,8 @@ const config: Config = {
   ],
 
   themes: ['@docusaurus/theme-live-codeblock'],
+
+  plugins: [webpackPolyfillsPlugin],
 
   themeConfig: {
     navbar: {

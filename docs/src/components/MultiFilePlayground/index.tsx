@@ -1,16 +1,17 @@
 import React, { useState, useCallback, useMemo, type ReactNode, memo } from 'react';
 
-import { transform, availablePlugins } from '@babel/standalone';
+import { transform, availablePlugins, registerPlugin } from '@babel/standalone';
 import { LiveProvider, LivePreview } from 'react-live';
 import { Highlight, PrismTheme } from 'prism-react-renderer';
 import Editor from 'react-simple-code-editor';
+import parameterDecoratorPlugin from 'babel-plugin-parameter-decorator';
 
 import BrowserOnly from '@docusaurus/BrowserOnly';
 import { usePrismTheme } from '@docusaurus/theme-common';
 // @ts-expect-error - Docusaurus theme alias
 import ReactLiveScope from '@theme/ReactLiveScope';
 
-import SagunProvider, { Errors } from '../SagunProvider';
+import getProvider from '../SagunProvider';
 
 import styles from './styles.module.css';
 
@@ -27,14 +28,21 @@ interface MultiFilePlaygroundProps {
   noInline?: boolean;
 }
 
+registerPlugin('babel-plugin-parameter-decorator', parameterDecoratorPlugin);
+
 // Transform code using Babel with decorators support
 const babelTransformCode = (code: string): string => {
   try {
+    console.log(availablePlugins);
     const result = transform(code, {
-      presets: ['react'],
+      presets: [
+        'react',
+        ["typescript", { "onlyRemoveTypeImports": true }] 
+      ],
       plugins: [
         [availablePlugins['proposal-decorators'], { legacy: true }],
         [availablePlugins['proposal-class-properties'], { loose: true }],
+        'babel-plugin-parameter-decorator',
       ],
       filename: 'playground.tsx',
     });
@@ -117,6 +125,8 @@ const Preview = memo(function Preview({
     prismTheme: PrismTheme
 }) {
     const mergedScope = useMemo(() => ({ ...ReactLiveScope, ...scope }), [scope]);
+
+    const { SagunProvider, Errors } = useMemo(() => getProvider(), []);
 
     const transformCode = useCallback((code: string): string => {
         return `${babelTransformCode(code)};`;

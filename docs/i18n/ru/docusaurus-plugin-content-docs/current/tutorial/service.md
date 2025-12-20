@@ -23,7 +23,7 @@ class UserService extends Service {
 }
 ```
 
-Теперь нужно создать экземпляр сервиса и зарегистрировать его в DI контейнере, это можно сделать в любом компоненте, для примера сделаем это в корне приложения.
+Теперь нужно однократно создать экземпляр сервиса и зарегистрировать его в DI контейнере, это можно сделать в любом компоненте, для примера сделаем это в корне приложения.
 
 ```tsx
 function App({children}) {
@@ -46,26 +46,34 @@ function App({children}) {
 }
 ```
 
+:::tip
+
+Рекомендуется регистрировать сервис в том компоненте, на уровне которого он требуется, например, если сервис нужен только на одной конкретной странице, то в ней и регистрировать.
+
+Это связано с тем что во фреймворке есть [механизм управления памятью](../advanced/memory-cleanup), который работает тем эффективнее, чем ближе сервисы к тому дереву компонент, в котором они нужны.
+
+:::
+
 Теперь можем в любом компоненте использовать сервис
 
 ```tsx
 function User() {
-    // получаем экземпляр сервиса
-    const {service} = useServiceConsumer(UserService);
+  const {service} = useServiceConsumer(UserService);
 
-    const {operationId} = useSaga({
-        id: 'fetch-user',
-        // используем один из методов сервиса для загрузки данных
-        onLoad: service.getUserInfo
-    }) 
+  const {operationId} = useSaga({
+      id: 'fetch-user',
+      onLoad: service.getUserInfo
+  })
 
-    return (
-        <Operation operationId={operationId}>
-            {({result}) => <div>Hello, {result?.login}</div>}
-        </Operation>
-    )
+  const {result} = useOperation({operationId, suspense: true})
+
+  return <div>Hello, {result?.login}</div>;
 }
 ```
+
+Мы написали заметное количество дополнительного кода, однако теперь наша логика работы с юзером описана, и может быть протестирована отдельно от React и жизненного цикла
+компонент. В дальнейших шагах будет раскрываться все больше преимуществ такого подхода.
+
 Полный пример
 
 <MultiFilePlayground
@@ -91,7 +99,7 @@ class UserService extends Service {
       code: `function App({children}) {
     const di = useDI();
 
-    // требуется конкретно в live редакторе, чтобы работало обновление кода сервиса
+    // unregisterService требуется конкретно в live редакторе, чтобы работало обновление кода сервиса
     di.unregisterService(UserService)
     const userService = di.createService(UserService);
     di.registerService(userService)

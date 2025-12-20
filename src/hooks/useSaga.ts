@@ -18,7 +18,6 @@ export type UseSagaOutput<TRes, TArgs> = {
 };
 
 const EMPTY_ARR = [] as any[];
-const loadTimeoutMap = new Map<string, any>();
 
 /**
  * @deprecated
@@ -45,6 +44,7 @@ export function useSagaUnsafe<TArgs extends any[], TRes>(
     const uuidGen = diContext.getService(UUIDGenerator);
     const service = diContext.getService(ComponentLifecycleService);
     const actions = diContext.createServiceActions(service);
+    const loadTimeoutMap = service.getTimeoutsMap();
 
     const dispatch = useDispatch();
     const [reloadCount, updateCounter] = useState(0);
