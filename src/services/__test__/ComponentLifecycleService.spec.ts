@@ -1,12 +1,10 @@
 import { expect, test, vi } from 'vitest';
 
-import { call, delay, put } from 'typed-redux-saga';
+import { delay, put } from 'typed-redux-saga';
 
 import { getSagaRunner } from '../../test-utils';
 
-import { ComponentLifecycleService } from '../ComponentLifecycleService';
 import { OperationId } from '../../types';
-import { OperationService } from '../OperationService';
 import { serviceActionsFactory } from '../serviceUtils';
 
 const DELAY = 10;

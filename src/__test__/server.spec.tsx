@@ -1,18 +1,7 @@
-import { call, delay } from 'typed-redux-saga';
-import {
-    ComponentLifecycleService,
-    DisableSsrContext,
-    Operation,
-    OperationService,
-    asyncOperationsReducer as reducer,
-    Root,
-    useOperation,
-    useSaga,
-} from '..';
+import { DisableSsrContext, Operation, useSaga } from '..';
 import { expect, test, vi } from 'vitest';
 import React, { Suspense } from 'react';
-
-import { Provider } from 'react-redux';
+import { delay } from 'typed-redux-saga';
 
 import { getSagaRunner } from '../test-utils';
 
@@ -21,18 +10,12 @@ import { serverRender } from '_root/utils';
 const DELAY = 5;
 
 test('execute sagas on server', async () => {
-    const runner = getSagaRunner(reducer);
-    useOperation.setPath(x => x);
+    const runner = getSagaRunner();
 
     const fn = vi.fn(() => 1);
     const fn2 = vi.fn(() => 2);
-    const operationService = new OperationService({ hash: {} });
-    const componentLifecycleService = new ComponentLifecycleService(operationService);
 
-    return runner.run(function* () {
-        yield* call(operationService.run);
-        yield* call(componentLifecycleService.run);
-
+    return runner.run(function* ({ TestProvider, store }) {
         const Item = ({ id }: { id: string }) => {
             const { operationId } = useSaga({
                 id,
@@ -74,16 +57,15 @@ test('execute sagas on server', async () => {
         };
 
         yield serverRender(
-            <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                <Provider store={runner.store}>
-                    <App />
-                </Provider>
-            </Root>
+            <TestProvider>
+                <App />
+            </TestProvider>
         );
 
         expect(fn).toHaveBeenCalledTimes(1);
         expect(fn2).toHaveBeenCalledTimes(2); // one call is disabled by DisableSsrContext
-        const values = Array.from(runner.store.getState().values());
+
+        const values = Array.from(store.getState().asyncOperations.values());
         expect(values[0]?.result).toBe(1);
         expect(values[1]?.result).toBe(2);
         expect(values[2]?.result).toBe(2);
@@ -91,18 +73,12 @@ test('execute sagas on server', async () => {
 });
 
 test('execute nested sagas on server', async () => {
-    const runner = getSagaRunner(reducer);
-    useOperation.setPath(x => x);
+    const runner = getSagaRunner();
 
     const fn = vi.fn(() => 1);
     const fn2 = vi.fn((x: number) => x + 2);
-    const operationService = new OperationService({ hash: {} });
-    const componentLifecycleService = new ComponentLifecycleService(operationService);
 
-    return runner.run(function* () {
-        yield* call(operationService.run);
-        yield* call(componentLifecycleService.run);
-
+    return runner.run(function* ({ TestProvider, store }) {
         const Item = (props: { x: number }) => {
             const { operationId } = useSaga(
                 {
@@ -141,16 +117,14 @@ test('execute nested sagas on server', async () => {
         };
 
         yield serverRender(
-            <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                <Provider store={runner.store}>
-                    <App />
-                </Provider>
-            </Root>
+            <TestProvider>
+                <App />
+            </TestProvider>
         );
 
         expect(fn).toHaveBeenCalledTimes(1);
         expect(fn2).toHaveBeenCalledTimes(2);
-        const values = Array.from(runner.store.getState().values());
+        const values = Array.from(store.getState().asyncOperations.values());
         expect(values[0]?.result).toBe(1);
         expect(values[1]?.result).toBe(3);
         expect(values[2]?.result).toBe(5);

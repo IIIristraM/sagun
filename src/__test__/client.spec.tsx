@@ -2,14 +2,12 @@ import { beforeEach, expect, test, vi } from 'vitest';
 import { call, delay } from 'typed-redux-saga';
 import React, { memo, Suspense, useContext, useEffect, useState } from 'react';
 import jsdom from 'jsdom';
-import { Provider } from 'react-redux';
 
 import {
     createDeferred,
     getId,
     operation,
     Operation,
-    Root,
     Service,
     useDI,
     useOperation,
@@ -116,7 +114,7 @@ beforeEach(() => {
 test('Nested operations with global Suspense ', async () => {
     const runner = getSagaRunner();
 
-    return runner.run(function* ({ operationService, componentLifecycleService, store }) {
+    return runner.run(function* ({ TestProvider }) {
         const defer = [createDeferred<unknown>(), createDeferred<unknown>()];
         let counter = 0;
 
@@ -126,13 +124,11 @@ test('Nested operations with global Suspense ', async () => {
                     counter: () => counter,
                     resolve: () => defer[counter++].resolve(),
                 }}>
-                <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                    <Provider store={store}>
-                        <Suspense fallback="Loading...">
-                            <TestComponent />
-                        </Suspense>
-                    </Provider>
-                </Root>
+                <TestProvider>
+                    <Suspense fallback="Loading...">
+                        <TestComponent />
+                    </Suspense>
+                </TestProvider>
             </Context.Provider>
         );
 
@@ -150,7 +146,7 @@ test('Execute nested sagas on client', async () => {
     const fn = vi.fn(() => 1);
     const fn2 = vi.fn((x: number) => x + 2);
 
-    return runner.run(function* ({ operationService, componentLifecycleService, store }) {
+    return runner.run(function* ({ TestProvider, store }) {
         const Item = (props: { x: number }) => {
             const { operationId } = useSaga(
                 {
@@ -191,11 +187,9 @@ test('Execute nested sagas on client', async () => {
         };
 
         render(
-            <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                <Provider store={store}>
-                    <App />
-                </Provider>
-            </Root>
+            <TestProvider>
+                <App />
+            </TestProvider>
         );
 
         for (let step = 1; step <= 3; step++) {
@@ -214,7 +208,7 @@ test('Execute nested sagas on client', async () => {
 test('useSaga + useOperation in same component', async () => {
     const runner = getSagaRunner();
 
-    return runner.run(function* ({ operationService, componentLifecycleService, store }) {
+    return runner.run(function* ({ TestProvider, store }) {
         const defer = createDeferred<unknown>();
 
         function App() {
@@ -241,13 +235,11 @@ test('useSaga + useOperation in same component', async () => {
         }
 
         const { el } = yield render(
-            <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                <Provider store={store}>
-                    <Suspense fallback="Loading...">
-                        <App />
-                    </Suspense>
-                </Provider>
-            </Root>
+            <TestProvider>
+                <Suspense fallback="Loading...">
+                    <App />
+                </Suspense>
+            </TestProvider>
         );
 
         expect(el?.innerHTML).toEqual('Loading...');
@@ -259,7 +251,7 @@ test('useSaga + useOperation in same component', async () => {
 test('useSaga + double useOperation in same component', async () => {
     const runner = getSagaRunner();
 
-    return runner.run(function* ({ operationService, componentLifecycleService, store }) {
+    return runner.run(function* ({ TestProvider, operationService, store }) {
         const defer = createDeferred<unknown>();
         const service = new TestService(operationService);
 
@@ -293,13 +285,11 @@ test('useSaga + double useOperation in same component', async () => {
         }
 
         const { el } = yield render(
-            <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                <Provider store={store}>
-                    <Suspense fallback="Loading...">
-                        <App />
-                    </Suspense>
-                </Provider>
-            </Root>
+            <TestProvider>
+                <Suspense fallback="Loading...">
+                    <App />
+                </Suspense>
+            </TestProvider>
         );
 
         expect(el?.innerHTML).toEqual('Loading...');
@@ -311,7 +301,7 @@ test('useSaga + double useOperation in same component', async () => {
 test('useSaga + useOperation + reload in same component', async () => {
     const runner = getSagaRunner();
 
-    return runner.run(function* ({ operationService, componentLifecycleService, store }) {
+    return runner.run(function* ({ TestProvider, store }) {
         const defer = createDeferred<unknown>();
 
         const reloadCount = 5;
@@ -356,13 +346,11 @@ test('useSaga + useOperation + reload in same component', async () => {
         }
 
         yield render(
-            <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                <Provider store={store}>
-                    <Suspense fallback="">
-                        <App />
-                    </Suspense>
-                </Provider>
-            </Root>
+            <TestProvider>
+                <Suspense fallback="">
+                    <App />
+                </Suspense>
+            </TestProvider>
         );
 
         yield defer.promise;
@@ -384,7 +372,7 @@ test('useSaga + useOperation + reload in same component', async () => {
 test('remount component with useSaga', async () => {
     const runner = getSagaRunner();
 
-    return runner.run(function* ({ operationService, componentLifecycleService, store }) {
+    return runner.run(function* ({ TestProvider, componentLifecycleService }) {
         let defer = createDeferred<unknown>();
 
         const reloadCount = 3;
@@ -442,13 +430,11 @@ test('remount component with useSaga', async () => {
         }
 
         yield render(
-            <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                <Provider store={store}>
-                    <Suspense fallback="">
-                        <App />
-                    </Suspense>
-                </Provider>
-            </Root>
+            <TestProvider>
+                <Suspense fallback="">
+                    <App />
+                </Suspense>
+            </TestProvider>
         );
 
         yield defer.promise;

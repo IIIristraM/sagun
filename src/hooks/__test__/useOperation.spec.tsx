@@ -6,14 +6,12 @@ import { beforeEach, expect, test, vi } from 'vitest';
 
 import { call, delay } from 'typed-redux-saga';
 import React, { Suspense, useEffect, useState } from 'react';
-import { Provider } from 'react-redux';
 
 import { getId, Service } from '../../services';
 import { actions } from '../../reducer';
 import { createDeferred } from '../../utils/createDeferred';
 import { operation } from '../../decorators';
 import { OperationId } from '../../types';
-import { Root } from '../../components/Root';
 import { useOperation } from '../useOperation';
 import { useSaga } from '../useSaga';
 
@@ -47,7 +45,7 @@ test('Component gets the operation', () => {
 
     const renderDefer = createDeferred();
 
-    return runner.run(function* ({ operationService, componentLifecycleService, store }) {
+    return runner.run(function* ({ operationService, TestProvider }) {
         const testService = new TestService(operationService);
         yield* call(testService.getResult);
 
@@ -63,11 +61,9 @@ test('Component gets the operation', () => {
         };
 
         yield render(
-            <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                <Provider store={store}>
-                    <TestComponent />
-                </Provider>
-            </Root>
+            <TestProvider>
+                <TestComponent />
+            </TestProvider>
         );
 
         yield renderDefer.promise;
@@ -90,13 +86,11 @@ test('No errors when no operation and no default state', () => {
         return <span>{operation?.result}</span>;
     };
 
-    return runner.run(function* ({ operationService, componentLifecycleService, store }) {
+    return runner.run(function* ({ TestProvider }) {
         render(
-            <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                <Provider store={store}>
-                    <TestComponent />
-                </Provider>
-            </Root>
+            <TestProvider>
+                <TestComponent />
+            </TestProvider>
         );
 
         yield renderDefer.promise;
@@ -119,13 +113,11 @@ test('Component updates on operation changed', () => {
         return <span>{operation?.result}</span>;
     };
 
-    return runner.run(function* ({ operationService, componentLifecycleService, store }) {
+    return runner.run(function* ({ store, TestProvider }) {
         yield render(
-            <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                <Provider store={store}>
-                    <TestComponent />
-                </Provider>
-            </Root>
+            <TestProvider>
+                <TestComponent />
+            </TestProvider>
         );
 
         yield renderDefer.promise;
@@ -163,7 +155,7 @@ test('Nested operations with global Suspense', async () => {
         }
     }
 
-    return runner.run(function* ({ operationService, componentLifecycleService, store }) {
+    return runner.run(function* ({ operationService, TestProvider }) {
         const testService = new TestService(operationService);
         const defer = createDeferred<unknown>();
 
@@ -209,11 +201,9 @@ test('Nested operations with global Suspense', async () => {
         };
 
         const { el } = yield render(
-            <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                <Provider store={store}>
-                    <Wrapper />
-                </Provider>
-            </Root>
+            <TestProvider>
+                <Wrapper />
+            </TestProvider>
         );
 
         yield initDefer.promise;
@@ -248,7 +238,7 @@ test('Component renders after the longest operation is completed', async () => {
         }
     }
 
-    return runner.run(function* ({ operationService, componentLifecycleService, store }) {
+    return runner.run(function* ({ operationService, TestProvider }) {
         const testService = new TestService(operationService);
         const defer = createDeferred<unknown>();
         const start = Date.now();
@@ -290,11 +280,9 @@ test('Component renders after the longest operation is completed', async () => {
         };
 
         const { el } = yield render(
-            <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                <Provider store={store}>
-                    <TestComponentWrap />
-                </Provider>
-            </Root>
+            <TestProvider>
+                <TestComponentWrap />
+            </TestProvider>
         );
 
         yield initDefer.promise;
@@ -325,7 +313,7 @@ test('Components release operations', () => {
     const renderDefer = createDeferred();
     const destroyDefer = createDeferred();
 
-    return runner.run(function* ({ operationService, componentLifecycleService, store }) {
+    return runner.run(function* ({ operationService, store, TestProvider }) {
         const testService = new TestService(operationService);
         const operationId = getId(testService.getResult)!;
 
@@ -363,15 +351,13 @@ test('Components release operations', () => {
         };
 
         yield render(
-            <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                <Provider store={store}>
-                    <App>
-                        <Suspense fallback="Loading...">
-                            <TestComponent />
-                        </Suspense>
-                    </App>
-                </Provider>
-            </Root>
+            <TestProvider>
+                <App>
+                    <Suspense fallback="Loading...">
+                        <TestComponent />
+                    </Suspense>
+                </App>
+            </TestProvider>
         );
 
         yield renderDefer.promise;

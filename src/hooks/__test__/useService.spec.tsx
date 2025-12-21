@@ -3,13 +3,11 @@ import { beforeEach, expect, test, vi } from 'vitest';
 import React, { useEffect } from 'react';
 import { call } from 'typed-redux-saga';
 import jsdom from 'jsdom';
-import { Provider } from 'react-redux';
 
-import { ComponentLifecycleService, OperationService, Service } from '../../services';
 import { daemon, DaemonMode } from '../../decorators';
+import { OperationService, Service } from '../../services';
 import { createDeferred } from '../../utils/createDeferred';
 
-import { Root } from '../../components/Root';
 import { useService } from '../useService';
 
 import { getSagaRunner } from '../../test-utils';
@@ -61,7 +59,7 @@ test('useService runs and destroys service', async () => {
     const mountDefer = createDeferred();
     const unmountDefer = createDeferred();
 
-    return runner.run(function* ({ operationService, componentLifecycleService, store }) {
+    return runner.run(function* ({ operationService, TestProvider }) {
         const TestComponent: React.FC<{}> = () => {
             useService(new TestServiceClass(operationService), ['1', 1]);
 
@@ -74,11 +72,9 @@ test('useService runs and destroys service', async () => {
         };
 
         const { unmount } = yield render(
-            <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                <Provider store={store}>
-                    <TestComponent />
-                </Provider>
-            </Root>
+            <TestProvider>
+                <TestComponent />
+            </TestProvider>
         );
 
         yield mountDefer.promise;

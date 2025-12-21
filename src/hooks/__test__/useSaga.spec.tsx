@@ -3,15 +3,12 @@ import { describe, expect, test, vi } from 'vitest';
 import React, { JSX, useState } from 'react';
 import { call } from 'typed-redux-saga';
 import jsdom from 'jsdom';
-import { Provider } from 'react-redux';
-import { Store } from 'redux';
 
 import { ComponentLifecycleService, Service } from '../../services';
 import { createDeferred } from '../../utils/createDeferred';
 import { operation } from '../../decorators';
 import { OperationId } from '../../types';
 import { OperationService } from '../../services';
-import { Root } from '../../components/Root';
 import { useSaga } from '../useSaga';
 
 import { exact, wait } from '_test/utils';
@@ -23,11 +20,8 @@ const DELAY = 50;
 const ARGS = ['xxx'];
 
 type Props = {
-    operationService: OperationService;
-    componentLifecycleService: ComponentLifecycleService;
     processOperationId?: (operationId: string) => void;
     children?: (x: number) => JSX.Element;
-    store: Store<any>;
 };
 
 describe('useSaga', () => {
@@ -69,24 +63,16 @@ describe('useSaga', () => {
             return <button id="reload" onClick={reload} />;
         };
 
-        const App: React.FC<Props> = ({
-            processOperationId,
-            operationService,
-            componentLifecycleService,
-            children,
-            store,
-        }) => {
+        const App: React.FC<Props> = ({ processOperationId, children }) => {
             const [x, setX] = useState(0);
 
             return (
-                <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                    <Provider store={store}>
-                        {children ? children(x) : <TestComponent x={x} processOperationId={processOperationId} />}
-                        <button id="update" onClick={() => setX(x + 1)}>
-                            b
-                        </button>
-                    </Provider>
-                </Root>
+                <>
+                    {children ? children(x) : <TestComponent x={x} processOperationId={processOperationId} />}
+                    <button id="update" onClick={() => setX(x + 1)}>
+                        b
+                    </button>
+                </>
             );
         };
 
@@ -99,13 +85,11 @@ describe('useSaga', () => {
 
         const unmountDefer = createDeferred();
 
-        return runner.run(function* ({ operationService, componentLifecycleService, store }) {
+        return runner.run(function* ({ TestProvider }) {
             const { unmount } = yield render(
-                <App
-                    operationService={operationService}
-                    componentLifecycleService={componentLifecycleService}
-                    store={store}
-                />
+                <TestProvider>
+                    <App />
+                </TestProvider>
             );
 
             yield wait(DELAY * 2);
@@ -135,14 +119,11 @@ describe('useSaga', () => {
         let operationId: string;
         const processOperationId = (id: string) => (operationId = id);
 
-        return runner.run(function* ({ operationService, componentLifecycleService, store }) {
+        return runner.run(function* ({ store, TestProvider }) {
             const { unmount } = yield render(
-                <App
-                    store={store}
-                    operationService={operationService}
-                    componentLifecycleService={componentLifecycleService}
-                    processOperationId={processOperationId}
-                />
+                <TestProvider>
+                    <App processOperationId={processOperationId} />
+                </TestProvider>
             );
 
             yield wait(DELAY * 2);
@@ -165,19 +146,18 @@ describe('useSaga', () => {
         const processOperationId1 = (id: string) => (operationId1 = id);
         const processOperationId2 = (id: string) => (operationId2 = id);
 
-        return runner.run(function* ({ operationService, componentLifecycleService, store }) {
+        return runner.run(function* ({ TestProvider }) {
             const { unmount } = yield render(
-                <App
-                    store={store}
-                    operationService={operationService}
-                    componentLifecycleService={componentLifecycleService}>
-                    {() => (
-                        <>
-                            <TestComponent x={1} processOperationId={processOperationId1} />
-                            <TestComponent x={2} operationId="test-2" processOperationId={processOperationId2} />
-                        </>
-                    )}
-                </App>
+                <TestProvider>
+                    <App>
+                        {() => (
+                            <>
+                                <TestComponent x={1} processOperationId={processOperationId1} />
+                                <TestComponent x={2} operationId="test-2" processOperationId={processOperationId2} />
+                            </>
+                        )}
+                    </App>
+                </TestProvider>
             );
 
             yield wait(DELAY * 2);
@@ -199,13 +179,11 @@ describe('useSaga', () => {
         const reloadCount = 5;
         const unmountDefer = createDeferred();
 
-        return runner.run(function* ({ operationService, componentLifecycleService, store }) {
+        return runner.run(function* ({ TestProvider }) {
             const { unmount } = yield render(
-                <App
-                    store={store}
-                    operationService={operationService}
-                    componentLifecycleService={componentLifecycleService}
-                />
+                <TestProvider>
+                    <App />
+                </TestProvider>
             );
 
             yield wait(DELAY * 2);
@@ -261,16 +239,13 @@ describe('useSaga', () => {
 
         const unmountDefer = createDeferred();
 
-        return runner.run(function* ({ store }) {
+        return runner.run(function* ({ TestProvider }) {
             yield* call(componentLifecycleService.run);
 
             const { unmount } = yield render(
-                <App
-                    store={store}
-                    operationService={operationService}
-                    componentLifecycleService={componentLifecycleService}>
-                    {x => <TestComponent x={x} />}
-                </App>
+                <TestProvider operationService={operationService} componentLifecycleService={componentLifecycleService}>
+                    <App>{x => <TestComponent x={x} />}</App>
+                </TestProvider>
             );
 
             yield wait(DELAY * 2);
