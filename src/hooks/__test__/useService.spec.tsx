@@ -16,11 +16,6 @@ import { getSagaRunner } from '../../test-utils';
 import { render } from '_root/utils';
 import { wait } from '_test/';
 
-const runner = getSagaRunner();
-
-const operationService = new OperationService({ hash: {} });
-const componentLifecycleService = new ComponentLifecycleService(operationService);
-
 const processLoading = vi.fn((x: string, y: number) => ({}));
 const processDisposing = vi.fn(() => ({}));
 
@@ -51,6 +46,7 @@ beforeEach(() => {
 });
 
 test('useService runs and destroys service', async () => {
+    const runner = getSagaRunner();
     const { window } = new jsdom.JSDOM(`
         <html>
             <body>
@@ -65,19 +61,17 @@ test('useService runs and destroys service', async () => {
     const mountDefer = createDeferred();
     const unmountDefer = createDeferred();
 
-    const TestComponent: React.FC<{}> = () => {
-        useService(new TestServiceClass(operationService), ['1', 1]);
+    return runner.run(function* ({ operationService, componentLifecycleService, store }) {
+        const TestComponent: React.FC<{}> = () => {
+            useService(new TestServiceClass(operationService), ['1', 1]);
 
-        useEffect(() => {
-            mountDefer.resolve();
-            return () => unmountDefer.resolve();
-        }, []);
+            useEffect(() => {
+                mountDefer.resolve();
+                return () => unmountDefer.resolve();
+            }, []);
 
-        return null;
-    };
-
-    return runner.run(function* (store) {
-        yield* call(componentLifecycleService.run);
+            return null;
+        };
 
         const { unmount } = yield render(
             <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
@@ -96,11 +90,12 @@ test('useService runs and destroys service', async () => {
         expect(processLoading).toHaveBeenCalledTimes(1);
         expect(processLoading).toHaveBeenCalledWith('1', 1);
         expect(processDisposing).toHaveBeenCalledTimes(1);
-        yield* call(componentLifecycleService.destroy);
     });
 });
 
 test('types are correctly inferred from hook args', () => {
+    const operationService = new OperationService({ hash: {} });
+
     // @ts-ignore
     function TestComponent() {
         const arg0 = 1;

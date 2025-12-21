@@ -8,7 +8,7 @@ import { call, delay } from 'typed-redux-saga';
 import React, { Suspense, useEffect, useState } from 'react';
 import { Provider } from 'react-redux';
 
-import { ComponentLifecycleService, getId, OperationService, Service } from '../../services';
+import { getId, Service } from '../../services';
 import { actions } from '../../reducer';
 import { createDeferred } from '../../utils/createDeferred';
 import { operation } from '../../decorators';
@@ -33,8 +33,6 @@ beforeEach(() => {
 
 test('Component gets the operation', () => {
     const runner = getSagaRunner();
-    const operationService = new OperationService({ hash: {} });
-    const componentLifecycleService = new ComponentLifecycleService(operationService);
 
     class TestService extends Service {
         toString() {
@@ -47,23 +45,22 @@ test('Component gets the operation', () => {
         }
     }
 
-    const testService = new TestService(operationService);
-
     const renderDefer = createDeferred();
-    const TestComponent: React.FC<{}> = () => {
-        const operation = useOperation({ operationId: getId(testService.getResult)! });
 
-        useEffect(() => {
-            renderDefer.resolve();
-        });
-
-        expect(operation.result).toEqual(1);
-        return <span>{operation?.result}</span>;
-    };
-
-    return runner.run(function* (store) {
-        yield* call(operationService.run);
+    return runner.run(function* ({ operationService, componentLifecycleService, store }) {
+        const testService = new TestService(operationService);
         yield* call(testService.getResult);
+
+        const TestComponent: React.FC<{}> = () => {
+            const operation = useOperation({ operationId: getId(testService.getResult)! });
+
+            useEffect(() => {
+                renderDefer.resolve();
+            });
+
+            expect(operation.result).toEqual(1);
+            return <span>{operation?.result}</span>;
+        };
 
         yield render(
             <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
@@ -74,14 +71,11 @@ test('Component gets the operation', () => {
         );
 
         yield renderDefer.promise;
-        yield* call(operationService.destroy);
     });
 });
 
 test('No errors when no operation and no default state', () => {
     const runner = getSagaRunner();
-    const operationService = new OperationService({ hash: {} });
-    const componentLifecycleService = new ComponentLifecycleService(operationService);
 
     const renderDefer = createDeferred();
     const TestComponent: React.FC<{}> = () => {
@@ -96,9 +90,7 @@ test('No errors when no operation and no default state', () => {
         return <span>{operation?.result}</span>;
     };
 
-    return runner.run(function* (store) {
-        yield* call(operationService.run);
-
+    return runner.run(function* ({ operationService, componentLifecycleService, store }) {
         render(
             <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
                 <Provider store={store}>
@@ -108,14 +100,11 @@ test('No errors when no operation and no default state', () => {
         );
 
         yield renderDefer.promise;
-        yield* call(operationService.destroy);
     });
 });
 
 test('Component updates on operation changed', () => {
     const runner = getSagaRunner();
-    const operationService = new OperationService({ hash: {} });
-    const componentLifecycleService = new ComponentLifecycleService(operationService);
     const func = vi.fn((isLoading?: boolean) => ({}));
 
     let renderDefer = createDeferred();
@@ -130,9 +119,7 @@ test('Component updates on operation changed', () => {
         return <span>{operation?.result}</span>;
     };
 
-    return runner.run(function* (store) {
-        yield* call(operationService.run);
-
+    return runner.run(function* ({ operationService, componentLifecycleService, store }) {
         yield render(
             <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
                 <Provider store={store}>
@@ -152,15 +139,11 @@ test('Component updates on operation changed', () => {
         expect(func).toBeCalledTimes(3);
         expect(func).toHaveBeenNthCalledWith(2, true);
         expect(func).toHaveBeenNthCalledWith(3, false);
-
-        yield* call(operationService.destroy);
     });
 });
 
 test('Nested operations with global Suspense', async () => {
     const runner = getSagaRunner();
-    const operationService = new OperationService({ hash: {} });
-    const componentLifecycleService = new ComponentLifecycleService(operationService);
 
     class TestService extends Service {
         toString() {
@@ -180,9 +163,8 @@ test('Nested operations with global Suspense', async () => {
         }
     }
 
-    const testService = new TestService(operationService);
-
-    return runner.run(function* (store) {
+    return runner.run(function* ({ operationService, componentLifecycleService, store }) {
+        const testService = new TestService(operationService);
         const defer = createDeferred<unknown>();
 
         const InnerComponent: React.FC<{}> = () => {
@@ -226,8 +208,6 @@ test('Nested operations with global Suspense', async () => {
             );
         };
 
-        yield* call(operationService.run);
-
         const { el } = yield render(
             <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
                 <Provider store={store}>
@@ -244,14 +224,11 @@ test('Nested operations with global Suspense', async () => {
         yield defer.promise;
 
         expect(el?.innerHTML).not.toEqual('Loading...');
-        yield* call(operationService.destroy);
     });
 });
 
 test('Component renders after the longest operation is completed', async () => {
     const runner = getSagaRunner();
-    const operationService = new OperationService({ hash: {} });
-    const componentLifecycleService = new ComponentLifecycleService(operationService);
 
     class TestService extends Service {
         toString() {
@@ -271,9 +248,8 @@ test('Component renders after the longest operation is completed', async () => {
         }
     }
 
-    const testService = new TestService(operationService);
-
-    return runner.run(function* (store) {
+    return runner.run(function* ({ operationService, componentLifecycleService, store }) {
+        const testService = new TestService(operationService);
         const defer = createDeferred<unknown>();
         const start = Date.now();
 
@@ -313,8 +289,6 @@ test('Component renders after the longest operation is completed', async () => {
             );
         };
 
-        yield* call(operationService.run);
-
         const { el } = yield render(
             <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
                 <Provider store={store}>
@@ -331,14 +305,11 @@ test('Component renders after the longest operation is completed', async () => {
         yield defer.promise;
 
         expect(el?.innerHTML).not.toEqual('Loading...');
-        yield* call(operationService.destroy);
     });
 });
 
 test('Components release operations', () => {
     const runner = getSagaRunner();
-    const operationService = new OperationService({ hash: {} });
-    const componentLifecycleService = new ComponentLifecycleService(operationService);
 
     class TestService extends Service {
         toString() {
@@ -351,47 +322,45 @@ test('Components release operations', () => {
         }
     }
 
-    const testService = new TestService(operationService);
-    const operationId = getId(testService.getResult)!;
     const renderDefer = createDeferred();
     const destroyDefer = createDeferred();
 
-    const App: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
-        useSaga({ id: 'init-app', onLoad: testService.getResult });
-        const [visible, toggle] = useState(true);
+    return runner.run(function* ({ operationService, componentLifecycleService, store }) {
+        const testService = new TestService(operationService);
+        const operationId = getId(testService.getResult)!;
 
-        return (
-            <>
-                {visible && children}
-                <button
-                    id="switch"
-                    onClick={() => {
-                        toggle(false);
-                    }}>
-                    click
-                </button>
-            </>
-        );
-    };
+        const App: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
+            useSaga({ id: 'init-app', onLoad: testService.getResult });
+            const [visible, toggle] = useState(true);
 
-    const TestComponent: React.FC<{}> = () => {
-        const operation = useOperation({ operationId, suspense: true });
+            return (
+                <>
+                    {visible && children}
+                    <button
+                        id="switch"
+                        onClick={() => {
+                            toggle(false);
+                        }}>
+                        click
+                    </button>
+                </>
+            );
+        };
 
-        useEffect(() => {
-            renderDefer.resolve();
+        const TestComponent: React.FC<{}> = () => {
+            const operation = useOperation({ operationId, suspense: true });
 
-            return () => {
-                destroyDefer.resolve();
-            };
-        });
+            useEffect(() => {
+                renderDefer.resolve();
 
-        expect(operation?.result).toEqual(1);
-        return <span>{operation?.result}</span>;
-    };
+                return () => {
+                    destroyDefer.resolve();
+                };
+            });
 
-    return runner.run(function* (store) {
-        yield* call(operationService.run);
-        yield* call(componentLifecycleService.run);
+            expect(operation?.result).toEqual(1);
+            return <span>{operation?.result}</span>;
+        };
 
         yield render(
             <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
@@ -414,8 +383,5 @@ test('Components release operations', () => {
         yield* call(testService.destroy);
 
         expect(store.getState().asyncOperations.get(operationId)).toBe(undefined);
-
-        yield* call(componentLifecycleService.destroy);
-        yield* call(operationService.destroy);
     });
 });

@@ -5,12 +5,10 @@ import jsdom from 'jsdom';
 import { Provider } from 'react-redux';
 
 import {
-    ComponentLifecycleService,
     createDeferred,
     getId,
     operation,
     Operation,
-    OperationService,
     Root,
     Service,
     useDI,
@@ -116,17 +114,11 @@ beforeEach(() => {
 });
 
 test('Nested operations with global Suspense ', async () => {
-    const operationService = new OperationService({ hash: {} });
-    const componentLifecycleService = new ComponentLifecycleService(operationService);
-
     const runner = getSagaRunner();
 
-    return runner.run(function* () {
+    return runner.run(function* ({ operationService, componentLifecycleService, store }) {
         const defer = [createDeferred<unknown>(), createDeferred<unknown>()];
         let counter = 0;
-
-        yield* call(operationService.run);
-        yield* call(componentLifecycleService.run);
 
         const { el } = yield render(
             <Context.Provider
@@ -135,7 +127,7 @@ test('Nested operations with global Suspense ', async () => {
                     resolve: () => defer[counter++].resolve(),
                 }}>
                 <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                    <Provider store={runner.store}>
+                    <Provider store={store}>
                         <Suspense fallback="Loading...">
                             <TestComponent />
                         </Suspense>
@@ -149,9 +141,6 @@ test('Nested operations with global Suspense ', async () => {
         expect(el?.innerHTML).not.toEqual('Loading...');
         yield defer[1].promise;
         expect(el?.innerHTML).not.toEqual('Loading...');
-
-        yield* call(operationService.destroy);
-        yield* call(componentLifecycleService.destroy);
     });
 });
 
@@ -160,13 +149,8 @@ test('Execute nested sagas on client', async () => {
 
     const fn = vi.fn(() => 1);
     const fn2 = vi.fn((x: number) => x + 2);
-    const operationService = new OperationService();
-    const componentLifecycleService = new ComponentLifecycleService(operationService);
 
-    return runner.run(function* () {
-        yield* call(operationService.run);
-        yield* call(componentLifecycleService.run);
-
+    return runner.run(function* ({ operationService, componentLifecycleService, store }) {
         const Item = (props: { x: number }) => {
             const { operationId } = useSaga(
                 {
@@ -208,7 +192,7 @@ test('Execute nested sagas on client', async () => {
 
         render(
             <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                <Provider store={runner.store}>
+                <Provider store={store}>
                     <App />
                 </Provider>
             </Root>
@@ -220,7 +204,7 @@ test('Execute nested sagas on client', async () => {
 
         expect(fn).toHaveBeenCalledTimes(1);
         expect(fn2).toHaveBeenCalledTimes(2);
-        const values = Array.from(runner.store.getState().asyncOperations.values());
+        const values = Array.from(store.getState().asyncOperations.values());
         expect(values[0]?.result).toBe(1);
         expect(values[1]?.result).toBe(3);
         expect(values[2]?.result).toBe(5);
@@ -228,16 +212,10 @@ test('Execute nested sagas on client', async () => {
 });
 
 test('useSaga + useOperation in same component', async () => {
-    const operationService = new OperationService({ hash: {} });
-    const componentLifecycleService = new ComponentLifecycleService(operationService);
-
     const runner = getSagaRunner();
 
-    return runner.run(function* () {
+    return runner.run(function* ({ operationService, componentLifecycleService, store }) {
         const defer = createDeferred<unknown>();
-
-        yield* call(operationService.run);
-        yield* call(componentLifecycleService.run);
 
         function App() {
             const { operationId } = useSaga({
@@ -264,7 +242,7 @@ test('useSaga + useOperation in same component', async () => {
 
         const { el } = yield render(
             <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                <Provider store={runner.store}>
+                <Provider store={store}>
                     <Suspense fallback="Loading...">
                         <App />
                     </Suspense>
@@ -275,24 +253,15 @@ test('useSaga + useOperation in same component', async () => {
         expect(el?.innerHTML).toEqual('Loading...');
         yield defer.promise;
         expect(el?.innerHTML).not.toEqual('Loading...');
-
-        yield* call(operationService.destroy);
-        yield* call(componentLifecycleService.destroy);
     });
 });
 
 test('useSaga + double useOperation in same component', async () => {
-    const operationService = new OperationService({ hash: {} });
-    const componentLifecycleService = new ComponentLifecycleService(operationService);
-    const service = new TestService(operationService);
-
     const runner = getSagaRunner();
 
-    return runner.run(function* () {
+    return runner.run(function* ({ operationService, componentLifecycleService, store }) {
         const defer = createDeferred<unknown>();
-
-        yield* call(operationService.run);
-        yield* call(componentLifecycleService.run);
+        const service = new TestService(operationService);
 
         function App() {
             useSaga({
@@ -325,7 +294,7 @@ test('useSaga + double useOperation in same component', async () => {
 
         const { el } = yield render(
             <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                <Provider store={runner.store}>
+                <Provider store={store}>
                     <Suspense fallback="Loading...">
                         <App />
                     </Suspense>
@@ -336,23 +305,14 @@ test('useSaga + double useOperation in same component', async () => {
         expect(el?.innerHTML).toEqual('Loading...');
         yield defer.promise;
         expect(el?.innerHTML).not.toEqual('Loading...');
-
-        yield* call(operationService.destroy);
-        yield* call(componentLifecycleService.destroy);
     });
 });
 
 test('useSaga + useOperation + reload in same component', async () => {
-    const operationService = new OperationService({ hash: {} });
-    const componentLifecycleService = new ComponentLifecycleService(operationService);
-
     const runner = getSagaRunner();
 
-    return runner.run(function* () {
+    return runner.run(function* ({ operationService, componentLifecycleService, store }) {
         const defer = createDeferred<unknown>();
-
-        yield* call(operationService.run);
-        yield* call(componentLifecycleService.run);
 
         const reloadCount = 5;
         let mountedCount = 0;
@@ -397,7 +357,7 @@ test('useSaga + useOperation + reload in same component', async () => {
 
         yield render(
             <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                <Provider store={runner.store}>
+                <Provider store={store}>
                     <Suspense fallback="">
                         <App />
                     </Suspense>
@@ -418,23 +378,14 @@ test('useSaga + useOperation + reload in same component', async () => {
         expect(processDisposing).toHaveBeenCalledTimes(reloadCount);
         expect(processLoading).toHaveBeenCalledTimes(reloadCount + 1);
         expect(mountedCount).toBe(1);
-
-        yield* call(operationService.destroy);
-        yield* call(componentLifecycleService.destroy);
     });
 });
 
 test('remount component with useSaga', async () => {
-    const operationService = new OperationService({ hash: {} });
-    const componentLifecycleService = new ComponentLifecycleService(operationService);
-
     const runner = getSagaRunner();
 
-    return runner.run(function* () {
+    return runner.run(function* ({ operationService, componentLifecycleService, store }) {
         let defer = createDeferred<unknown>();
-
-        yield* call(operationService.run);
-        yield* call(componentLifecycleService.run);
 
         const reloadCount = 3;
         let mountedCount = 0;
@@ -492,7 +443,7 @@ test('remount component with useSaga', async () => {
 
         yield render(
             <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                <Provider store={runner.store}>
+                <Provider store={store}>
                     <Suspense fallback="">
                         <App />
                     </Suspense>
@@ -520,8 +471,5 @@ test('remount component with useSaga', async () => {
         expect(record).toBe('pm' + 'mdp'.repeat(reloadCount));
 
         expect(componentLifecycleService.getCurrentExecution('app-init-reload')).not.toBeUndefined();
-
-        yield* call(operationService.destroy);
-        yield* call(componentLifecycleService.destroy);
     });
 });

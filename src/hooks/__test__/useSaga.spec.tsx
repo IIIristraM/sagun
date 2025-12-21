@@ -97,14 +97,9 @@ describe('useSaga', () => {
         const { App, processLoading, processDisposing } = initTest();
         const runner = getSagaRunner();
 
-        const operationService = new OperationService({ hash: {} });
-        const componentLifecycleService = new ComponentLifecycleService(operationService);
-
         const unmountDefer = createDeferred();
 
-        return runner.run(function* (store) {
-            yield* call(componentLifecycleService.run);
-
+        return runner.run(function* ({ operationService, componentLifecycleService, store }) {
             const { unmount } = yield render(
                 <App
                     operationService={operationService}
@@ -129,8 +124,6 @@ describe('useSaga', () => {
 
             expect(processLoading).toHaveBeenNthCalledWith(2, ...ARGS, 1);
             expect(processDisposing).toHaveBeenNthCalledWith(2, ...ARGS, 1);
-
-            yield* call(componentLifecycleService.destroy);
         });
     });
 
@@ -138,16 +131,11 @@ describe('useSaga', () => {
         const { App } = initTest();
         const runner = getSagaRunner();
 
-        const operationService = new OperationService({ hash: {} });
-        const componentLifecycleService = new ComponentLifecycleService(operationService);
-
         const unmountDefer = createDeferred();
         let operationId: string;
         const processOperationId = (id: string) => (operationId = id);
 
-        return runner.run(function* (store) {
-            yield* call(componentLifecycleService.run);
-
+        return runner.run(function* ({ operationService, componentLifecycleService, store }) {
             const { unmount } = yield render(
                 <App
                     store={store}
@@ -164,7 +152,6 @@ describe('useSaga', () => {
             expect(store.getState().asyncOperations.get(operationId!)).toBeFalsy();
 
             unmountDefer.resolve();
-            yield call(componentLifecycleService.destroy);
         });
     });
 
@@ -172,18 +159,13 @@ describe('useSaga', () => {
         const { App, TestComponent, processLoading } = initTest();
         const runner = getSagaRunner();
 
-        const operationService = new OperationService({ hash: {} });
-        const componentLifecycleService = new ComponentLifecycleService(operationService);
-
         const unmountDefer = createDeferred();
         let operationId1 = '_init';
         let operationId2 = '_init';
         const processOperationId1 = (id: string) => (operationId1 = id);
         const processOperationId2 = (id: string) => (operationId2 = id);
 
-        return runner.run(function* (store) {
-            yield* call(componentLifecycleService.run);
-
+        return runner.run(function* ({ operationService, componentLifecycleService, store }) {
             const { unmount } = yield render(
                 <App
                     store={store}
@@ -207,8 +189,6 @@ describe('useSaga', () => {
 
             yield unmount();
             unmountDefer.resolve();
-
-            yield* call(componentLifecycleService.destroy);
         });
     });
 
@@ -216,14 +196,10 @@ describe('useSaga', () => {
         const { App, processLoading, processDisposing } = initTest();
         const runner = getSagaRunner();
 
-        const operationService = new OperationService({ hash: {} });
-        const componentLifecycleService = new ComponentLifecycleService(operationService);
-
         const reloadCount = 5;
         const unmountDefer = createDeferred();
 
-        return runner.run(function* (store) {
-            yield* call(componentLifecycleService.run);
+        return runner.run(function* ({ operationService, componentLifecycleService, store }) {
             const { unmount } = yield render(
                 <App
                     store={store}
@@ -247,8 +223,6 @@ describe('useSaga', () => {
 
             yield unmount();
             unmountDefer.resolve();
-
-            yield* call(componentLifecycleService.destroy);
         });
     });
 
@@ -287,7 +261,7 @@ describe('useSaga', () => {
 
         const unmountDefer = createDeferred();
 
-        return runner.run(function* (store) {
+        return runner.run(function* ({ store }) {
             yield* call(componentLifecycleService.run);
 
             const { unmount } = yield render(

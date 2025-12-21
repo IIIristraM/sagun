@@ -11,7 +11,6 @@ import { operation } from '../operation';
 
 const createServiceActions = serviceActionsFactory();
 const operationService = new OperationService({ hash: {} });
-const runner = getSagaRunner();
 
 test('default mode is DaemonMode.Sync', () => {
     // tslint:disable-next-line: max-classes-per-file
@@ -67,6 +66,8 @@ test('propagates return value', () => {
     }
 
     const testService = new TestService();
+    const runner = getSagaRunner();
+
     return runner
         .run(function* () {
             return yield* call(testService.method);
@@ -94,6 +95,7 @@ test('keeps this', () => {
 
     const testService = new TestService(operationService);
     const actions = createServiceActions(testService);
+    const runner = getSagaRunner();
 
     return runner
         .run(function* () {
@@ -124,6 +126,7 @@ test('handle exceptions', () => {
     }
     const testService = new TestService(operationService);
     const actions = createServiceActions(testService);
+    const runner = getSagaRunner();
 
     return runner.run(function* () {
         yield* call(testService.run);

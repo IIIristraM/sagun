@@ -7,8 +7,6 @@ import { getSagaRunner } from '../../test-utils';
 import { createDaemon, daemon, DaemonMode } from '../createDaemon';
 import { createDeferred } from '../createDeferred';
 
-const runner = getSagaRunner();
-
 console.warn = () => {};
 
 describe('daemon', () => {
@@ -20,6 +18,8 @@ describe('daemon', () => {
             result += a + b;
             return result;
         };
+
+        const runner = getSagaRunner();
 
         return runner
             .run(function* () {
@@ -50,6 +50,8 @@ describe('daemon', () => {
             task.cancel();
         };
 
+        const runner = getSagaRunner();
+
         return runner.run(main).then(() => {
             expect(func).toHaveBeenCalledTimes(1);
         });
@@ -78,6 +80,8 @@ describe('daemon', () => {
             task.cancel();
         };
 
+        const runner = getSagaRunner();
+
         return runner.run(main).then(() => {
             expect(result).toBe(2);
         });
@@ -102,6 +106,8 @@ describe('createDaemon', () => {
             yield* call(daemon.destroy);
         }
 
+        const runner = getSagaRunner();
+
         return runner.run(main).then(() => {
             expect(result).toBe(4);
         });
@@ -124,6 +130,8 @@ describe('createDaemon', () => {
             yield* call(daemon.destroy);
         }
 
+        const runner = getSagaRunner();
+
         return runner.run(main).then(() => {
             expect(result).toBe(2);
         });
@@ -145,6 +153,8 @@ describe('createDaemon', () => {
             yield* call(daemon.destroy);
             yield* put(action);
         };
+
+        const runner = getSagaRunner();
 
         return runner.run(saga).then(() => {
             expect(result).toBe(2);
@@ -169,6 +179,8 @@ describe('createDaemon', () => {
             yield* call(daemon.destroy);
         };
 
+        const runner = getSagaRunner();
+
         return runner.run(main).then(() => {
             expect(func).toHaveBeenCalledTimes(2);
         });
@@ -190,6 +202,8 @@ describe('createDaemon', () => {
             yield* call(daemon.destroy);
             yield* put(action);
         };
+
+        const runner = getSagaRunner();
 
         return runner.run(main).then(() => {
             expect(func).toHaveBeenCalledTimes(1);
@@ -221,6 +235,8 @@ describe('createDaemon', () => {
             yield* put(action);
             yield* call(daemon.destroy);
         }
+
+        const runner = getSagaRunner();
 
         return runner.run(main).then(() => {
             expect(func).toHaveBeenCalledTimes(1);
@@ -254,6 +270,8 @@ describe('createDaemon', () => {
             yield* call(daemon.destroy);
         };
 
+        const runner = getSagaRunner();
+
         return runner.run(main).then(() => {
             expect(func).toHaveBeenCalledTimes(1);
             expect(func).toHaveBeenLastCalledWith(count);
@@ -276,6 +294,8 @@ describe('createDaemon', () => {
             yield* call(daemon.destroy);
             yield* put(action);
         };
+
+        const runner = getSagaRunner();
 
         return runner.run(main).then(() => {
             expect(func).toHaveBeenCalledTimes(1);
@@ -306,6 +326,8 @@ describe('createDaemon', () => {
             yield* call(daemon.destroy);
         }
 
+        const runner = getSagaRunner();
+
         return runner.run(main).then(() => {
             expect(func).toHaveBeenCalledTimes(2);
         });
@@ -325,6 +347,8 @@ describe('createDaemon', () => {
             yield* call(daemon.destroy);
         };
 
+        const runner = getSagaRunner();
+
         return runner.run(main).then(() => {
             const diff = Math.ceil(expectedCalls) - func.mock.calls.length;
             expect(func.mock.calls.length).toBeTruthy();
@@ -333,6 +357,8 @@ describe('createDaemon', () => {
     });
 
     test('daemon throw exception if pattern is number except Schedule mode', () => {
+        const runner = getSagaRunner();
+
         return runner
             .run(function* () {
                 try {
