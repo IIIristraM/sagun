@@ -12,6 +12,7 @@ const sidebars: SidebarsConfig = {
         'tutorial/service',
         'tutorial/data-edit',
         'tutorial/di',
+        'tutorial/tests',
       ],
     },
     {
