@@ -34,6 +34,7 @@ import { Suspense } from 'react';
 
 function UserProfile({ userId }) {
   const { operationId } = useSaga({
+    id: `user-profile-${userId}`,
     onLoad: function* () {
       return yield* call(api.getUser, userId);
     }
@@ -61,6 +62,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 
 function App() {
   const { operationId } = useSaga({
+    id: 'app-data',
     onLoad: function* () {
       return yield* call(api.getData);
     }
@@ -83,6 +85,7 @@ function App() {
 ```tsx
 function ProductPage({ productId }) {
   const { operationId: productOpId } = useSaga({
+    id: `product-${productId}`,
     onLoad: function* () {
       return yield* call(api.getProduct, productId);
     }
@@ -104,6 +107,7 @@ function ProductPage({ productId }) {
 
 function RelatedProducts({ productId }) {
   const { operationId } = useSaga({
+    id: `related-${productId}`,
     onLoad: function* () {
       return yield* call(api.getRelated, productId);
     }
@@ -126,9 +130,9 @@ function RelatedProducts({ productId }) {
   {(operation) => (
     <div>
       {/* Доступны все поля AsyncOperation */}
-      <p>Loading: {operation.loading ? 'Да' : 'Нет'}</p>
-      <p>Success: {operation.success ? 'Да' : 'Нет'}</p>
-      <p>Error: {operation.error?.message}</p>
+      <p>Загрузка: {operation.isLoading ? 'Да' : 'Нет'}</p>
+      <p>Ошибка: {operation.isError ? 'Да' : 'Нет'}</p>
+      <p>Сообщение ошибки: {operation.error?.message}</p>
       <pre>{JSON.stringify(operation.result, null, 2)}</pre>
     </div>
   )}
@@ -139,9 +143,9 @@ function RelatedProducts({ productId }) {
 
 | | Operation | useOperation |
 |-|-----------|--------------|
-| Suspense | ✅ Встроенная поддержка | ❌ Ручная обработка |
-| Error Boundary | ✅ Пробрасывает ошибки | ❌ Ручная обработка |
-| Доступ к loading | ❌ Скрыт Suspense | ✅ Полный доступ |
+| Suspense | ✅ Встроенная поддержка | ✅ Через опцию `suspense: true` |
+| Error Boundary | ✅ Пробрасывает ошибки | ✅ Через опцию `suspense: true` |
+| Доступ к isLoading | ❌ Скрыт Suspense | ✅ Полный доступ |
 | Гибкость | Декларативный | Императивный |
 
 ## См. также

@@ -7,8 +7,8 @@
 Декоратор `@operation`:
 
 1. **Создаёт AsyncOperation** — состояние операции хранится в Redux
-2. **Отслеживает выполнение** — автоматически обновляет `loading`, `success`, `error`
-3. **Генерирует уникальный ID** — идентификатор формируется из сервиса, метода и аргументов
+2. **Отслеживает выполнение** — автоматически обновляет `isLoading`, `isError`, `result`
+3. **Генерирует уникальный ID** — идентификатор формируется из имени сервиса и метода
 
 ## Базовый пример
 
@@ -41,7 +41,7 @@ function UserProfile({ userId }) {
   const operationId = getId(service.fetchUser, userId);
   
   // Через хук
-  const operation = useOperation(operationId);
+  const operation = useOperation({ operationId });
   
   // Или через компонент
   return (

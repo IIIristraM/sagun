@@ -5,7 +5,7 @@ import TabItem from '@theme/TabItem';
 
 Для того, чтобы загрузить данные, в простейшем случае можно воспользоваться хуком [useSaga](../api/hooks/use-saga), он работает очень похоже на `useEffect`, функция `onLoad` отрабатывает на `mount` компонента, а также при изменении аргументов передаваемых в хук.
 
-Хук возвращает ID [асинхронной операции](../concepts/operations), по которому в дальнейшем можно подписаться на ее актуальное состояние, например, передав его в компонент [Operation](../api/components/operation) или в хук [useOperation](../api/hooks/use-operation).
+Хук возвращает ID [асинхронной операции](../concepts/operations), по которому в дальнейшем можно подписаться на её актуальное состояние, например, передав его в компонент [Operation](../api/components/operation) или в хук [useOperation](../api/hooks/use-operation).
 
 <Tabs>
 <TabItem value="operation" label="Operation component" default>
