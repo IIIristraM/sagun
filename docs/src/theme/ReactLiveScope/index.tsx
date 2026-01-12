@@ -6,7 +6,7 @@ import * as effects from 'typed-redux-saga';
 import * as sagun from '../../../../lib';
 
 // @ts-ignore
-import { Dependency, inject } from '../../../../lib';
+import { Dependency, inject, DependencyKey } from '../../../../lib';
 
 const { call, delay } = effects;
 
@@ -48,7 +48,7 @@ function getNewId() {
     return Math.round(Math.random() * 1000);
 }
 
-const APP_CONTEXT_KEY = 'APP_CONTEXT';
+const APP_CONTEXT_KEY = 'APP_CONTEXT' as DependencyKey<AppContext>;
 
 type AppContext = {
     env: string;

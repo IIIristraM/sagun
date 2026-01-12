@@ -1,33 +1,119 @@
 # useServiceConsumer
 
-Регистрирует компонент как потребителя операций сервиса.
+Получает сервис и создаёт actions для его `@daemon` методов.
 
 ## Сигнатура
 
 ```typescript
-function useServiceConsumer(service: BaseService): void;
+function useServiceConsumer<T extends BaseService>(
+  ServiceClass: new (...args: any[]) => T
+): {
+  service: T;
+  actions: ActionAPI<T>;
+};
 ```
 
 ## Параметры
 
 | Параметр | Тип | Описание |
 |----------|-----|----------|
-| `service` | `BaseService` | Сервис, операции которого использует компонент |
+| `ServiceClass` | `Class` | Класс сервиса (не экземпляр!) |
+
+## Возвращаемое значение
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `service` | `T` | Экземпляр сервиса из DI контейнера |
+| `actions` | `ActionAPI<T>` | Объект с actions для `@daemon` методов, привязанных к store |
 
 ## Описание
 
-`useServiceConsumer` регистрирует компонент как потребителя всех операций сервиса. Это:
+`useServiceConsumer` решает две задачи:
 
-1. **Предотвращает очистку** — операции сервиса не удаляются пока есть потребители
-2. **Автоматическая отписка** — при unmount компонент отписывается
+1. **Получает сервис** — эквивалент `useDI().getService(ServiceClass)`
+2. **Создаёт actions** — для всех методов с `@daemon` декоратором, привязанные к Redux store
+
+## Базовый пример
+
+```tsx
+import { useServiceConsumer } from '@iiiristram/sagun';
+
+function SearchForm() {
+  // Получаем сервис и actions по классу
+  const { service, actions } = useServiceConsumer(SearchService);
+  
+  return (
+    <input 
+      onChange={(e) => actions.search(e.target.value)}
+      placeholder="Поиск..."
+    />
+  );
+}
+```
+
+## Использование с useOperation
+
+```tsx
+import { useServiceConsumer, useOperation, getId } from '@iiiristram/sagun';
+
+function UserProfile() {
+  const { service, actions } = useServiceConsumer(UserService);
+  
+  // Получить ID операции @operation метода
+  const operationId = getId(service.fetchUser);
+  const operation = useOperation({ operationId });
+  
+  return (
+    <div>
+      {operation.isLoading ? (
+        <Spinner />
+      ) : (
+        <div>
+          <h1>{operation.result?.name}</h1>
+          <button onClick={() => actions.fetchUser()}>
+            Обновить
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+## Actions типизированы
+
+Actions автоматически типизируются на основе методов сервиса:
+
+```typescript
+class UserService extends Service {
+  toString() { return 'UserService'; }
+
+  @daemon()
+  *updateName(userId: string, newName: string) {
+    yield* call(api.updateName, userId, newName);
+  }
+}
+
+// В компоненте
+const { actions } = useServiceConsumer(UserService);
+
+// TypeScript знает сигнатуру:
+actions.updateName('123', 'Новое имя'); // ✓ OK
+actions.updateName('123');               // ✗ Ошибка: не хватает аргумента
+actions.updateName(123, 'Имя');          // ✗ Ошибка: неверный тип
+```
 
 ## Когда использовать
 
-Используйте `useServiceConsumer` когда компонент использует данные сервиса, но не владеет им:
+| Ситуация | Хук |
+|----------|-----|
+| Инициализировать сервис (владелец) | `useService` |
+| Использовать сервис (потребитель) | `useServiceConsumer` |
+| Запустить простую сагу | `useSaga` |
 
 ```tsx
-// Компонент-владелец — инициализирует сервис
-function ProductPage({ categoryId }) {
+// Компонент-владелец — создаёт и инициализирует
+function ProductPage() {
   const di = useDI();
   const service = di.createService(ProductService);
   di.registerService(service);
@@ -36,47 +122,29 @@ function ProductPage({ categoryId }) {
   
   return (
     <Operation operationId={operationId}>
-      {() => (
-        <>
-          <ProductList service={service} />
-          <ProductSidebar service={service} />
-        </>
-      )}
+      {() => <ProductList />}
     </Operation>
   );
 }
 
-// Компонент-потребитель — использует данные сервиса
-function ProductSidebar({ service }) {
-  // Регистрируемся как потребитель
-  useServiceConsumer(service);
+// Компонент-потребитель — использует готовый
+function ProductList() {
+  const { service, actions } = useServiceConsumer(ProductService);
+  const operationId = getId(service.getProducts);
+  const operation = useOperation({ operationId });
   
-  // Теперь можем безопасно использовать операции сервиса
-  const operationId = getId(service.getCategories);
-  const operation = useOperation(operationId);
-  
-  return <CategoryList categories={operation.result} />;
-}
-```
-
-## Зачем нужен
-
-Без `useServiceConsumer` операции могут быть очищены преждевременно:
-
-```tsx
-// ❌ Проблема: операция может быть очищена
-function BadExample({ service }) {
-  const operationId = getId(service.getData);
-  const operation = useOperation(operationId);
-  // Если владелец размонтируется, операция очистится
-}
-
-// ✅ Решение: зарегистрироваться как потребитель
-function GoodExample({ service }) {
-  useServiceConsumer(service);
-  const operationId = getId(service.getData);
-  const operation = useOperation(operationId);
-  // Операция сохранится пока этот компонент существует
+  return (
+    <ul>
+      {operation.result?.map(product => (
+        <li key={product.id}>
+          {product.name}
+          <button onClick={() => actions.addToCart(product.id)}>
+            В корзину
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
 }
 ```
 
@@ -84,5 +152,5 @@ function GoodExample({ service }) {
 
 - [useService](./use-service) — инициализация сервиса
 - [useOperation](./use-operation) — подписка на операцию
-- [OperationService](../services/operation-service) — управление потребителями
-
+- [@daemon](../decorators/daemon) — декоратор для создания actions
+- [useDI](./use-di) — работа с DI контейнером

@@ -90,21 +90,6 @@ const ssrContext = operationService.getHash();
 const operationService = new OperationService({ hash: window.__SSR_CONTEXT__ });
 ```
 
-## Вложенные Root
-
-Вложенный `Root` создаёт изолированный контейнер:
-
-```tsx
-<Root operationService={os1} componentLifecycleService={cls1}>
-  <GlobalApp />
-  
-  {/* Изолированный контейнер для микрофронтенда */}
-  <Root operationService={os2} componentLifecycleService={cls2}>
-    <MicroFrontend />
-  </Root>
-</Root>
-```
-
 ## См. также
 
 - [OperationService](../services/operation-service) — управление операциями

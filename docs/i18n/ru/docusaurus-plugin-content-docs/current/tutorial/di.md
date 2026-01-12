@@ -441,13 +441,14 @@ render(
 В простейшем случае это может выглядеть так
 
 ```ts
-const APP_CONTEXT_KEY = 'APP_CONTEXT';
+// используем специальный тип DependencyKey, который содержит мета-информацию о зависимости
+const APP_CONTEXT_KEY = 'APP_CONTEXT' as DependencyKey<AppContext>;
 
 type AppContext = {
     env: string;
 }
 
-const appContext = {
+const appContext: AppContext = {
     env: "testing"
 }
 ```

@@ -5,8 +5,14 @@
 ## Сигнатура
 
 ```typescript
+// Инъекция класса (Dependency или Service)
 function inject<T extends Dependency>(
   ServiceClass: new (...args: any[]) => T
+): ParameterDecorator;
+
+// Инъекция по ключу (произвольные данные)
+function inject<T>(
+  key: DependencyKey<T>
 ): ParameterDecorator;
 ```
 
@@ -14,15 +20,20 @@ function inject<T extends Dependency>(
 
 | Параметр | Тип | Описание |
 |----------|-----|----------|
-| `ServiceClass` | `Class` | Класс зависимости для инъекции |
+| `key` | `InjectionKey` | Класс зависимости или `DependencyKey<T>` |
+
+```typescript
+type InjectionKey = Ctr<any> | DependencyKey<any>;
+```
 
 ## Описание
 
 Декоратор `@inject`:
 
 1. **Помечает параметр** — указывает DI контейнеру, какую зависимость инъектировать
-2. **Резолвит автоматически** — при создании через `di.createService()` зависимости подставляются
-3. **Типобезопасен** — TypeScript проверяет соответствие типов
+2. **Два типа ключей** — класс `Dependency` или строковая константа `DependencyKey<T>`
+3. **Резолвит автоматически** — при создании через `di.createService()` зависимости подставляются
+4. **Типобезопасен** — TypeScript проверяет соответствие типов
 
 ## Базовый пример
 
@@ -100,6 +111,82 @@ class MyService extends Service {
     @inject(ApiClient) private api: ApiClient,
   ) {
     super(os); // Передать в super
+  }
+}
+```
+
+## Инъекция через DependencyKey
+
+Для инъекции произвольных данных (не классов) используйте `DependencyKey<T>`:
+
+```typescript
+import { DependencyKey } from '@iiiristram/sagun';
+
+// Определите тип и ключ
+export type AppConfig = {
+  apiUrl: string;
+  debug: boolean;
+};
+
+export const CONFIG_KEY = 'APP_CONFIG' as DependencyKey<AppConfig>;
+```
+
+Зарегистрируйте данные по ключу:
+
+```typescript
+function App() {
+  const di = useDI();
+  
+  // Регистрация данных по ключу
+  const config: AppConfig = {
+    apiUrl: 'https://api.example.com',
+    debug: true,
+  };
+  di.registerDependency(CONFIG_KEY, config);
+  
+  // Теперь сервисы могут инъектировать config
+  const service = di.createService(MyService);
+}
+```
+
+Используйте в сервисе:
+
+```typescript
+import { Service, inject, OperationService } from '@iiiristram/sagun';
+import { CONFIG_KEY, AppConfig } from './config';
+
+class MyService extends Service {
+  private config: AppConfig;
+
+  constructor(
+    @inject(OperationService) os: OperationService,
+    @inject(CONFIG_KEY) config: AppConfig,
+  ) {
+    super(os);
+    this.config = config;
+  }
+
+  *fetchData() {
+    const url = `${this.config.apiUrl}/data`;
+    return yield* call(fetch, url);
+  }
+}
+```
+
+## Комбинирование типов зависимостей
+
+```typescript
+class ComplexService extends Service {
+  constructor(
+    @inject(OperationService) os: OperationService,
+    // Инъекция сервиса (класс)
+    @inject(AuthService) private auth: AuthService,
+    // Инъекция Dependency (класс)
+    @inject(Logger) private logger: Logger,
+    // Инъекция данных (ключ)
+    @inject(CONFIG_KEY) private config: AppConfig,
+  ) {
+    super(os);
   }
 }
 ```

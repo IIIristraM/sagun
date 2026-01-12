@@ -1,8 +1,13 @@
 # Операции
 
 Операции — это основная структура данных в Sagun. Они представляют состояние асинхронных действий в вашем приложении.
+store в приложении - это словарь, где можно получить операцию по ключу.
 
-## Тип AsyncOperation
+Такой подход позволяет унифицировать работу с состоянием приложения.
+
+## Типы
+
+Операции описываются следующим контрактом
 
 ```typescript
 type AsyncOperation<TRes, TArgs, TMeta, TErr> = {
@@ -17,9 +22,7 @@ type AsyncOperation<TRes, TArgs, TMeta, TErr> = {
 };
 ```
 
-## OperationId
-
-`OperationId` — это брендированный строковый тип, который несёт информацию о типах операции:
+`OperationId` — это тип описывающий ключ операции, из которого можно извлечь основную информацию о параметрах операции (тип аргументов, результата и т.д.)
 
 ```typescript
 // Создаём типизированный ID операции
@@ -30,9 +33,16 @@ type Result = OperationFromId<typeof FETCH_USER>;
 // = AsyncOperation<User, [string], never, Error>
 ```
 
+## Жизненный цикл операции
+
+1. **Создана** — `isLoading: false`, `result: undefined`
+2. **Выполняется** — `isLoading: true`, `result: undefined`
+3. **Завершена** — `isLoading: false`, установлен `result`
+4. **Ошибка** — `isLoading: false`, `isError: true`, установлен `error`
+
 ## Создание операций
 
-Операции автоматически создаются при использовании декоратора `@operation`:
+Операции автоматически создаются при использовании декоратора `@operation` или хуков `useSaga` и `useService`:
 
 ```typescript
 class UserService extends Service {
@@ -55,6 +65,10 @@ class UserService extends Service {
 }
 ```
 
+```tsx
+const {operationId} = useSaga({ id, onLoad })
+```
+
 ## Чтение операций
 
 Используйте хук `useOperation` для подписки на состояние операции:
@@ -66,7 +80,7 @@ function UserProfile() {
   const operation = useOperation({
     operationId: getId(service.fetchUser),
     suspense: false, // Не бросать Promise для Suspense
-    defaultState: { isLoading: true },
+    defaultState: { isLoading: true }, // fallback если операции еще не существует
   });
 
   if (operation.isLoading) return <Spinner />;
@@ -128,11 +142,9 @@ function UserProfile() {
 }
 ```
 
-## Жизненный цикл операции
+:::info
 
-1. **Создана** — операция добавлена в store с `isLoading: true`
-2. **Выполняется** — сага выполняется
-3. **Завершена** — `isLoading: false`, установлен `result`
-4. **Ошибка** — `isLoading: false`, `isError: true`, установлен `error`
-5. **Уничтожена** — операция удалена, когда не осталось потребителей
+Стратегия применяется каждый раз перед записью состояния операции в store. При каждом вызове операции это происходит дважды - до и после выполнения ее тела
+
+:::
 

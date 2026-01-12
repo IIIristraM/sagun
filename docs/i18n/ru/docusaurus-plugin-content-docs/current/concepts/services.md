@@ -6,8 +6,8 @@
 
 ```
 Dependency (базовый класс)
-    └── BaseService (демоны, жизненный цикл)
-            └── Service (интеграция с OperationService)
+    └── Service (демоны, жизненный цикл)
+            └── CustomService (бизнес логика)
 ```
 
 ## Создание сервиса
@@ -43,7 +43,7 @@ function ProductPage() {
   const service = di.createService(ProductService);
   di.registerService(service);
   
-  // Вызывает service.run() и service.destroy() при размонтировании
+  // Вызывает service.run() и service.destroy() на unmount компонента
   const { operationId } = useService(service);
   
   return (
@@ -108,15 +108,15 @@ import { daemon, DaemonMode } from '@iiiristram/sagun';
 class SearchService extends Service {
   toString() { return 'SearchService'; }
 
-  // DaemonMode.Sync (по умолчанию) — ждать завершения предыдущего
+  // DaemonMode.Sync (по умолчанию) — ждать завершения предыдущего вызова
   @daemon()
   *loadPage(page: number) { /* ... */ }
 
-  // DaemonMode.Last — отменить предыдущий, выполнить последний (takeLatest)
+  // DaemonMode.Last — отменить предыдущий вызов, выполнить последний (takeLatest)
   @daemon(DaemonMode.Last)
   *search(query: string) { /* ... */ }
 
-  // DaemonMode.Every — выполнять все параллельно (takeEvery)
+  // DaemonMode.Every — выполнять все вызовы параллельно (takeEvery)
   @daemon(DaemonMode.Every)
   *trackEvent(event: string) { /* ... */ }
 

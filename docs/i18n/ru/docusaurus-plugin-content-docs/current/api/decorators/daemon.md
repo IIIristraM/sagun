@@ -1,31 +1,45 @@
 # @daemon
 
-Делает метод автоматически управляемым по жизненному циклу сервиса.
+Позволяет вызывать методы сервиса, как redux actions
 
-## Сигнатура
+## Сигнатуры
 
 ```typescript
-function daemon(
-  mode?: DaemonMode,
-  delay?: number
-): MethodDecorator;
+// Режим по умолчанию (Sync)
+@daemon()
+*method() { }
+
+// С указанием режима
+@daemon(mode: DaemonMode)
+*method() { }
+
+// С режимом и кастомным action pattern
+// позволяет привязать вызов метода к любому кастомному redux экшену
+@daemon(mode: DaemonMode, action: Pattern<any>)
+*method() { }
+
+// Режим Schedule с интервалом
+@daemon(DaemonMode.Schedule, intervalMs: number)
+*method() { }
 ```
-
-## Параметры
-
-| Параметр | Тип | По умолчанию | Описание |
-|----------|-----|--------------|----------|
-| `mode` | `DaemonMode` | `Trailing` | Режим выполнения демона |
-| `delay` | `number` | `0` | Задержка в мс для `Schedule` режима |
 
 ## Режимы DaemonMode
 
-| Режим | Описание |
-|-------|----------|
-| `Trailing` | Каждый вызов отменяет предыдущий (debounce) |
-| `Leading` | Выполняется только первый вызов |
-| `Every` | Выполняются все вызовы параллельно |
-| `Schedule` | Повторяется с интервалом `delay` |
+```typescript
+enum DaemonMode {
+  Sync = 'SYNC',        // Блокирует до завершения предыдущего
+  Every = 'EVERY',      // Параллельное выполнение (takeEvery)
+  Last = 'LAST',        // Отменяет предыдущий (takeLatest)
+  Schedule = 'SCHEDULE' // Периодическое выполнение
+}
+```
+
+| Режим | Описание | Применение |
+|-------|----------|------------|
+| `Sync` | Ждёт завершения предыдущего вызова | Отправка форм, навигация |
+| `Every` | Выполняются все вызовы параллельно | Аналитика, логирование |
+| `Last` | Каждый вызов отменяет предыдущий | Поиск, автодополнение |
+| `Schedule` | Повторяется с заданным интервалом | Polling, heartbeat |
 
 ## Описание
 
@@ -37,12 +51,31 @@ function daemon(
 
 ## Примеры
 
-### Trailing (по умолчанию)
+### Sync (по умолчанию)
+
+```typescript
+class FormService extends Service {
+  toString() { return 'FormService'; }
+
+  @operation
+  @daemon() // Sync по умолчанию — ждёт завершения предыдущего
+  *submitForm(data: FormData) {
+    return yield* call(api.submit, data);
+  }
+}
+
+// Повторные клики на кнопку отправки игнорируются,
+// пока предыдущий запрос не завершится
+```
+
+### Last
 
 ```typescript
 class SearchService extends Service {
+  toString() { return 'SearchService'; }
+
   @operation
-  @daemon() // Trailing по умолчанию
+  @daemon(DaemonMode.Last)
   *search(query: string) {
     yield* delay(300); // debounce
     return yield* call(api.search, query);
@@ -53,66 +86,85 @@ class SearchService extends Service {
 // выполнится только последний search('abc')
 ```
 
-### Leading
-
-```typescript
-class AuthService extends Service {
-  @operation
-  @daemon(DaemonMode.Leading)
-  *login(credentials: Credentials) {
-    return yield* call(api.login, credentials);
-  }
-}
-
-// Повторные клики на кнопку логина игнорируются
-```
-
 ### Every
 
 ```typescript
-class UploadService extends Service {
-  @operation
+class AnalyticsService extends Service {
+  toString() { return 'AnalyticsService'; }
+
   @daemon(DaemonMode.Every)
-  *uploadFile(file: File) {
-    return yield* call(api.upload, file);
+  *trackEvent(event: string, data: object) {
+    yield* call(analytics.track, event, data);
   }
 }
 
-// Каждый файл загружается параллельно
+// Каждое событие отправляется параллельно
 ```
 
 ### Schedule
 
 ```typescript
-class PollingService extends Service {
-  @daemon(DaemonMode.Schedule, 5000)
-  *pollUpdates() {
-    const updates = yield* call(api.checkUpdates);
-    if (updates.length > 0) {
-      yield* put(updateReceived(updates));
-    }
+class NotificationService extends Service {
+  toString() { return 'NotificationService'; }
+
+  @daemon(DaemonMode.Schedule, 10000) // Каждые 10 секунд
+  *pollNotifications() {
+    return yield* call(api.getNotifications);
   }
 }
 
-// pollUpdates выполняется каждые 5 секунд пока сервис активен
+// pollNotifications выполняется каждые 10 секунд пока сервис активен
 ```
 
-## Без @operation
+## Кастомный action pattern
 
-`@daemon` можно использовать без `@operation` для фоновых задач:
+Можно подписаться на внешние Redux actions:
 
 ```typescript
-class NotificationService extends Service {
-  @daemon(DaemonMode.Schedule, 30000)
-  *checkNotifications() {
-    // Нет @operation — состояние не хранится в Redux
-    yield* call(this.fetchAndShowNotifications);
+class RouterService extends Service {
+  toString() { return 'RouterService'; }
+
+  @daemon(DaemonMode.Every, 'LOCATION_CHANGE')
+  *onRouteChange(action: LocationChangeAction) {
+    yield* call(this.handleNavigation, action.payload);
+  }
+}
+```
+
+## Вызов daemon-методов
+
+Используйте `useServiceConsumer` для получения привязанных actions:
+
+```tsx
+function SearchForm() {
+  const { actions } = useServiceConsumer(SearchService);
+  
+  return (
+    <input 
+      onChange={(e) => actions.search(e.target.value)}
+      placeholder="Поиск..."
+    />
+  );
+}
+```
+
+## Комбинация с @operation
+
+```typescript
+class UserService extends Service {
+  toString() { return 'UserService'; }
+
+  @operation  // Сохранить результат в store
+  @daemon()   // Сделать вызываемым через action
+  *fetchUser(id: string) {
+    return yield* call(api.getUser, id);
   }
 }
 ```
 
 ## См. также
 
-- [@operation](./operation) — отслеживание операций
+- [@operation](./operation) — сохранение результата в store
+- [useServiceConsumer](../hooks/use-service-consumer) — получение actions сервиса
 - [Service](../services/service) — жизненный цикл сервиса
 

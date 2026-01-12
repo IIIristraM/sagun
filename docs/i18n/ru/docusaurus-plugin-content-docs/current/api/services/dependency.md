@@ -72,7 +72,6 @@ class UserService extends Service {
 
 ## См. также
 
-- [BaseService](./base-service) — сервис с управлением жизненным циклом
 - [Service](./service) — основной класс сервиса
 - [@inject](../decorators/inject) — декоратор инъекции
 

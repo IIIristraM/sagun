@@ -13,12 +13,13 @@ const sidebars: SidebarsConfig = {
         'tutorial/data-edit',
         'tutorial/di',
         'tutorial/tests',
+        'tutorial/decorators'
       ],
     },
     {
       type: 'category',
       label: 'Core Concepts',
-      items: ['concepts/operations', 'concepts/services'],
+      items: ['concepts/operations', 'concepts/services', 'concepts/dependency-injection', 'concepts/memory-cleanup'],
     },
     {
       type: 'category',
@@ -29,11 +30,7 @@ const sidebars: SidebarsConfig = {
           label: 'Services',
           items: [
             'api/services/dependency',
-            'api/services/base-service',
             'api/services/service',
-            'api/services/operation-service',
-            'api/services/component-lifecycle-service',
-            'api/services/uuid-generator',
           ],
         },
         {
@@ -62,7 +59,6 @@ const sidebars: SidebarsConfig = {
           items: [
             'api/components/root',
             'api/components/operation',
-            'api/components/contexts',
           ],
         },
       ],
@@ -70,7 +66,7 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Advanced',
-      items: ['advanced/dependency-injection', 'advanced/ssr', 'advanced/memory-cleanup'],
+      items: ['advanced/ssr'],
     },
   ],
 };

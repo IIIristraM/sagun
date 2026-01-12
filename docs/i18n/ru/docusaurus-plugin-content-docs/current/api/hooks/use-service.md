@@ -5,28 +5,40 @@
 ## Сигнатура
 
 ```typescript
-function useService<TRunArgs extends any[], TRes>(
-  service: BaseService<TRunArgs, TRes>,
-  args: TRunArgs,
-  options?: {
-    ssr?: boolean;
-  }
-): { operationId: string };
+// Один сервис
+function useService<TArgs extends any[], TRes>(
+  service: BaseService<TArgs, TRes>,
+  args?: TArgs,
+  options?: UseSagaOptions<TArgs, TRes>
+): UseSagaOutput<TRes, TArgs>;
+
+// Массив сервисов (все получат одинаковые args)
+function useService<TArgs extends any[], TRes>(
+  services: Array<BaseService<TArgs, any>>,
+  args?: TArgs,
+  options?: UseSagaOptions<TArgs, TRes>
+): UseSagaOutput<TRes, TArgs>;
+
+type UseSagaOutput<TRes, TArgs> = {
+  operationId: OperationId<TRes, TArgs>;
+  reload: () => void;
+};
 ```
 
 ## Параметры
 
 | Параметр | Тип | Описание |
 |----------|-----|----------|
-| `service` | `BaseService` | Экземпляр сервиса для инициализации |
-| `args` | `TRunArgs` | Аргументы для `service.run()` |
-| `options.ssr` | `boolean?` | Включить SSR |
+| `service` | `BaseService \| BaseService[]` | Сервис или массив сервисов для инициализации |
+| `args` | `TArgs` | Аргументы для `service.run()` (по умолчанию `[]`) |
+| `options.operationOptions.updateStrategy` | `function?` | Стратегия обновления операции |
 
 ## Возвращаемое значение
 
 | Поле | Тип | Описание |
 |------|-----|----------|
-| `operationId` | `string` | ID операции инициализации |
+| `operationId` | `OperationId` | ID операции инициализации |
+| `reload` | `() => void` | Функция для принудительного перезапуска |
 
 ## Описание
 
@@ -102,6 +114,57 @@ function OrderPage() {
     <Operation operationId={operationId}>
       {() => <OrderForm service={orderService} />}
     </Operation>
+  );
+}
+```
+
+## Инициализация нескольких сервисов
+
+Можно инициализировать несколько сервисов одновременно:
+
+```tsx
+function Dashboard() {
+  const di = useDI();
+  
+  const userService = di.createService(UserService);
+  const statsService = di.createService(StatsService);
+  const notificationService = di.createService(NotificationService);
+  
+  di.registerService(userService);
+  di.registerService(statsService);
+  di.registerService(notificationService);
+  
+  // Все сервисы инициализируются параллельно
+  const { operationId } = useService(
+    [userService, statsService, notificationService],
+    []
+  );
+  
+  return (
+    <Operation operationId={operationId}>
+      {() => <DashboardContent />}
+    </Operation>
+  );
+}
+```
+
+## С reload
+
+```tsx
+function RefreshableData() {
+  const di = useDI();
+  const service = di.createService(DataService);
+  di.registerService(service);
+  
+  const { operationId, reload } = useService(service, []);
+  
+  return (
+    <div>
+      <button onClick={reload}>Обновить данные</button>
+      <Operation operationId={operationId}>
+        {() => <DataView />}
+      </Operation>
+    </div>
   );
 }
 ```

@@ -5,28 +5,52 @@
 ## Сигнатура
 
 ```typescript
-function useDI(): DIContainer;
+function useDI(): IDIContext;
 
-interface DIContainer {
-  createService<T extends Dependency>(
-    ServiceClass: new (...args: any[]) => T
-  ): T;
-  
+interface IDIContext {
+  // Работа с Dependency/Service (классы)
+  createService<T extends Dependency>(Ctr: new (...args: any[]) => T): T;
   registerService(service: Dependency): void;
+  unregisterService<T extends Dependency>(Ctr: new (...args: any[]) => T): void;
+  getService<T extends Dependency>(Ctr: new (...args: any[]) => T): T;
   
-  getService<T extends Dependency>(
-    ServiceClass: new (...args: any[]) => T
-  ): T;
+  // Работа с DependencyKey (произвольные данные)
+  registerDependency<D>(key: DependencyKey<D>, dependency: D): void;
+  unregisterDependency<D>(key: DependencyKey<D>): void;
+  getDependency<D>(key: DependencyKey<D>): D;
+  
+  // Создание actions для @daemon методов
+  createServiceActions<T extends BaseService>(
+    service: T, 
+    bind?: Store
+  ): ActionAPI<T>;
 }
 ```
 
 ## Возвращаемое значение
 
+### Работа с классами (Dependency/Service)
+
 | Метод | Описание |
 |-------|----------|
 | `createService(Class)` | Создать экземпляр с автоматической инъекцией зависимостей |
 | `registerService(instance)` | Зарегистрировать сервис в контейнере |
+| `unregisterService(Class)` | Удалить сервис из контейнера |
 | `getService(Class)` | Получить зарегистрированный сервис |
+
+### Работа с DependencyKey (произвольные данные)
+
+| Метод | Описание |
+|-------|----------|
+| `registerDependency(key, data)` | Зарегистрировать данные по ключу |
+| `unregisterDependency(key)` | Удалить данные по ключу |
+| `getDependency(key)` | Получить данные по ключу |
+
+### Actions
+
+| Метод | Описание |
+|-------|----------|
+| `createServiceActions(service, store?)` | Создать actions для `@daemon` методов сервиса |
 
 ## Описание
 
@@ -74,29 +98,39 @@ function App() {
 }
 ```
 
+## Регистрация данных по ключу
+
+Для инъекции произвольных данных (не классов) используйте `DependencyKey`:
+
+```tsx
+import { DependencyKey } from '@iiiristram/sagun';
+
+// Определите тип и ключ
+type AppConfig = { apiUrl: string };
+const CONFIG_KEY = 'APP_CONFIG' as DependencyKey<AppConfig>;
+
+function App() {
+  const di = useDI();
+  
+  // Зарегистрировать данные по ключу
+  di.registerDependency(CONFIG_KEY, { apiUrl: 'https://api.example.com' });
+  
+  // Получить данные
+  const config = di.getDependency(CONFIG_KEY);
+  
+  // Сервисы могут инъектировать через @inject(CONFIG_KEY)
+  const service = di.createService(MyService);
+}
+```
+
 ## Область видимости контейнера
 
 Контейнер создаётся компонентом `Root` и доступен во всём поддереве:
 
 ```tsx
 <Root operationService={os} componentLifecycleService={cls}>
-  {/* Весь этот поддерево использует один контейнер */}
+  {/* Всё это поддерево использует один контейнер */}
   <App />
-</Root>
-```
-
-## Вложенные контейнеры
-
-Вложенный `Root` создаёт изолированный контейнер:
-
-```tsx
-<Root operationService={os} componentLifecycleService={cls}>
-  <GlobalServices />
-  
-  <Root operationService={os2} componentLifecycleService={cls2}>
-    {/* Изолированный контейнер, не видит GlobalServices */}
-    <IsolatedFeature />
-  </Root>
 </Root>
 ```
 

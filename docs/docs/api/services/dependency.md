@@ -72,7 +72,6 @@ class UserService extends Service {
 
 ## See Also
 
-- [BaseService](./base-service) - Service with lifecycle management
-- [Service](./service) - Main service class
-- [@inject](../decorators/inject) - Injection decorator
+- [Service](./service) — Main service class
+- [@inject](../decorators/inject) — Injection decorator
 

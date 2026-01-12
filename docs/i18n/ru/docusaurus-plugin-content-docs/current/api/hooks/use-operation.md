@@ -5,16 +5,25 @@
 ## Сигнатура
 
 ```typescript
-function useOperation<TResult>(
-  operationId: string
-): AsyncOperation<TResult>;
+function useOperation<TRes, TArgs = any, TMeta = never, TErr = Error>(
+  options: {
+    operationId: OperationId<TRes, TArgs, TMeta, TErr>;
+    defaultState?: Partial<AsyncOperation<TRes, TArgs, TMeta, TErr>>;
+    suspense?: boolean;
+  }
+): Partial<AsyncOperation<TRes, TArgs, TMeta, TErr>>;
+
+// Статический метод — обязательно вызвать перед использованием
+useOperation.setPath(path: (state: any) => State): void;
 ```
 
 ## Параметры
 
-| Параметр | Тип | Описание |
-|----------|-----|----------|
-| `operationId` | `string` | ID операции для подписки |
+| Параметр | Тип | По умолчанию | Описание |
+|----------|-----|--------------|----------|
+| `options.operationId` | `OperationId` | — | ID операции для подписки |
+| `options.defaultState` | `Partial<AsyncOperation>` | `{ isLoading: true }` | Состояние по умолчанию, если операции нет в store |
+| `options.suspense` | `boolean` | `false` | Интеграция с React Suspense |
 
 ## Возвращаемое значение
 
@@ -22,14 +31,27 @@ function useOperation<TResult>(
 
 | Поле | Тип | Описание |
 |------|-----|----------|
-| `loading` | `boolean` | Операция выполняется |
-| `success` | `boolean` | Операция завершилась успешно |
-| `error` | `Error \| null` | Ошибка, если произошла |
-| `result` | `TResult \| null` | Результат операции |
+| `id` | `OperationId` | ID операции |
+| `isLoading` | `boolean?` | Операция выполняется |
+| `isError` | `boolean?` | Операция завершилась с ошибкой |
+| `isBlocked` | `boolean?` | Операция заблокирована |
+| `error` | `TErr?` | Ошибка, если произошла |
+| `result` | `TRes?` | Результат операции |
+| `args` | `TArgs?` | Аргументы, с которыми запущена операция |
+| `meta` | `TMeta?` | Дополнительные метаданные |
 
 ## Описание
 
 `useOperation` подписывается на операцию в Redux store и возвращает её текущее состояние. Компонент перерендерится при изменении состояния.
+
+:::warning Настройка пути
+Перед использованием необходимо указать путь к операциям в store:
+
+```typescript
+// bootstrap.ts
+useOperation.setPath(state => state.asyncOperations);
+```
+:::
 
 ## Базовый пример
 
@@ -38,18 +60,19 @@ import { useSaga, useOperation } from '@iiiristram/sagun';
 
 function UserProfile({ userId }) {
   const { operationId } = useSaga({
+    id: `user-${userId}`,
     onLoad: function* () {
       return yield* call(api.getUser, userId);
     }
   }, [userId]);
 
-  const operation = useOperation(operationId);
+  const operation = useOperation({ operationId });
 
-  if (operation.loading) {
+  if (operation.isLoading) {
     return <Spinner />;
   }
 
-  if (operation.error) {
+  if (operation.isError) {
     return <ErrorMessage error={operation.error} />;
   }
 
@@ -60,23 +83,68 @@ function UserProfile({ userId }) {
 ## С операцией сервиса
 
 ```tsx
-import { useOperation, getId } from '@iiiristram/sagun';
+import { useOperation, useServiceConsumer, getId } from '@iiiristram/sagun';
 
-function UserActions({ userId }) {
-  const di = useDI();
-  const userService = di.getService(UserService);
+function UserActions() {
+  const { service, actions } = useServiceConsumer(UserService);
   
-  // Получить ID операции по методу и аргументам
-  const operationId = getId(userService.fetchUser, userId);
-  const operation = useOperation(operationId);
+  // Получить ID операции по методу
+  const operationId = getId(service.fetchUser);
+  const operation = useOperation({ operationId });
 
-  if (operation.loading) {
+  if (operation.isLoading) {
     return <Button disabled>Загрузка...</Button>;
   }
 
-  return <Button onClick={() => userService.fetchUser(userId)}>
-    Обновить
-  </Button>;
+  return (
+    <Button onClick={() => actions.fetchUser()}>
+      Обновить
+    </Button>
+  );
+}
+```
+
+## С Suspense
+
+```tsx
+function UserData({ userId }) {
+  const { operationId } = useSaga({
+    id: `user-data-${userId}`,
+    onLoad: function* () {
+      return yield* call(api.getUser, userId);
+    }
+  }, [userId]);
+
+  // suspense: true — компонент "подвиснет" пока isLoading
+  const operation = useOperation({ operationId, suspense: true });
+
+  // Сюда попадаем только когда данные готовы
+  return <div>{operation.result?.name}</div>;
+}
+
+function Parent() {
+  return (
+    <Suspense fallback={<Spinner />}>
+      <UserData userId="123" />
+    </Suspense>
+  );
+}
+```
+
+## С defaultState
+
+```tsx
+function OptionalData({ operationId }) {
+  const operation = useOperation({
+    operationId,
+    // Состояние по умолчанию, если операции нет в store
+    defaultState: { 
+      isLoading: false, 
+      result: [] 
+    }
+  });
+
+  return <List items={operation.result ?? []} />;
 }
 ```
 
@@ -87,10 +155,16 @@ function UserActions({ userId }) {
 ```tsx
 // useOperation — ручное управление
 function WithHook({ operationId }) {
-  const op = useOperation(operationId);
+  const op = useOperation({ operationId });
   
-  if (op.loading) return <Spinner />;
-  if (op.error) return <Error error={op.error} />;
+  if (op.isLoading) return <Spinner />;
+  if (op.isError) return <Error error={op.error} />;
+  return <Data result={op.result} />;
+}
+
+// useOperation с Suspense
+function WithHookSuspense({ operationId }) {
+  const op = useOperation({ operationId, suspense: true });
   return <Data result={op.result} />;
 }
 
@@ -107,8 +181,8 @@ function WithComponent({ operationId }) {
 ```
 
 Используйте `useOperation` когда:
-- Нужен доступ к `loading`/`error` в логике компонента
-- Не используете Suspense
+- Нужен доступ к `isLoading`/`isError` в логике компонента
+- Нужно кастомное `defaultState`
 - Нужно обрабатывать состояния особым образом
 
 Используйте `Operation` когда:

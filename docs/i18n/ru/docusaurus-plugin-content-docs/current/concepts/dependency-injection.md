@@ -1,12 +1,12 @@
 # Dependency Injection
 
-Sagun предоставляет встроенный контейнер dependency injection для управления зависимостями сервисов.
+Sagun предоставляет встроенный IoC контейнер для управления зависимостями сервисов.
 
 ## Базовые концепции
 
 ### Зависимости
 
-Любой класс, наследующий `Dependency`, может быть инъектирован:
+Любой класс, наследующий `Dependency`, может быть использован в качестве зависимости:
 
 ```typescript
 import { Dependency } from '@iiiristram/sagun';
@@ -219,9 +219,10 @@ function ProductPage() {
 
 ```typescript
 // Создаём mock сервис
-class MockUserService extends Dependency {
+class MockUserService extends UserService {
   toString() { return 'UserService'; }
   
+  // переопределяем оригинальные методы
   *fetchUser(id: string) {
     return { id, name: 'Test User' };
   }
@@ -254,37 +255,11 @@ class OrderService extends Service {
 
 // ❌ Плохо — скрытые зависимости
 class OrderService extends Service {
-  *createOrder() {
-    const di = getGlobalDI(); // Скрытая зависимость
-    const users = di.getService(UserService);
-  }
+  userService = new UserService()
 }
 ```
 
-### 2. Используйте интерфейсы для тестирования
-
-```typescript
-// Определяем интерфейс
-interface IUserService {
-  fetchUser(id: string): Generator<any, User>;
-}
-
-// Продакшен реализация
-class UserService extends Service implements IUserService {
-  *fetchUser(id: string) {
-    return yield* call(api.getUser, id);
-  }
-}
-
-// Тестовая реализация
-class MockUserService extends Dependency implements IUserService {
-  *fetchUser(id: string) {
-    return { id, name: 'Mock' };
-  }
-}
-```
-
-### 3. Избегайте циклических зависимостей
+### 2. Избегайте циклических зависимостей
 
 ```typescript
 // ❌ Циклическая зависимость
@@ -294,17 +269,6 @@ class ServiceA extends Service {
 
 class ServiceB extends Service {
   constructor(@inject(ServiceA) private a: ServiceA) {} // Ошибка!
-}
-
-// ✅ Используйте события или выделите общую логику
-class SharedService extends Service { /* общая логика */ }
-
-class ServiceA extends Service {
-  constructor(@inject(SharedService) private shared: SharedService) {}
-}
-
-class ServiceB extends Service {
-  constructor(@inject(SharedService) private shared: SharedService) {}
 }
 ```
 
