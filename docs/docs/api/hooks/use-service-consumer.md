@@ -1,6 +1,6 @@
 # useServiceConsumer
 
-Retrieves registered service and creates bound actions.
+Gets a service and creates actions for its `@daemon` methods.
 
 ## Signature
 
@@ -17,149 +17,140 @@ function useServiceConsumer<T extends BaseService>(
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `ServiceClass` | `Constructor` | Service class (not instance) |
+| `ServiceClass` | `Class` | Service class (not instance!) |
 
 ## Returns
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `service` | `T` | Registered service instance |
-| `actions` | `ActionAPI<T>` | Bound action creators for `@daemon` methods |
+| Field | Type | Description |
+|-------|------|-------------|
+| `service` | `T` | Service instance from DI container |
+| `actions` | `ActionAPI<T>` | Object with actions for `@daemon` methods, bound to store |
+
+## Description
+
+`useServiceConsumer` solves two tasks:
+
+1. **Gets service** — equivalent to `useDI().getService(ServiceClass)`
+2. **Creates actions** — for all methods with `@daemon` decorator, bound to Redux store
 
 ## Basic Usage
 
 ```tsx
-function ProductList() {
-  const { service, actions } = useServiceConsumer(ProductService);
+import { useServiceConsumer } from '@iiiristram/sagun';
+
+function SearchForm() {
+  // Get service and actions by class
+  const { service, actions } = useServiceConsumer(SearchService);
   
-  // Access service for operation IDs
-  const operation = useOperation({
-    operationId: getId(service.fetchProducts),
-  });
+  return (
+    <input 
+      onChange={(e) => actions.search(e.target.value)}
+      placeholder="Search..."
+    />
+  );
+}
+```
+
+## With useOperation
+
+```tsx
+import { useServiceConsumer, useOperation, getId } from '@iiiristram/sagun';
+
+function UserProfile() {
+  const { service, actions } = useServiceConsumer(UserService);
   
-  // Call daemon methods via actions
-  const handleRefresh = () => {
-    actions.fetchProducts();
-  };
+  // Get operation ID of @operation method
+  const operationId = getId(service.fetchUser);
+  const operation = useOperation({ operationId });
   
   return (
     <div>
-      <button onClick={handleRefresh}>Refresh</button>
-      <ul>
-        {operation.result?.map(product => (
-          <li key={product.id}>{product.name}</li>
-        ))}
-      </ul>
+      {operation.isLoading ? (
+        <Spinner />
+      ) : (
+        <div>
+          <h1>{operation.result?.name}</h1>
+          <button onClick={() => actions.fetchUser()}>
+            Refresh
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 ```
 
-## Actions Usage
+## Actions Are Typed
 
-Actions are automatically created for methods decorated with `@daemon`:
+Actions are automatically typed based on service methods:
 
 ```typescript
-class SearchService extends Service {
-  toString() { return 'SearchService'; }
-
-  @daemon(DaemonMode.Last)
-  *search(query: string) {
-    return yield* call(api.search, query);
-  }
+class UserService extends Service {
+  toString() { return 'UserService'; }
 
   @daemon()
-  *clearResults() {
-    // ...
-  }
-
-  // No @daemon - won't have action
-  @operation
-  *getHistory() {
-    return yield* call(api.getHistory);
+  *updateName(userId: string, newName: string) {
+    yield* call(api.updateName, userId, newName);
   }
 }
+
+// In component
+const { actions } = useServiceConsumer(UserService);
+
+// TypeScript knows the signature:
+actions.updateName('123', 'New name'); // ✓ OK
+actions.updateName('123');              // ✗ Error: missing argument
+actions.updateName(123, 'Name');        // ✗ Error: wrong type
 ```
 
-```tsx
-function SearchForm() {
-  const { actions } = useServiceConsumer(SearchService);
-  
-  return (
-    <>
-      <input onChange={(e) => actions.search(e.target.value)} />
-      <button onClick={() => actions.clearResults()}>Clear</button>
-      {/* actions.getHistory doesn't exist - no @daemon */}
-    </>
-  );
-}
-```
+## When to Use
 
-## Service Must Be Registered
-
-Service must be registered via `useDI()` in a parent component:
+| Situation | Hook |
+|-----------|------|
+| Initialize service (owner) | `useService` |
+| Use service (consumer) | `useServiceConsumer` |
+| Run simple saga | `useSaga` |
 
 ```tsx
-// Parent component
+// Owner component — creates and initializes
 function ProductPage() {
   const di = useDI();
-  const service = di.createService(ProductService);
-  di.registerService(service); // Register here
-  
-  return <ProductList />; // Child can consume
-}
-
-// Child component
-function ProductList() {
-  // Works because parent registered ProductService
-  const { service, actions } = useServiceConsumer(ProductService);
-}
-```
-
-## Complete Pattern
-
-```tsx
-// Page component - creates and initializes service
-function ProductPage({ categoryId }) {
-  const di = useDI();
-  
   const service = di.createService(ProductService);
   di.registerService(service);
   
   const { operationId } = useService(service, [categoryId]);
   
   return (
-    <Suspense fallback={<Spinner />}>
-      <Operation operationId={operationId}>
-        {() => <ProductContent />}
-      </Operation>
-    </Suspense>
+    <Operation operationId={operationId}>
+      {() => <ProductList />}
+    </Operation>
   );
 }
 
-// Content component - consumes service
-function ProductContent() {
+// Consumer component — uses the ready service
+function ProductList() {
   const { service, actions } = useServiceConsumer(ProductService);
-  
-  const products = useOperation({
-    operationId: getId(service.fetchProducts),
-    suspense: true,
-  });
+  const operationId = getId(service.getProducts);
+  const operation = useOperation({ operationId });
   
   return (
-    <div>
-      <button onClick={() => actions.fetchProducts()}>
-        Refresh
-      </button>
-      <ProductList items={products.result} />
-    </div>
+    <ul>
+      {operation.result?.map(product => (
+        <li key={product.id}>
+          {product.name}
+          <button onClick={() => actions.addToCart(product.id)}>
+            Add to cart
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }
 ```
 
 ## See Also
 
-- [useDI](./use-di) - Register services
-- [useService](./use-service) - Initialize service
-- [@daemon](../decorators/daemon) - Create actions
-
+- [useService](./use-service) — service initialization
+- [useOperation](./use-operation) — subscribing to operation
+- [@daemon](../decorators/daemon) — decorator for creating actions
+- [useDI](./use-di) — working with DI container

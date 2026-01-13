@@ -6,8 +6,8 @@ Services are the primary containers for business logic in Sagun. They encapsulat
 
 ```
 Dependency (base class)
-    └── BaseService (daemons, lifecycle)
-            └── Service (operation service integration)
+    └── Service (daemons, lifecycle)
+            └── CustomService (business logic)
 ```
 
 ## Creating a Service
@@ -17,7 +17,7 @@ import { Service, operation, daemon } from '@iiiristram/sagun';
 import { call } from 'typed-redux-saga';
 
 class ProductService extends Service {
-  // REQUIRED: Unique identifier
+  // REQUIRED: unique identifier
   toString() {
     return 'ProductService';
   }
@@ -43,7 +43,7 @@ function ProductPage() {
   const service = di.createService(ProductService);
   di.registerService(service);
   
-  // Calls service.run() and service.destroy() on unmount
+  // Calls service.run() and service.destroy() on component unmount
   const { operationId } = useService(service);
   
   return (
@@ -65,7 +65,7 @@ class ProductService extends Service<[string], Product[]> {
   toString() { return 'ProductService'; }
 
   *run(category: string) {
-    // IMPORTANT: Call super.run() first
+    // IMPORTANT: call super.run() first
     yield* call([this, super.run]);
     
     this.category = category;
@@ -77,7 +77,7 @@ class ProductService extends Service<[string], Product[]> {
   }
 
   *destroy() {
-    // IMPORTANT: Call super.destroy()
+    // IMPORTANT: call super.destroy()
     yield* call([this, super.destroy]);
     
     // Custom cleanup
@@ -108,19 +108,19 @@ import { daemon, DaemonMode } from '@iiiristram/sagun';
 class SearchService extends Service {
   toString() { return 'SearchService'; }
 
-  // DaemonMode.Sync (default) - Block until previous completes
+  // DaemonMode.Sync (default) — wait for previous call to complete
   @daemon()
   *loadPage(page: number) { /* ... */ }
 
-  // DaemonMode.Last - Cancel previous, run latest (takeLatest)
+  // DaemonMode.Last — cancel previous call, run latest (takeLatest)
   @daemon(DaemonMode.Last)
   *search(query: string) { /* ... */ }
 
-  // DaemonMode.Every - Run all in parallel (takeEvery)
+  // DaemonMode.Every — run all calls in parallel (takeEvery)
   @daemon(DaemonMode.Every)
   *trackEvent(event: string) { /* ... */ }
 
-  // DaemonMode.Schedule - Run periodically
+  // DaemonMode.Schedule — periodic execution
   @daemon(DaemonMode.Schedule, 30000) // Every 30 seconds
   *pollUpdates() { /* ... */ }
 }
@@ -156,7 +156,7 @@ class OrderService extends Service {
 }
 ```
 
-## Service Best Practices
+## Best Practices
 
 ### 1. Single Responsibility
 
@@ -200,4 +200,3 @@ class ProductService extends Service {
   *fetchProductWithReviewsAndRelatedAndCart() { /* ... */ }
 }
 ```
-

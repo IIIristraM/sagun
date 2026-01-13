@@ -1,148 +1,142 @@
 # useDI
 
-Returns the Dependency Injection context.
+Provides access to the Dependency Injection container.
 
 ## Signature
 
 ```typescript
 function useDI(): IDIContext;
-```
 
-## Returns
-
-```typescript
 interface IDIContext {
-  registerDependency<D>(key: DependencyKey<D>, dependency: D): void;
-  getDependency<D>(key: DependencyKey<D>): D;
+  // Working with Dependency/Service (classes)
+  createService<T extends Dependency>(Ctr: new (...args: any[]) => T): T;
   registerService(service: Dependency): void;
-  createService<T extends Dependency>(Ctr: Ctr<T>): T;
-  getService<T extends Dependency>(Ctr: Ctr<T>): T;
+  unregisterService<T extends Dependency>(Ctr: new (...args: any[]) => T): void;
+  getService<T extends Dependency>(Ctr: new (...args: any[]) => T): T;
+  
+  // Working with DependencyKey (arbitrary data)
+  registerDependency<D>(key: DependencyKey<D>, dependency: D): void;
+  unregisterDependency<D>(key: DependencyKey<D>): void;
+  getDependency<D>(key: DependencyKey<D>): D;
+  
+  // Creating actions for @daemon methods
   createServiceActions<T extends BaseService>(
     service: T, 
-    store?: Store
+    bind?: Store
   ): ActionAPI<T>;
 }
 ```
 
-## Methods
+## Returns
+
+### Working with Classes (Dependency/Service)
 
 | Method | Description |
 |--------|-------------|
-| `registerDependency(key, value)` | Register dependency by string key |
-| `getDependency(key)` | Get dependency by string key |
-| `registerService(service)` | Register service instance by its `toString()` |
-| `createService(Class)` | Create service, resolving `@inject` dependencies |
-| `getService(Class)` | Get registered service by class |
-| `createServiceActions(service, store?)` | Create action creators for `@daemon` methods |
+| `createService(Class)` | Create instance with automatic dependency injection |
+| `registerService(instance)` | Register service in the container |
+| `unregisterService(Class)` | Remove service from the container |
+| `getService(Class)` | Get registered service |
+
+### Working with DependencyKey (Arbitrary Data)
+
+| Method | Description |
+|--------|-------------|
+| `registerDependency(key, data)` | Register data by key |
+| `unregisterDependency(key)` | Remove data by key |
+| `getDependency(key)` | Get data by key |
+
+### Actions
+
+| Method | Description |
+|--------|-------------|
+| `createServiceActions(service, store?)` | Create actions for `@daemon` methods of a service |
+
+## Description
+
+`useDI` is the access point to Sagun's Dependency Injection system. The container stores service instances and automatically resolves dependencies during creation.
 
 ## Basic Usage
 
 ```tsx
+import { useDI } from '@iiiristram/sagun';
+
 function App() {
   const di = useDI();
   
-  // Create and register service
+  // Create service (dependencies are injected automatically)
   const userService = di.createService(UserService);
+  
+  // Register for use by others
   di.registerService(userService);
   
-  return <Content />;
+  // Get registered service
+  const sameService = di.getService(UserService);
+  console.log(userService === sameService); // true
 }
 ```
 
-## registerDependency / getDependency
+## Registration Order
 
-For non-class dependencies:
+Dependencies must be registered before creating services that use them:
+
+```tsx
+function App() {
+  const di = useDI();
+  
+  // 1. First, dependencies without dependencies
+  const logger = new Logger();
+  di.registerService(logger);
+  
+  // 2. Then services that depend on them
+  const userService = di.createService(UserService);
+  di.registerService(userService);
+  
+  // 3. And services depending on the previous ones
+  const orderService = di.createService(OrderService);
+  di.registerService(orderService);
+}
+```
+
+## Registering Data by Key
+
+To inject arbitrary data (not classes), use `DependencyKey`:
 
 ```tsx
 import { DependencyKey } from '@iiiristram/sagun';
 
-const API_CONFIG = 'API_CONFIG' as DependencyKey<{
-  baseUrl: string;
-}>;
+// Define type and key
+type AppConfig = { apiUrl: string };
+const CONFIG_KEY = 'APP_CONFIG' as DependencyKey<AppConfig>;
 
 function App() {
   const di = useDI();
   
-  // Register
-  di.registerDependency(API_CONFIG, { baseUrl: '/api' });
+  // Register data by key
+  di.registerDependency(CONFIG_KEY, { apiUrl: 'https://api.example.com' });
   
-  // Later, anywhere
-  const config = di.getDependency(API_CONFIG);
+  // Get data
+  const config = di.getDependency(CONFIG_KEY);
+  
+  // Services can inject via @inject(CONFIG_KEY)
+  const service = di.createService(MyService);
 }
 ```
 
-## createService
+## Container Scope
 
-Creates service instance, automatically resolving `@inject` dependencies:
-
-```tsx
-function App() {
-  const di = useDI();
-  
-  // UserService has no dependencies beyond OperationService
-  const userService = di.createService(UserService);
-  di.registerService(userService);
-  
-  // OrderService depends on UserService
-  // createService will inject it automatically
-  const orderService = di.createService(OrderService);
-  di.registerService(orderService);
-}
-```
-
-## getService
-
-Retrieve previously registered service:
+The container is created by the `Root` component and is available throughout the subtree:
 
 ```tsx
-function ChildComponent() {
-  const di = useDI();
-  
-  // Get service registered by parent
-  const userService = di.getService(UserService);
-}
-```
-
-## Complete Example
-
-```tsx
-function App() {
-  const di = useDI();
-  
-  // 1. Register config
-  di.registerDependency(API_CONFIG, {
-    baseUrl: process.env.API_URL,
-    timeout: 5000,
-  });
-  
-  // 2. Create base services
-  const logger = di.createService(LoggerService);
-  di.registerService(logger);
-  
-  const apiService = di.createService(ApiService);
-  di.registerService(apiService);
-  
-  // 3. Create dependent services
-  const userService = di.createService(UserService);
-  di.registerService(userService);
-  
-  const orderService = di.createService(OrderService);
-  di.registerService(orderService);
-  
-  return (
-    <Router>
-      <Routes>
-        <Route path="/user" element={<UserPage />} />
-        <Route path="/orders" element={<OrdersPage />} />
-      </Routes>
-    </Router>
-  );
-}
+<Root operationService={os} componentLifecycleService={cls}>
+  {/* The entire subtree uses one container */}
+  <App />
+</Root>
 ```
 
 ## See Also
 
-- [Dependency Injection Guide](../../advanced/dependency-injection) - Full guide
-- [@inject](../decorators/inject) - Injection decorator
-- [useServiceConsumer](./use-service-consumer) - Get service and actions
-
+- [Root](../components/root) — container provider
+- [Dependency](../services/dependency) — base dependency class
+- [@inject](../decorators/inject) — injection decorator
+- [Dependency Injection](../../concepts/dependency-injection) — detailed guide

@@ -6,7 +6,8 @@ const sidebars: SidebarsConfig = {
     'getting-started',
     {
       type: 'category',
-      label: 'Step-by-Step Guide',
+      label: 'Tutorial',
+      collapsed: false,
       items: [
         'tutorial/data-load',
         'tutorial/service',

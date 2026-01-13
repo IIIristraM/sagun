@@ -36,7 +36,7 @@ Sagun uses TypeScript decorators. Enable them in your `tsconfig.json`:
 
 ## Bootstrap Your Application
 
-Create the bootstrap file for your application:
+Below is an example of typical application initialization based on redux and redux-saga, with highlighted lines that need to be added to configure the framework:
 
 ```tsx
 // bootstrap.tsx
@@ -45,6 +45,7 @@ import { Provider } from 'react-redux';
 import createSagaMiddleware from 'redux-saga';
 import React from 'react';
 import ReactDOM from 'react-dom';
+// highlight-start
 import { call } from 'typed-redux-saga';
 import {
   ComponentLifecycleService,
@@ -53,41 +54,51 @@ import {
   Root,
   useOperation,
 } from '@iiiristram/sagun';
+// highlight-end
 
-import App from './App';
+import { App } from './App';
 
 // 1. Create saga middleware
 const sagaMiddleware = createSagaMiddleware();
 
-// 2. Create Redux store with the operations reducer
+// 2. Create Redux store with operations reducer
 const store = applyMiddleware(sagaMiddleware)(createStore)(
   combineReducers({
+    // highlight-next-line
     asyncOperations: asyncOperationsReducer,
   })
 );
 
 // 3. Configure the path to operations in state
+// highlight-next-line
 useOperation.setPath(state => state.asyncOperations);
 
 // 4. Create the core services
+// highlight-start
 const operationService = new OperationService();
 const componentLifecycleService = new ComponentLifecycleService(operationService);
+// highlight-end
 
 // 5. Run the saga middleware with core services
 sagaMiddleware.run(function* () {
+  // highlight-start
   yield* call(operationService.run);
   yield* call(componentLifecycleService.run);
+  // highlight-end
 });
 
 // 6. Render the application
 ReactDOM.render(
+  // highlight-start
   <Root 
     operationService={operationService} 
     componentLifecycleService={componentLifecycleService}
   >
+  // highlight-end
     <Provider store={store}>
       <App />
     </Provider>
+  // highlight-next-line 
   </Root>,
   document.getElementById('app')
 );

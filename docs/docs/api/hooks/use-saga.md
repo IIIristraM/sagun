@@ -1,20 +1,20 @@
 # useSaga
 
-Binds saga execution to component lifecycle.
+Runs a saga bound to component lifecycle.
 
 ## Signature
 
 ```typescript
-function useSaga<TArgs extends any[], TRes>(
+function useSaga<TRes, TArgs extends any[]>(
   saga: {
     id: string;
     onLoad?: (...args: TArgs) => Generator<any, TRes>;
     onDispose?: (...args: TArgs) => Generator<any, void>;
   },
-  args?: TArgs,
+  args: TArgs,
   options?: {
     operationOptions?: {
-      updateStrategy?: IOperationUpdateStrategy<TRes, TArgs>;
+      updateStrategy: (operation: AsyncOperation) => AsyncOperation;
     };
   }
 ): {
@@ -27,125 +27,169 @@ function useSaga<TArgs extends any[], TRes>(
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `saga.id` | `string` | **Required.** Unique ID for Suspense compatibility |
-| `saga.onLoad` | `Generator` | Executes on render and when args change |
-| `saga.onDispose` | `Generator` | Executes before next onLoad and on unmount |
-| `args` | `TArgs` | Arguments passed to onLoad/onDispose |
-| `options.operationOptions.updateStrategy` | `Function` | Custom operation update logic |
+| `saga.id` | `string` | **Required** operation ID (must be unique per component instance) |
+| `saga.onLoad` | `Saga?` | Saga executed on mount and when args change |
+| `saga.onDispose` | `Saga?` | Cleanup saga, executed before next onLoad or unmount |
+| `args` | `TArgs` | Dependency array (like in useEffect) |
+| `options.operationOptions.updateStrategy` | `function?` | Function to modify operation before saving |
 
 ## Returns
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `operationId` | `OperationId` | ID to subscribe to results via `useOperation` |
-| `reload` | `() => void` | Force re-execution of onLoad |
+| Field | Type | Description |
+|-------|------|-------------|
+| `operationId` | `OperationId` | ID for subscribing via useOperation or Operation |
+| `reload` | `() => void` | Function to force saga restart |
+
+## Description
+
+`useSaga` is the primary way to run async logic in components:
+
+1. **On mount** — `onLoad` executes
+2. **On args change** — current `onLoad` is cancelled, `onDispose` executes, then new `onLoad`
+3. **On unmount** — `onLoad` is cancelled, `onDispose` executes
 
 ## Basic Usage
 
 ```tsx
+import { useSaga, Operation } from '@iiiristram/sagun';
+import { call } from 'typed-redux-saga';
+
 function UserProfile({ userId }) {
   const { operationId } = useSaga({
-    id: `user-${userId}`,
+    id: `user-profile-${userId}`,
     onLoad: function* () {
-      yield* call(api.fetchUser, userId);
-    },
+      return yield* call(api.getUser, userId);
+    }
   }, [userId]);
 
   return (
+    <Suspense fallback={<Spinner />}>
+      <Operation operationId={operationId}>
+        {(op) => <div>{op.result?.name}</div>}
+      </Operation>
+    </Suspense>
+  );
+}
+```
+
+## With Cleanup
+
+```tsx
+function LiveData({ streamId }) {
+  const { operationId } = useSaga({
+    id: `live-data-${streamId}`,
+    onLoad: function* () {
+      const subscription = yield* call(api.subscribe, streamId);
+      return subscription;
+    },
+    onDispose: function* () {
+      yield* call(api.unsubscribe, streamId);
+    }
+  }, [streamId]);
+
+  return (
     <Operation operationId={operationId}>
-      {() => <ProfileContent />}
+      {(op) => <DataView data={op.result} />}
     </Operation>
   );
 }
 ```
 
-## With onDispose
+## With Forced Reload
 
 ```tsx
-function DataView({ id }) {
-  const { operationId } = useSaga({
-    id: `data-${id}`,
-    onLoad: function* (dataId) {
-      console.log('Loading data:', dataId);
-      yield* call(api.fetchData, dataId);
-    },
-    onDispose: function* (dataId) {
-      console.log('Cleaning up:', dataId);
-      yield* call(api.clearCache, dataId);
-    },
-  }, [id]);
-
-  // When id changes:
-  // 1. Current onLoad is cancelled
-  // 2. onDispose runs with old id
-  // 3. onLoad runs with new id
-}
-```
-
-## With Service Methods
-
-```tsx
-function ProductPage({ categoryId }) {
-  const { service } = useServiceConsumer(ProductService);
-  
+function DataWithRefresh({ id }) {
   const { operationId, reload } = useSaga({
-    id: `products-${categoryId}`,
-    onLoad: function* (catId) {
-      yield* call(service.fetchProducts, catId);
-      yield* call(service.fetchFilters, catId);
-    },
-  }, [categoryId]);
+    id: `data-${id}`,
+    onLoad: function* () {
+      return yield* call(api.getData, id);
+    }
+  }, [id]);
 
   return (
     <div>
       <button onClick={reload}>Refresh</button>
       <Operation operationId={operationId}>
-        {() => <ProductList />}
+        {(op) => <div>{op.result}</div>}
       </Operation>
     </div>
   );
 }
 ```
 
-## Important Notes
+## With updateStrategy
 
-### ID is Required
-
-The `id` parameter is **required** for React Suspense compatibility:
+Use `updateStrategy` to modify operation before saving (e.g., for pagination):
 
 ```tsx
-// ✅ Good
-useSaga({ id: 'unique-id', onLoad: ... });
+import { select } from 'typed-redux-saga';
 
-// ✅ Good - dynamic ID
-useSaga({ id: `item-${itemId}`, onLoad: ... }, [itemId]);
-```
-
-### Lifecycle Guarantees
-
-- If `onLoad` is cancelled mid-execution, `onDispose` will be called
-- `onDispose` always completes fully before next `onLoad` starts
-- Multiple rapid changes result in single `onLoad` with latest args
-
-### Execution Timing
-
-`useSaga` executes in a `useMemo`-like way (on render), not in `useEffect`:
-
-```tsx
-function Component() {
-  // onLoad starts during render, not after commit
+function PaginatedList({ page }) {
   const { operationId } = useSaga({
-    id: 'my-saga',
-    onLoad: function* () {
-      // This runs immediately during render
-    },
+    id: 'paginated-list',
+    onLoad: function* (pageNum) {
+      return yield* call(api.getItems, pageNum);
+    }
+  }, [page], {
+    operationOptions: {
+      updateStrategy: function* (next) {
+        // Get previous state
+        const prev = yield* select(state => 
+          state.asyncOperations.get(next.id)
+        );
+        
+        // Merge results
+        return {
+          ...next,
+          result: prev?.result && next.result 
+            ? [...prev.result, ...next.result] 
+            : next.result || prev?.result,
+        };
+      }
+    }
   });
+
+  return (
+    <Operation operationId={operationId}>
+      {(op) => <ItemList items={op.result} />}
+    </Operation>
+  );
 }
 ```
 
+## Important Notes
+
+- `id` **is required** — must be unique per component instance (e.g., `item-${id}` for list items)
+- `onLoad` **is cancelled** on args change or unmount
+- `onDispose` **runs to completion** (not cancelled)
+- Use `try/finally` in `onLoad` for guaranteed cleanup on cancellation
+
+:::note Why is id required?
+Starting from React v18, Suspense behavior changed — React may reset component state.
+A stable `id` is necessary for correct operation. See [React issue #24669](https://github.com/facebook/react/issues/24669).
+:::
+
+## useSagaUnsafe (deprecated)
+
+For backward compatibility, `useSagaUnsafe` is available where `id` is optional:
+
+```tsx
+import { useSagaUnsafe } from '@iiiristram/sagun';
+
+// id is optional, but not recommended for new components
+const { operationId } = useSagaUnsafe({
+  onLoad: function* () {
+    return yield* call(api.getData);
+  }
+}, []);
+```
+
+:::warning
+`useSagaUnsafe` is marked as deprecated. Use `useSaga` with required `id`.
+:::
+
 ## See Also
 
-- [useService](./use-service) - Shortcut for service initialization
-- [useOperation](./use-operation) - Subscribe to operation state
-- [Operation](../components/operation) - Render operation state
-
+- [useOperation](./use-operation) — subscribing to operation
+- [Operation](../components/operation) — display component
+- [useService](./use-service) — for complex logic use services

@@ -1,20 +1,30 @@
 # Operation
 
-Component wrapper for `useOperation` with Suspense support.
+Component for displaying operation state with Suspense support.
+
+## Signature
+
+```tsx
+function Operation<TResult>(props: {
+  operationId: string;
+  children: (operation: AsyncOperation<TResult>) => ReactNode;
+}): JSX.Element;
+```
 
 ## Props
 
-```typescript
-interface OperationProps<TRes, TArgs> {
-  operationId: OperationId<TRes, TArgs>;
-  children: (operation: Partial<AsyncOperation<TRes, TArgs>>) => React.ReactNode;
-}
-```
-
 | Prop | Type | Description |
 |------|------|-------------|
-| `operationId` | `OperationId` | Operation to subscribe to |
+| `operationId` | `string` | Operation ID |
 | `children` | `Function` | Render function receiving operation state |
+
+## Description
+
+`Operation` is a component that:
+
+1. **Subscribes to an operation** — similar to `useOperation`
+2. **Integrates with Suspense** — throws Promise while the operation is loading
+3. **Propagates errors** — can be caught via Error Boundary
 
 ## Basic Usage
 
@@ -165,9 +175,18 @@ Always wrap in `Suspense`:
 </Operation>
 ```
 
+## Operation vs useOperation
+
+| | Operation | useOperation |
+|-|-----------|--------------|
+| Suspense | ✅ Built-in support | ✅ Via `suspense: true` option |
+| Error Boundary | ✅ Propagates errors | ✅ Via `suspense: true` option |
+| Access to isLoading | ❌ Hidden by Suspense | ✅ Full access |
+| Flexibility | Declarative | Imperative |
+
 ## See Also
 
-- [useOperation](../hooks/use-operation) - Hook version
-- [useSaga](../hooks/use-saga) - Get operation ID
-- [@operation](../decorators/operation) - Create operations
+- [useOperation](../hooks/use-operation) — hook for subscription
+- [useSaga](../hooks/use-saga) — running sagas
+- [AsyncOperation](../../concepts/operations) — operation structure
 

@@ -1,116 +1,198 @@
 # @inject
 
-Marks constructor parameter for dependency injection.
+Injects a dependency into a service constructor.
 
 ## Signature
 
 ```typescript
-@inject(key: Ctr<Dependency> | DependencyKey<T>)
+// Inject class (Dependency or Service)
+function inject<T extends Dependency>(
+  ServiceClass: new (...args: any[]) => T
+): ParameterDecorator;
+
+// Inject by key (arbitrary data)
+function inject<T>(
+  key: DependencyKey<T>
+): ParameterDecorator;
 ```
 
 ## Parameters
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `key` | `Ctr<Dependency>` | Class constructor to inject |
-| `key` | `DependencyKey<T>` | String key for non-class dependencies |
-
-## Inject by Class
-
-Most common usage - inject another service:
+| `key` | `InjectionKey` | Dependency class or `DependencyKey<T>` |
 
 ```typescript
-class OrderService extends Service {
+type InjectionKey = Ctr<any> | DependencyKey<any>;
+```
+
+## Description
+
+The `@inject` decorator:
+
+1. **Marks parameter** — tells the DI container which dependency to inject
+2. **Two key types** — `Dependency` class or string constant `DependencyKey<T>`
+3. **Auto-resolves** — when creating via `di.createService()` dependencies are substituted
+4. **Type-safe** — TypeScript checks type correspondence
+
+## Basic Usage
+
+```typescript
+import { Service, inject, OperationService } from '@iiiristram/sagun';
+
+class UserService extends Service {
   constructor(
     @inject(OperationService) os: OperationService,
-    @inject(UserService) private userService: UserService,
-    @inject(CartService) private cartService: CartService,
   ) {
     super(os);
-  }
-
-  *createOrder() {
-    const user = yield* call(this.userService.getCurrentUser);
-    const cart = yield* call(this.cartService.getCart);
-    return yield* call(api.createOrder, { user, cart });
   }
 }
 ```
 
-## Inject by Key
-
-For non-class dependencies like configuration:
+## With Multiple Dependencies
 
 ```typescript
-import { DependencyKey } from '@iiiristram/sagun';
+import { Service, inject, OperationService, Dependency } from '@iiiristram/sagun';
 
-// Define typed key
-const API_CONFIG = 'API_CONFIG' as DependencyKey<{
-  baseUrl: string;
-  timeout: number;
-}>;
+class Logger extends Dependency {
+  toString() { return 'Logger'; }
+  log(msg: string) { console.log(msg); }
+}
 
-class ApiService extends Service {
+class ApiClient extends Dependency {
+  toString() { return 'ApiClient'; }
+  fetch(url: string) { return fetch(url); }
+}
+
+class DataService extends Service {
   constructor(
     @inject(OperationService) os: OperationService,
-    @inject(API_CONFIG) private config: { baseUrl: string; timeout: number },
+    @inject(Logger) private logger: Logger,
+    @inject(ApiClient) private api: ApiClient,
   ) {
     super(os);
   }
 
-  *request(endpoint: string) {
-    return yield* call(fetch, `${this.config.baseUrl}${endpoint}`, {
-      timeout: this.config.timeout,
-    });
+  @operation
+  *fetchData() {
+    this.logger.log('Loading data...');
+    return yield* call([this.api, this.api.fetch], '/data');
   }
 }
 ```
 
-## Registration
+## Registration and Creation
 
-Dependencies must be registered before services that need them:
+```typescript
+import { useDI } from '@iiiristram/sagun';
 
-```tsx
 function App() {
   const di = useDI();
   
-  // 1. Register config
-  di.registerDependency(API_CONFIG, {
-    baseUrl: '/api/v2',
-    timeout: 5000,
-  });
+  // Register dependencies
+  di.registerService(new Logger());
+  di.registerService(new ApiClient());
   
-  // 2. Register base services (no dependencies)
-  const userService = di.createService(UserService);
-  di.registerService(userService);
-  
-  // 3. Register dependent services
-  // OrderService can now inject UserService
-  const orderService = di.createService(OrderService);
-  di.registerService(orderService);
-  
-  return <Content />;
+  // Create service — dependencies are injected automatically
+  const dataService = di.createService(DataService);
+  di.registerService(dataService);
 }
 ```
 
-## Always Inject OperationService
+## Parameter Order
 
-All services extending `Service` must inject `OperationService` as the first parameter:
+`OperationService` must be the first parameter for classes extending `Service`:
 
 ```typescript
 class MyService extends Service {
   constructor(
-    @inject(OperationService) os: OperationService, // Required first
-    @inject(OtherService) private other: OtherService,
+    @inject(OperationService) os: OperationService, // First
+    @inject(Logger) private logger: Logger,          // Others
+    @inject(ApiClient) private api: ApiClient,
   ) {
-    super(os); // Pass to parent
+    super(os); // Pass to super
+  }
+}
+```
+
+## Injection via DependencyKey
+
+To inject arbitrary data (not classes), use `DependencyKey<T>`:
+
+```typescript
+import { DependencyKey } from '@iiiristram/sagun';
+
+// Define type and key
+export type AppConfig = {
+  apiUrl: string;
+  debug: boolean;
+};
+
+export const CONFIG_KEY = 'APP_CONFIG' as DependencyKey<AppConfig>;
+```
+
+Register data by key:
+
+```typescript
+function App() {
+  const di = useDI();
+  
+  // Register data by key
+  const config: AppConfig = {
+    apiUrl: 'https://api.example.com',
+    debug: true,
+  };
+  di.registerDependency(CONFIG_KEY, config);
+  
+  // Now services can inject config
+  const service = di.createService(MyService);
+}
+```
+
+Use in service:
+
+```typescript
+import { Service, inject, OperationService } from '@iiiristram/sagun';
+import { CONFIG_KEY, AppConfig } from './config';
+
+class MyService extends Service {
+  private config: AppConfig;
+
+  constructor(
+    @inject(OperationService) os: OperationService,
+    @inject(CONFIG_KEY) config: AppConfig,
+  ) {
+    super(os);
+    this.config = config;
+  }
+
+  *fetchData() {
+    const url = `${this.config.apiUrl}/data`;
+    return yield* call(fetch, url);
+  }
+}
+```
+
+## Combining Dependency Types
+
+```typescript
+class ComplexService extends Service {
+  constructor(
+    @inject(OperationService) os: OperationService,
+    // Inject service (class)
+    @inject(AuthService) private auth: AuthService,
+    // Inject Dependency (class)
+    @inject(Logger) private logger: Logger,
+    // Inject data (key)
+    @inject(CONFIG_KEY) private config: AppConfig,
+  ) {
+    super(os);
   }
 }
 ```
 
 ## See Also
 
-- [Dependency Injection Guide](../../advanced/dependency-injection) - Full DI guide
-- [Dependency](../services/dependency) - Base dependency class
-- [useDI](../hooks/use-di) - DI context hook
-
+- [Dependency](../services/dependency) — base dependency class
+- [Service](../services/service) — service class
+- [useDI](../hooks/use-di) — access to DI container

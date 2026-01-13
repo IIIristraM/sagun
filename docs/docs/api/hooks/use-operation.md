@@ -1,21 +1,19 @@
 # useOperation
 
-Subscribes to operation state in Redux store.
+Subscribes to operation state.
 
 ## Signature
 
 ```typescript
-function useOperation<TRes, TArgs, TMeta, TErr>(options: {
-  operationId: OperationId<TRes, TArgs, TMeta, TErr>;
-  defaultState?: Partial<AsyncOperation<TRes, TArgs, TMeta, TErr>>;
-  suspense?: boolean;
-}): Partial<AsyncOperation<TRes, TArgs, TMeta, TErr>>;
-```
+function useOperation<TRes, TArgs = any, TMeta = never, TErr = Error>(
+  options: {
+    operationId: OperationId<TRes, TArgs, TMeta, TErr>;
+    defaultState?: Partial<AsyncOperation<TRes, TArgs, TMeta, TErr>>;
+    suspense?: boolean;
+  }
+): Partial<AsyncOperation<TRes, TArgs, TMeta, TErr>>;
 
-## Static Method
-
-```typescript
-// Configure store path (call once at app startup)
+// Static method — must be called before usage
 useOperation.setPath(path: (state: any) => State): void;
 ```
 
@@ -23,115 +21,176 @@ useOperation.setPath(path: (state: any) => State): void;
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `operationId` | `OperationId` | - | Operation to subscribe to |
-| `defaultState` | `Partial<AsyncOperation>` | `{ isLoading: true }` | State when operation doesn't exist |
-| `suspense` | `boolean` | `false` | Enable Suspense integration |
+| `options.operationId` | `OperationId` | — | Operation ID to subscribe to |
+| `options.defaultState` | `Partial<AsyncOperation>` | `{ isLoading: true }` | Default state if operation doesn't exist in store |
+| `options.suspense` | `boolean` | `false` | React Suspense integration |
 
 ## Returns
 
-```typescript
-type AsyncOperation<TRes, TArgs, TMeta, TErr> = {
-  id: OperationId;
-  isLoading?: boolean;
-  isError?: boolean;
-  isBlocked?: boolean;
-  error?: TErr;
-  args?: TArgs;
-  result?: TRes;
-  meta?: TMeta;
-};
-```
+`AsyncOperation` object:
 
-## Setup
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `OperationId` | Operation ID |
+| `isLoading` | `boolean?` | Operation is in progress |
+| `isError` | `boolean?` | Operation completed with error |
+| `isBlocked` | `boolean?` | Operation is blocked |
+| `error` | `TErr?` | Error if occurred |
+| `result` | `TRes?` | Operation result |
+| `args` | `TArgs?` | Arguments the operation was called with |
+| `meta` | `TMeta?` | Additional metadata |
 
-**Required:** Configure store path before using `useOperation`:
+## Description
+
+`useOperation` subscribes to an operation in the Redux store and returns its current state. The component re-renders when the state changes.
+
+:::warning Path Configuration
+Before using, you must specify the path to operations in the store:
 
 ```typescript
 // bootstrap.ts
-import { useOperation } from '@iiiristram/sagun';
-
 useOperation.setPath(state => state.asyncOperations);
 ```
+:::
 
 ## Basic Usage
 
 ```tsx
-function UserCard() {
-  const { service } = useServiceConsumer(UserService);
-  
-  const operation = useOperation({
-    operationId: getId(service.fetchUser),
-  });
+import { useSaga, useOperation } from '@iiiristram/sagun';
 
-  if (operation.isLoading) return <Spinner />;
-  if (operation.isError) return <Error error={operation.error} />;
+function UserProfile({ userId }) {
+  const { operationId } = useSaga({
+    id: `user-${userId}`,
+    onLoad: function* () {
+      return yield* call(api.getUser, userId);
+    }
+  }, [userId]);
+
+  const operation = useOperation({ operationId });
+
+  if (operation.isLoading) {
+    return <Spinner />;
+  }
+
+  if (operation.isError) {
+    return <ErrorMessage error={operation.error} />;
+  }
+
+  return <div>Hello, {operation.result?.name}!</div>;
+}
+```
+
+## With Service Operation
+
+```tsx
+import { useOperation, useServiceConsumer, getId } from '@iiiristram/sagun';
+
+function UserActions() {
+  const { service, actions } = useServiceConsumer(UserService);
   
-  return <Card user={operation.result} />;
+  // Get operation ID by method
+  const operationId = getId(service.fetchUser);
+  const operation = useOperation({ operationId });
+
+  if (operation.isLoading) {
+    return <Button disabled>Loading...</Button>;
+  }
+
+  return (
+    <Button onClick={() => actions.fetchUser()}>
+      Refresh
+    </Button>
+  );
 }
 ```
 
 ## With Suspense
 
-When `suspense: true`:
-- Throws Promise while `isLoading` (caught by Suspense boundary)
-- Throws error if `isError` (caught by ErrorBoundary)
-
 ```tsx
-function UserCard() {
-  const { service } = useServiceConsumer(UserService);
-  
-  // Will suspend while loading
-  const operation = useOperation({
-    operationId: getId(service.fetchUser),
-    suspense: true,
-  });
+function UserData({ userId }) {
+  const { operationId } = useSaga({
+    id: `user-data-${userId}`,
+    onLoad: function* () {
+      return yield* call(api.getUser, userId);
+    }
+  }, [userId]);
 
-  // Only renders when complete
-  return <Card user={operation.result} />;
+  // suspense: true — component "suspends" while isLoading
+  const operation = useOperation({ operationId, suspense: true });
+
+  // We only get here when data is ready
+  return <div>{operation.result?.name}</div>;
 }
 
-// Parent must have Suspense
 function Parent() {
   return (
     <Suspense fallback={<Spinner />}>
-      <UserCard />
+      <UserData userId="123" />
     </Suspense>
   );
 }
 ```
 
-## Custom Default State
+## With defaultState
 
 ```tsx
-const operation = useOperation({
-  operationId: getId(service.fetchItems),
-  defaultState: { 
-    isLoading: false,
-    result: [] // Default to empty array
-  },
-});
+function OptionalData({ operationId }) {
+  const operation = useOperation({
+    operationId,
+    // Default state if operation doesn't exist in store
+    defaultState: { 
+      isLoading: false, 
+      result: [] 
+    }
+  });
+
+  return <List items={operation.result ?? []} />;
+}
 ```
 
-## Getting Operation ID
+## useOperation vs Operation Component
 
-From service method decorated with `@operation`:
+`useOperation` and `Operation` solve the same problem in different ways:
 
 ```tsx
-import { getId } from '@iiiristram/sagun';
+// useOperation — manual control
+function WithHook({ operationId }) {
+  const op = useOperation({ operationId });
+  
+  if (op.isLoading) return <Spinner />;
+  if (op.isError) return <Error error={op.error} />;
+  return <Data result={op.result} />;
+}
 
-const operationId = getId(service.fetchUser);
+// useOperation with Suspense
+function WithHookSuspense({ operationId }) {
+  const op = useOperation({ operationId, suspense: true });
+  return <Data result={op.result} />;
+}
+
+// Operation — declarative approach with Suspense
+function WithComponent({ operationId }) {
+  return (
+    <Suspense fallback={<Spinner />}>
+      <Operation operationId={operationId}>
+        {(op) => <Data result={op.result} />}
+      </Operation>
+    </Suspense>
+  );
+}
 ```
 
-From `useSaga` or `useService`:
+Use `useOperation` when:
+- You need access to `isLoading`/`isError` in component logic
+- You need custom `defaultState`
+- You need to handle states in a special way
 
-```tsx
-const { operationId } = useSaga({ id: 'my-saga', onLoad: ... });
-const { operationId } = useService(service);
-```
+Use `Operation` when:
+- You're using Suspense
+- Simply displaying the result is sufficient
 
 ## See Also
 
-- [Operation component](../components/operation) - Component wrapper
-- [@operation](../decorators/operation) - Operation decorator
-- [useSaga](./use-saga) - Get operationId from saga
-
+- [Operation](../components/operation) — display component
+- [useSaga](./use-saga) — running sagas
+- [AsyncOperation](../../concepts/operations) — operation structure

@@ -1,13 +1,13 @@
 # Memory Management
 
-Sagun automatically manages memory by cleaning up operations and services when they are no longer needed. Understanding this mechanism helps avoid memory leaks and optimize application performance.
+Sagun automatically manages memory by cleaning up operations and services when they are no longer needed. Understanding this mechanism helps optimize application performance.
 
 ## How It Works
 
 ### Operation Consumer Counting
 
 Each operation in Sagun tracks its **consumers**. A consumer is:
-- A component that called `useSaga` with this operation
+- A component that called `useOperation` with this operation
 - A service whose method created the operation via `@operation`
 
 When the last consumer unsubscribes from an operation, it is automatically destroyed and removed from the Redux store.
@@ -15,12 +15,12 @@ When the last consumer unsubscribes from an operation, it is automatically destr
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                      Redux Store                            │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ asyncOperations                                      │   │
-│  │   ├── "UserService/fetchUser" (consumers: 2)        │   │
-│  │   ├── "OrderService/getOrders" (consumers: 1)       │   │
-│  │   └── "fetch-products" (consumers: 0) ← removed     │   │
-│  └─────────────────────────────────────────────────────┘   │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ asyncOperations                                     │    │
+│  │   ├── "UserService/fetchUser" (consumers: 2)        │    │
+│  │   ├── "OrderService/getOrders" (consumers: 1)       │    │
+│  │   └── "fetch-products" (consumers: 0) ← removed     │    │
+│  └─────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -29,9 +29,9 @@ When the last consumer unsubscribes from an operation, it is automatically destr
 Services have an explicit lifecycle managed through `run()` and `destroy()`:
 
 1. **Creation** — service is created via `di.createService()`
-2. **Initialization** — `useService` calls `run()`, daemons start
+2. **Initialization** — `useService` calls `run()`, operations are subscribed
 3. **Operation** — service handles requests
-4. **Cleanup** — on unmount `useService` calls `destroy()`, daemons stop
+4. **Cleanup** — on unmount `useService` calls `destroy()`, unsubscribing from operations
 
 ```tsx
 function ProductPage() {
@@ -128,57 +128,9 @@ useSaga({
 });
 ```
 
-## How It Works Internally
+## See Also
 
-### ComponentLifecycleService
-
-`ComponentLifecycleService` manages the lifecycle of component-bound operations:
-
-- **scheduleLoad** — schedules operation loading
-- **load** — executes the saga and tracks its state
-- **cleanup** — cleans up resources on component unmount
-
-### OperationService
-
-`OperationService` tracks operation consumers:
-
-- **registerConsumer** — registers an operation consumer
-- **unregisterConsumer** — removes a consumer; if no consumers remain, the operation is destroyed
-
-```typescript
-// Simplified unregisterConsumer logic
-*unregisterConsumer(consumer, operationId) {
-  this._operationConsumers[operationId].delete(consumer);
-  
-  // If no consumers left — destroy the operation
-  if (this._operationConsumers[operationId].size === 0) {
-    delete this._operationConsumers[operationId];
-    yield* call(this._operations[operationId]?.destroy);
-  }
-}
-```
-
-## Debugging Memory Leaks
-
-### Signs of a Leak
-
-- Number of operations in Redux store grows over time
-- Daemons continue running after leaving a page
-- Memory is not freed during navigation
-
-### How to Find a Leak
-
-1. Open Redux DevTools and look at `asyncOperations`
-2. Navigate to a page and back
-3. Check if that page's operations were removed
-
-### Common Causes
-
-- Service registered too high in the component tree
-- `destroy()` not being called on a service
-- Component uses `useOperation` without a corresponding `useSaga` in the same subtree
-
-## See Also- [Services](./services) — service lifecycle
+- [Services](./services) — service lifecycle
 - [Operations](./operations) — how operations work
 - [useService](../api/hooks/use-service) — automatic lifecycle management
 - [useSaga](../api/hooks/use-saga) — data loading with cleanup

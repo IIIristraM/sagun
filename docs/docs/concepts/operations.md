@@ -1,8 +1,13 @@
 # Operations
 
 Operations are the core data structure in Sagun. They represent the state of async actions in your application.
+The store in the application is a dictionary where you can get an operation by key.
 
-## AsyncOperation Type
+This approach allows you to unify work with the application state.
+
+## Types
+
+Operations are described by the following contract:
 
 ```typescript
 type AsyncOperation<TRes, TArgs, TMeta, TErr> = {
@@ -17,9 +22,7 @@ type AsyncOperation<TRes, TArgs, TMeta, TErr> = {
 };
 ```
 
-## OperationId
-
-`OperationId` is a branded string type that carries type information about the operation:
+`OperationId` is a type describing the operation key, from which you can extract the main information about the operation parameters (argument type, result, etc.):
 
 ```typescript
 // Create a typed operation ID
@@ -30,9 +33,16 @@ type Result = OperationFromId<typeof FETCH_USER>;
 // = AsyncOperation<User, [string], never, Error>
 ```
 
+## Operation Lifecycle
+
+1. **Created** — `isLoading: false`, `result: undefined`
+2. **Running** — `isLoading: true`, `result: undefined`
+3. **Completed** — `isLoading: false`, `result` is set
+4. **Error** — `isLoading: false`, `isError: true`, `error` is set
+
 ## Creating Operations
 
-Operations are automatically created when you use the `@operation` decorator:
+Operations are automatically created when you use the `@operation` decorator or `useSaga` and `useService` hooks:
 
 ```typescript
 class UserService extends Service {
@@ -55,6 +65,10 @@ class UserService extends Service {
 }
 ```
 
+```tsx
+const { operationId } = useSaga({ id, onLoad })
+```
+
 ## Reading Operations
 
 Use `useOperation` hook to subscribe to operation state:
@@ -66,7 +80,7 @@ function UserProfile() {
   const operation = useOperation({
     operationId: getId(service.fetchUser),
     suspense: false, // Don't throw Promise for Suspense
-    defaultState: { isLoading: true },
+    defaultState: { isLoading: true }, // fallback if operation doesn't exist yet
   });
 
   if (operation.isLoading) return <Spinner />;
@@ -106,7 +120,7 @@ function UserProfile() {
 
 ## Update Strategies
 
-Customize how operations update their state:
+Customize how operation state updates:
 
 ```typescript
 @operation({
@@ -128,11 +142,8 @@ Customize how operations update their state:
 }
 ```
 
-## Operation Lifecycle
+:::info
 
-1. **Created** - Operation is added to store with `isLoading: true`
-2. **Running** - Saga is executing
-3. **Completed** - `isLoading: false`, `result` is set
-4. **Error** - `isLoading: false`, `isError: true`, `error` is set
-5. **Destroyed** - Operation is removed when no consumers remain
+The strategy is applied each time before writing the operation state to the store. On each operation call, this happens twice — before and after executing its body.
 
+:::
