@@ -214,5 +214,5 @@ Now that you have Sagun set up, learn more about:
 
 - [Operations](./concepts/operations.md) - Understanding the core data structure
 - [Services](./concepts/services.md) - Deep dive into service patterns
-- [Dependency Injection](./advanced/dependency-injection.md) - Managing service dependencies
+- [Dependency Injection](./concepts/dependency-injection.md) - Managing service dependencies
 

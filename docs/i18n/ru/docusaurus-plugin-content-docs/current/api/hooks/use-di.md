@@ -139,5 +139,5 @@ function App() {
 - [Root](../components/root) — провайдер контейнера
 - [Dependency](../services/dependency) — базовый класс зависимости
 - [@inject](../decorators/inject) — декоратор инъекции
-- [Dependency Injection](../../advanced/dependency-injection) — подробное руководство
+- [Dependency Injection](../../concepts/dependency-injection) — подробное руководство
 

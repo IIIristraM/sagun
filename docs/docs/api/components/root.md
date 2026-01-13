@@ -122,7 +122,6 @@ const componentLifecycleService = new ComponentLifecycleService(operationService
 
 ## See Also
 
-- [OperationService](../services/operation-service)
-- [ComponentLifecycleService](../services/component-lifecycle-service)
+- [Service](../services/service) — Base Service class
 - [Getting Started](../../getting-started)
 

@@ -243,7 +243,6 @@ function ProductList() {
 ## See Also
 
 - [Dependency](./dependency) — Base class for dependencies
-- [OperationService](./operation-service) — Operation management
 - [@operation](../decorators/operation) — Operation decorator
 - [@daemon](../decorators/daemon) — Daemon decorator
 - [useService](../hooks/use-service) — Service initialization hook

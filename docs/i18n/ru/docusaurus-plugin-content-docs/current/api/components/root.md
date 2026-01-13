@@ -92,8 +92,7 @@ const operationService = new OperationService({ hash: window.__SSR_CONTEXT__ });
 
 ## См. также
 
-- [OperationService](../services/operation-service) — управление операциями
-- [ComponentLifecycleService](../services/component-lifecycle-service) — жизненный цикл
+- [Service](../services/service) — базовый класс сервиса
 - [useDI](../hooks/use-di) — доступ к контейнеру
 - [Начало работы](../../getting-started) — полное руководство по настройке
 
