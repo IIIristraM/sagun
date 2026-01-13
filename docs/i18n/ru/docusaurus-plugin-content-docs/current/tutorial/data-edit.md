@@ -197,7 +197,7 @@ useSaga({
 ```ts
 // Заведем явный id для операций над списком заказов.
 // Это позволит нам редактировать одни и те же данные в store разными методами.
-const ORDERS_OPERATION_ID = 'orders'
+const ORDERS_OPERATION_ID = 'orders' as OperationId<Order[]>
 
 // опишем стратегию, которая решает сразу две проблемы,
 // - добавляет новые заказы к списку
@@ -293,7 +293,7 @@ class UserService extends Service {
         name: 'OrderService.ts',
         language: 'typescript',
         code: `
-const ORDERS_OPERATION_ID = 'orders'
+const ORDERS_OPERATION_ID = 'orders' as OperationId<Order[]>
 
 class OrderService extends Service {
     toString() {

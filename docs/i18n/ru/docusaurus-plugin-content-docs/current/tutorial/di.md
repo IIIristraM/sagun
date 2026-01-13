@@ -112,7 +112,7 @@ class UserService extends Service {
         name: 'OrderService.ts',
         language: 'typescript',
         code: `
-const ORDERS_OPERATION_ID = 'orders'
+const ORDERS_OPERATION_ID = 'orders' as OperationId<Order[]>
 
 class OrderService extends Service {
     #userService: UserService;
@@ -343,7 +343,7 @@ class UserService extends Service {
         name: 'OrderService.ts',
         language: 'typescript',
         code: `
-const ORDERS_OPERATION_ID = 'orders'
+const ORDERS_OPERATION_ID = 'orders' as OperationId<Order[]>
 
 class OrderService extends Service {
     #userService: UserService;
@@ -569,7 +569,7 @@ class UserService extends Service {
         language: 'typescript',
         hidden: true,
         code: `
-const ORDERS_OPERATION_ID = 'orders'
+const ORDERS_OPERATION_ID = 'orders' as OperationId<Order[]>
 
 class OrderService extends Service {
     #userService: UserService;

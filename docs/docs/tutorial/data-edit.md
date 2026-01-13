@@ -196,7 +196,7 @@ For this, we can write an operation update strategy that can transform data befo
 ```ts
 // Create an explicit ID for operations on the order list.
 // This allows us to edit the same data in the store with different methods.
-const ORDERS_OPERATION_ID = 'orders'
+const ORDERS_OPERATION_ID = 'orders' as OperationId<Order[]>
 
 // describe a strategy that solves two problems:
 // - adds new orders to the list
@@ -291,7 +291,7 @@ class UserService extends Service {
         name: 'OrderService.ts',
         language: 'typescript',
         code: `
-const ORDERS_OPERATION_ID = 'orders'
+const ORDERS_OPERATION_ID = 'orders' as OperationId<Order[]>
 
 class OrderService extends Service {
     toString() {
