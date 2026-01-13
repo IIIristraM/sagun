@@ -3,7 +3,7 @@
     "version": "2.0.2",
     "description": "",
     "main": "./lib/index.js",
-    "types": "./lib/types/index.d.ts",
+    "types": "./lib/index.d.ts",
     "files": [
         "lib",
         "server"
@@ -23,7 +23,12 @@
         "release:internal": "npm run test && npm run tsc && npm publish --registry https://npm.pkg.github.com",
         "release": "npm run test && npm publish --access public --registry https://registry.npmjs.org/",
         "stress:build": "rm -f tests/stress/index.js && tsc -b ./tests/stress/tsconfig.json && node ./scripts/replaceSrc.js",
-        "stress:test": "npm run stress:build && NODE_ENV=production node ./tests/stress/index.js"
+        "stress:test": "npm run stress:build && NODE_ENV=production node ./tests/stress/index.js",
+        "docs:init": "cd docs && npm install",
+        "docs:start": "cd docs && npm start",
+        "docs:start:ru": "cd docs && npm run start:ru",
+        "docs:build": "cd docs && npm run build",
+        "docs:deploy": "cd docs && npm run deploy"
     },
     "repository": {
         "type": "git",
@@ -47,7 +52,9 @@
         "react-dom": "*",
         "react-redux": "*",
         "redux": "*",
-        "redux-saga": "*"
+        "redux-saga": "*",
+        "@types/react": "*",
+        "@types/react-dom" :"*"
     },
     "devDependencies": {
         "@eslint/js": "^9.25.1",
@@ -74,8 +81,8 @@
         "react": "^16.0.0",
         "react-dom": "^16.0.0",
         "ts-loader": "^8.0.14",
-        "tslib": "^2.5.2",
-        "typescript": "^5.8.0",
+        "tslib": "^2.8.1",
+        "typescript": "^5.9.3",
         "typescript-eslint": "^8.31.0",
         "webpack": "^5.17.0",
         "webpack-cli": "^4.4.0",

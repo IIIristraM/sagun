@@ -8,6 +8,11 @@ export default tseslint.config(
     {
         files: ['src/**/*.ts', 'src/**/*.tsx'],
         rules: eslint.configs.recommended.rules,
+        languageOptions: {
+            parserOptions: {
+                tsconfigRootDir: import.meta.dirname,
+            }
+        }
     },
     {
         ...prettierConfig,

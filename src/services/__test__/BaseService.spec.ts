@@ -2,13 +2,11 @@ import { describe, expect, test, vi } from 'vitest';
 
 import { call, delay } from 'typed-redux-saga';
 
-import { getSagaRunner } from '_test/utils';
+import { getSagaRunner } from '../../test-utils';
 
 import { BaseService } from '../BaseService';
 import { getId } from '../serviceUtils';
 import { OperationId } from '../../types';
-
-const runner = getSagaRunner();
 
 describe('BaseService', () => {
     test('keeps this', () => {
@@ -37,6 +35,7 @@ describe('BaseService', () => {
         }
 
         const service = new TestService();
+        const runner = getSagaRunner();
 
         return runner
             .run(function* () {
@@ -45,11 +44,11 @@ describe('BaseService', () => {
                 yield delay(0);
                 yield call(service.destroy);
             })
-            .toPromise()
             .then(() => {
                 expect(mockFn).toHaveBeenCalledTimes(3);
             });
     });
+
     test('propagates this for inherited methods', () => {
         const mockFn = vi.fn();
 
@@ -79,13 +78,13 @@ describe('BaseService', () => {
         }
 
         const service = new TestServiceB();
+        const runner = getSagaRunner();
 
         return runner
             .run(function* () {
                 yield call(service.run);
                 yield call(service.method);
             })
-            .toPromise()
             .then(() => {
                 expect(mockFn).toHaveBeenCalledTimes(2);
             });

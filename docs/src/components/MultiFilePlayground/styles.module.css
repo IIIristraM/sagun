@@ -1,0 +1,85 @@
+.container {
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: var(--ifm-code-border-radius);
+  overflow: hidden;
+  margin-bottom: var(--ifm-spacing-vertical);
+}
+
+.tabs {
+  display: flex;
+  background: var(--ifm-color-emphasis-100);
+  border-bottom: 1px solid var(--ifm-color-emphasis-300);
+  overflow-x: auto;
+}
+
+.tab {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-family: var(--ifm-font-family-monospace);
+  color: var(--ifm-color-emphasis-700);
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  background: var(--ifm-color-emphasis-200);
+  color: var(--ifm-color-emphasis-900);
+}
+
+.tabActive {
+  color: var(--ifm-color-primary);
+  border-bottom-color: var(--ifm-color-primary);
+  background: var(--ifm-background-color);
+}
+
+.codePanel {
+  max-height: 400px;
+  overflow: auto;
+}
+
+.editor {
+  min-height: 100px;
+}
+
+.editor,
+.editor * {
+  font-family: var(--ifm-font-family-monospace) !important;
+}
+
+.editorTextarea {
+  outline: none !important;
+}
+
+.editorTextarea:focus {
+  outline: none !important;
+}
+
+.editorPre {
+  min-height: 100px;
+}
+
+/* Preview styles */
+.previewPanel {
+  border-top: 1px solid var(--ifm-color-emphasis-300);
+}
+
+.previewHeader {
+  padding: 0.5rem 1rem;
+  background: var(--ifm-color-emphasis-100);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ifm-color-emphasis-600);
+  border-bottom: 1px solid var(--ifm-color-emphasis-300);
+}
+
+.preview {
+  padding: 1rem;
+  min-height: 80px;
+  background: var(--ifm-background-color);
+}

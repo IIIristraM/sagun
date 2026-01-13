@@ -1,39 +1,31 @@
 import { describe, expect, test, vi } from 'vitest';
 
-import { applyMiddleware, createStore } from 'redux';
 import React, { JSX, useState } from 'react';
 import { call } from 'typed-redux-saga';
-import createSagaMiddleware from 'redux-saga';
 import jsdom from 'jsdom';
-import { Provider } from 'react-redux';
 
 import { ComponentLifecycleService, Service } from '../../services';
 import { createDeferred } from '../../utils/createDeferred';
 import { operation } from '../../decorators';
 import { OperationId } from '../../types';
 import { OperationService } from '../../services';
-import reducer from '../../reducer';
-import { Root } from '../../components/Root';
 import { useSaga } from '../useSaga';
 
 import { exact, wait } from '_test/utils';
 import { render } from '_root/utils';
 
+import { getSagaRunner } from '../../test-utils';
+
 const DELAY = 50;
 const ARGS = ['xxx'];
 
 type Props = {
-    operationService: OperationService;
-    componentLifecycleService: ComponentLifecycleService;
     processOperationId?: (operationId: string) => void;
     children?: (x: number) => JSX.Element;
 };
 
 describe('useSaga', () => {
     function initTest() {
-        const sagaMiddleware = createSagaMiddleware();
-        const store = applyMiddleware(sagaMiddleware)(createStore)(reducer);
-
         const { window } = new jsdom.JSDOM(`
             <html>
                 <body>
@@ -71,107 +63,82 @@ describe('useSaga', () => {
             return <button id="reload" onClick={reload} />;
         };
 
-        const App: React.FC<Props> = ({
-            processOperationId,
-            operationService,
-            componentLifecycleService,
-            children,
-        }) => {
+        const App: React.FC<Props> = ({ processOperationId, children }) => {
             const [x, setX] = useState(0);
 
             return (
-                <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                    <Provider store={store}>
-                        {children ? children(x) : <TestComponent x={x} processOperationId={processOperationId} />}
-                        <button id="update" onClick={() => setX(x + 1)}>
-                            b
-                        </button>
-                    </Provider>
-                </Root>
+                <>
+                    {children ? children(x) : <TestComponent x={x} processOperationId={processOperationId} />}
+                    <button id="update" onClick={() => setX(x + 1)}>
+                        b
+                    </button>
+                </>
             );
         };
 
-        return { App, TestComponent, processLoading, processDisposing, sagaMiddleware, store };
+        return { App, TestComponent, processLoading, processDisposing };
     }
 
     test('Saga methods were invoked with proper args', async () => {
-        const { sagaMiddleware, App, processLoading, processDisposing } = initTest();
-
-        const operationService = new OperationService({ hash: {} });
-        const componentLifecycleService = new ComponentLifecycleService(operationService);
+        const { App, processLoading, processDisposing } = initTest();
+        const runner = getSagaRunner();
 
         const unmountDefer = createDeferred();
 
-        const task = sagaMiddleware.run(function* () {
-            yield* call(componentLifecycleService.run);
-            yield unmountDefer.promise;
-            yield* call(componentLifecycleService.destroy);
+        return runner.run(function* ({ TestProvider }) {
+            const { unmount } = yield render(
+                <TestProvider>
+                    <App />
+                </TestProvider>
+            );
+
+            yield wait(DELAY * 2);
+
+            window.document.getElementById('update')?.click();
+            yield wait(DELAY * 2);
+
+            yield unmount();
+            unmountDefer.resolve();
+
+            expect(processLoading).toHaveBeenCalledTimes(2);
+            expect(processDisposing).toHaveBeenCalledTimes(2);
+
+            expect(processLoading).toHaveBeenNthCalledWith(1, ...ARGS, 0);
+            expect(processDisposing).toHaveBeenNthCalledWith(1, ...ARGS, 0);
+
+            expect(processLoading).toHaveBeenNthCalledWith(2, ...ARGS, 1);
+            expect(processDisposing).toHaveBeenNthCalledWith(2, ...ARGS, 1);
         });
-
-        const { unmount } = await render(
-            <App operationService={operationService} componentLifecycleService={componentLifecycleService} />
-        );
-
-        await wait(DELAY * 2);
-
-        window.document.getElementById('update')?.click();
-        await wait(DELAY * 2);
-
-        await unmount();
-        unmountDefer.resolve();
-        task.cancel();
-        await task.toPromise();
-
-        expect(processLoading).toHaveBeenCalledTimes(2);
-        expect(processDisposing).toHaveBeenCalledTimes(2);
-
-        expect(processLoading).toHaveBeenNthCalledWith(1, ...ARGS, 0);
-        expect(processDisposing).toHaveBeenNthCalledWith(1, ...ARGS, 0);
-
-        expect(processLoading).toHaveBeenNthCalledWith(2, ...ARGS, 1);
-        expect(processDisposing).toHaveBeenNthCalledWith(2, ...ARGS, 1);
     });
 
     test('useSaga creates and destroys operation', async () => {
-        const { sagaMiddleware, App, store } = initTest();
-
-        const operationService = new OperationService({ hash: {} });
-        const componentLifecycleService = new ComponentLifecycleService(operationService);
+        const { App } = initTest();
+        const runner = getSagaRunner();
 
         const unmountDefer = createDeferred();
         let operationId: string;
         const processOperationId = (id: string) => (operationId = id);
 
-        const task = sagaMiddleware.run(function* () {
-            yield* call(componentLifecycleService.run);
-            yield unmountDefer.promise;
-            yield call(componentLifecycleService.destroy);
+        return runner.run(function* ({ store, TestProvider }) {
+            const { unmount } = yield render(
+                <TestProvider>
+                    <App processOperationId={processOperationId} />
+                </TestProvider>
+            );
+
+            yield wait(DELAY * 2);
+
+            expect(store.getState().asyncOperations.get(operationId!)).toBeTruthy();
+            yield unmount();
+            expect(store.getState().asyncOperations.get(operationId!)).toBeFalsy();
+
+            unmountDefer.resolve();
         });
-
-        const { unmount } = await render(
-            <App
-                operationService={operationService}
-                componentLifecycleService={componentLifecycleService}
-                processOperationId={processOperationId}
-            />
-        );
-
-        await wait(DELAY * 2);
-
-        expect(store.getState().get(operationId!)).toBeTruthy();
-        await unmount();
-        expect(store.getState().get(operationId!)).toBeFalsy();
-
-        unmountDefer.resolve();
-        task.cancel();
-        await task.toPromise();
     });
 
     test("Each Component runs it's own operation", async () => {
-        const { sagaMiddleware, App, TestComponent, processLoading } = initTest();
-
-        const operationService = new OperationService({ hash: {} });
-        const componentLifecycleService = new ComponentLifecycleService(operationService);
+        const { App, TestComponent, processLoading } = initTest();
+        const runner = getSagaRunner();
 
         const unmountDefer = createDeferred();
         let operationId1 = '_init';
@@ -179,77 +146,67 @@ describe('useSaga', () => {
         const processOperationId1 = (id: string) => (operationId1 = id);
         const processOperationId2 = (id: string) => (operationId2 = id);
 
-        const task = sagaMiddleware.run(function* () {
-            yield* call(componentLifecycleService.run);
-            yield unmountDefer.promise;
-            yield* call(componentLifecycleService.destroy);
+        return runner.run(function* ({ TestProvider }) {
+            const { unmount } = yield render(
+                <TestProvider>
+                    <App>
+                        {() => (
+                            <>
+                                <TestComponent x={1} processOperationId={processOperationId1} />
+                                <TestComponent x={2} operationId="test-2" processOperationId={processOperationId2} />
+                            </>
+                        )}
+                    </App>
+                </TestProvider>
+            );
+
+            yield wait(DELAY * 2);
+
+            expect(operationId1).not.toBe(operationId2);
+            expect(processLoading).toHaveBeenCalledTimes(2);
+            expect(processLoading.mock.calls).toContainEqual([...ARGS, 1]);
+            expect(processLoading.mock.calls).toContainEqual([...ARGS, 2]);
+
+            yield unmount();
+            unmountDefer.resolve();
         });
-
-        const { unmount } = await render(
-            <App operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                {() => (
-                    <>
-                        <TestComponent x={1} processOperationId={processOperationId1} />
-                        <TestComponent x={2} operationId="test-2" processOperationId={processOperationId2} />
-                    </>
-                )}
-            </App>
-        );
-
-        await wait(DELAY * 2);
-
-        expect(operationId1).not.toBe(operationId2);
-        expect(processLoading).toHaveBeenCalledTimes(2);
-        expect(processLoading.mock.calls).toContainEqual([...ARGS, 1]);
-        expect(processLoading.mock.calls).toContainEqual([...ARGS, 2]);
-
-        await unmount();
-        unmountDefer.resolve();
-
-        task.cancel();
-        await task.toPromise();
     });
 
     test('Reload init new load round', async () => {
-        const { sagaMiddleware, App, processLoading, processDisposing } = initTest();
-
-        const operationService = new OperationService({ hash: {} });
-        const componentLifecycleService = new ComponentLifecycleService(operationService);
+        const { App, processLoading, processDisposing } = initTest();
+        const runner = getSagaRunner();
 
         const reloadCount = 5;
         const unmountDefer = createDeferred();
 
-        const task = sagaMiddleware.run(function* () {
-            yield* call(componentLifecycleService.run);
-            yield unmountDefer.promise;
-            yield* call(componentLifecycleService.destroy);
+        return runner.run(function* ({ TestProvider }) {
+            const { unmount } = yield render(
+                <TestProvider>
+                    <App />
+                </TestProvider>
+            );
+
+            yield wait(DELAY * 2);
+
+            expect(processDisposing).toHaveBeenCalledTimes(0);
+            expect(processLoading).toHaveBeenCalledTimes(1);
+
+            for (let i = 0; i < reloadCount; i++) {
+                window.document.getElementById('reload')?.click();
+                yield wait(DELAY * 2);
+            }
+
+            expect(processDisposing).toHaveBeenCalledTimes(reloadCount);
+            expect(processLoading).toHaveBeenCalledTimes(reloadCount + 1);
+
+            yield unmount();
+            unmountDefer.resolve();
         });
-
-        const { unmount } = await render(
-            <App operationService={operationService} componentLifecycleService={componentLifecycleService} />
-        );
-
-        await wait(DELAY * 2);
-
-        expect(processDisposing).toHaveBeenCalledTimes(0);
-        expect(processLoading).toHaveBeenCalledTimes(1);
-
-        for (let i = 0; i < reloadCount; i++) {
-            window.document.getElementById('reload')?.click();
-            await wait(DELAY * 2);
-        }
-
-        expect(processDisposing).toHaveBeenCalledTimes(reloadCount);
-        expect(processLoading).toHaveBeenCalledTimes(reloadCount + 1);
-
-        await unmount();
-        unmountDefer.resolve();
-        task.cancel();
-        await task.toPromise();
     });
 
     test('hash collected from ssr applied', async () => {
-        const { sagaMiddleware, App } = initTest();
+        const { App } = initTest();
+        const runner = getSagaRunner();
 
         const fn = vi.fn(() => {});
         const id = 'test_id' as OperationId<void, [number]>;
@@ -282,34 +239,31 @@ describe('useSaga', () => {
 
         const unmountDefer = createDeferred();
 
-        const task = sagaMiddleware.run(function* () {
+        return runner.run(function* ({ TestProvider }) {
             yield* call(componentLifecycleService.run);
-            yield unmountDefer.promise;
+
+            const { unmount } = yield render(
+                <TestProvider operationService={operationService} componentLifecycleService={componentLifecycleService}>
+                    <App>{x => <TestComponent x={x} />}</App>
+                </TestProvider>
+            );
+
+            yield wait(DELAY * 2);
+
+            // first load skipped due to ssr
+            expect(fn).toHaveBeenCalledTimes(0);
+
+            window.document.getElementById('update')?.click();
+            yield wait(DELAY * 2);
+
+            // next load proceed as usual
+            expect(fn).toHaveBeenCalledTimes(1);
+
+            yield unmount();
+            unmountDefer.resolve();
+
             yield* call(componentLifecycleService.destroy);
         });
-
-        const { unmount } = await render(
-            <App operationService={operationService} componentLifecycleService={componentLifecycleService}>
-                {x => <TestComponent x={x} />}
-            </App>
-        );
-
-        await wait(DELAY * 2);
-
-        // first load skipped due to ssr
-        expect(fn).toHaveBeenCalledTimes(0);
-
-        window.document.getElementById('update')?.click();
-        await wait(DELAY * 2);
-
-        // next load proceed as usual
-        expect(fn).toHaveBeenCalledTimes(1);
-
-        await unmount();
-        unmountDefer.resolve();
-
-        task.cancel();
-        await task.toPromise();
     });
 
     test('types are correctly inferred from hook args', () => {

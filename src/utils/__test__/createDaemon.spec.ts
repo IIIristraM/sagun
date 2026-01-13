@@ -2,12 +2,10 @@ import { describe, expect, test, vi } from 'vitest';
 
 import { call, delay, fork, put } from 'typed-redux-saga';
 
-import { getSagaRunner } from '_test/utils';
+import { getSagaRunner } from '../../test-utils';
 
 import { createDaemon, daemon, DaemonMode } from '../createDaemon';
 import { createDeferred } from '../createDeferred';
-
-const runner = getSagaRunner();
 
 console.warn = () => {};
 
@@ -21,6 +19,8 @@ describe('daemon', () => {
             return result;
         };
 
+        const runner = getSagaRunner();
+
         return runner
             .run(function* () {
                 const task = yield* fork(daemon, actionType, sum);
@@ -28,7 +28,6 @@ describe('daemon', () => {
                 yield* put(action);
                 task.cancel();
             })
-            .toPromise()
             .then(() => {
                 expect(result).toBe(4);
             });
@@ -51,12 +50,11 @@ describe('daemon', () => {
             task.cancel();
         };
 
-        return runner
-            .run(main)
-            .toPromise()
-            .then(() => {
-                expect(func).toHaveBeenCalledTimes(1);
-            });
+        const runner = getSagaRunner();
+
+        return runner.run(main).then(() => {
+            expect(func).toHaveBeenCalledTimes(1);
+        });
     });
 
     test('exception does not terminate daemon', () => {
@@ -82,12 +80,11 @@ describe('daemon', () => {
             task.cancel();
         };
 
-        return runner
-            .run(main)
-            .toPromise()
-            .then(() => {
-                expect(result).toBe(2);
-            });
+        const runner = getSagaRunner();
+
+        return runner.run(main).then(() => {
+            expect(result).toBe(2);
+        });
     });
 });
 
@@ -109,12 +106,11 @@ describe('createDaemon', () => {
             yield* call(daemon.destroy);
         }
 
-        return runner
-            .run(main)
-            .toPromise()
-            .then(() => {
-                expect(result).toBe(4);
-            });
+        const runner = getSagaRunner();
+
+        return runner.run(main).then(() => {
+            expect(result).toBe(4);
+        });
     });
 
     test('daemon runs only once', () => {
@@ -134,12 +130,11 @@ describe('createDaemon', () => {
             yield* call(daemon.destroy);
         }
 
-        return runner
-            .run(main)
-            .toPromise()
-            .then(() => {
-                expect(result).toBe(2);
-            });
+        const runner = getSagaRunner();
+
+        return runner.run(main).then(() => {
+            expect(result).toBe(2);
+        });
     });
 
     test('daemon successfully destroyed', () => {
@@ -159,12 +154,11 @@ describe('createDaemon', () => {
             yield* put(action);
         };
 
-        return runner
-            .run(saga)
-            .toPromise()
-            .then(() => {
-                expect(result).toBe(2);
-            });
+        const runner = getSagaRunner();
+
+        return runner.run(saga).then(() => {
+            expect(result).toBe(2);
+        });
     });
 
     test('mode Every catch every call', () => {
@@ -185,12 +179,11 @@ describe('createDaemon', () => {
             yield* call(daemon.destroy);
         };
 
-        return runner
-            .run(main)
-            .toPromise()
-            .then(() => {
-                expect(func).toHaveBeenCalledTimes(2);
-            });
+        const runner = getSagaRunner();
+
+        return runner.run(main).then(() => {
+            expect(func).toHaveBeenCalledTimes(2);
+        });
     });
 
     test('mode Every terminates on destroy', () => {
@@ -210,12 +203,11 @@ describe('createDaemon', () => {
             yield* put(action);
         };
 
-        return runner
-            .run(main)
-            .toPromise()
-            .then(() => {
-                expect(func).toHaveBeenCalledTimes(1);
-            });
+        const runner = getSagaRunner();
+
+        return runner.run(main).then(() => {
+            expect(func).toHaveBeenCalledTimes(1);
+        });
     });
 
     test('mode Every does not terminate on exceptions', () => {
@@ -244,13 +236,11 @@ describe('createDaemon', () => {
             yield* call(daemon.destroy);
         }
 
-        return runner
-            .run(main)
+        const runner = getSagaRunner();
 
-            .toPromise()
-            .then(() => {
-                expect(func).toHaveBeenCalledTimes(1);
-            });
+        return runner.run(main).then(() => {
+            expect(func).toHaveBeenCalledTimes(1);
+        });
     });
 
     test('mode Last catch last call', () => {
@@ -280,13 +270,12 @@ describe('createDaemon', () => {
             yield* call(daemon.destroy);
         };
 
-        return runner
-            .run(main)
-            .toPromise()
-            .then(() => {
-                expect(func).toHaveBeenCalledTimes(1);
-                expect(func).toHaveBeenLastCalledWith(count);
-            });
+        const runner = getSagaRunner();
+
+        return runner.run(main).then(() => {
+            expect(func).toHaveBeenCalledTimes(1);
+            expect(func).toHaveBeenLastCalledWith(count);
+        });
     });
 
     test('mode Last terminated on destroy', () => {
@@ -306,12 +295,11 @@ describe('createDaemon', () => {
             yield* put(action);
         };
 
-        return runner
-            .run(main)
-            .toPromise()
-            .then(() => {
-                expect(func).toHaveBeenCalledTimes(1);
-            });
+        const runner = getSagaRunner();
+
+        return runner.run(main).then(() => {
+            expect(func).toHaveBeenCalledTimes(1);
+        });
     });
 
     test('mode Last does note terminates on exceptions', () => {
@@ -338,12 +326,11 @@ describe('createDaemon', () => {
             yield* call(daemon.destroy);
         }
 
-        return runner
-            .run(main)
-            .toPromise()
-            .then(() => {
-                expect(func).toHaveBeenCalledTimes(2);
-            });
+        const runner = getSagaRunner();
+
+        return runner.run(main).then(() => {
+            expect(func).toHaveBeenCalledTimes(2);
+        });
     });
 
     test('mode Schedule works properly', () => {
@@ -360,17 +347,18 @@ describe('createDaemon', () => {
             yield* call(daemon.destroy);
         };
 
-        return runner
-            .run(main)
-            .toPromise()
-            .then(() => {
-                const diff = Math.ceil(expectedCalls) - func.mock.calls.length;
-                expect(func.mock.calls.length).toBeTruthy();
-                expect(diff).toBeGreaterThanOrEqual(0);
-            });
+        const runner = getSagaRunner();
+
+        return runner.run(main).then(() => {
+            const diff = Math.ceil(expectedCalls) - func.mock.calls.length;
+            expect(func.mock.calls.length).toBeTruthy();
+            expect(diff).toBeGreaterThanOrEqual(0);
+        });
     });
 
     test('daemon throw exception if pattern is number except Schedule mode', () => {
+        const runner = getSagaRunner();
+
         return runner
             .run(function* () {
                 try {
@@ -381,8 +369,7 @@ describe('createDaemon', () => {
                     return e;
                 }
             })
-            .toPromise()
-            .then((result: any) => {
+            .then(({ result }) => {
                 expect(result instanceof Error).toBe(true);
             });
     });

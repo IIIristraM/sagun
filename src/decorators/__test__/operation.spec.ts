@@ -1,17 +1,13 @@
 import { call, select } from 'typed-redux-saga';
 import { expect, test } from 'vitest';
 
-import { getSagaRunner } from '_test/utils';
+import { getSagaRunner } from '../../test-utils';
 
 import { AsyncOperation, OperationId } from '../../types';
-import { getId, OperationService, Service } from '../../services';
+import { getId, Service } from '../../services';
 import { operation } from '../operation';
-import reducer from '../../reducer';
-
-const runner = getSagaRunner(reducer);
 
 const TEST_ID = 'TEST_ID' as OperationId<number, [number?]>;
-const operationService = new OperationService({ hash: {} });
 
 test('without args', () => {
     // tslint:disable-next-line: max-classes-per-file
@@ -25,10 +21,15 @@ test('without args', () => {
             return 1;
         }
     }
-    const testService = new TestService(operationService);
 
-    expect(testService.operation).toHaveProperty('id');
-    expect(getId(testService.operation)?.startsWith('TEST_SERVICE_OPERATION')).toBe(true);
+    const runner = getSagaRunner();
+
+    return runner.run(function* ({ operationService }) {
+        const testService = new TestService(operationService);
+
+        expect(testService.operation).toHaveProperty('id');
+        expect(getId(testService.operation)?.startsWith('TEST_SERVICE_OPERATION')).toBe(true);
+    });
 });
 
 test('handle exceptions', () => {
@@ -45,22 +46,22 @@ test('handle exceptions', () => {
             });
         }
     }
-    const testService = new TestService(operationService);
 
-    return runner
-        .run(function* () {
-            try {
-                yield* call(testService.operation);
-            } catch (error) {
-                const state = (yield* select()) as any as Map<string, AsyncOperation>;
-                const operationId = getId(testService.operation);
-                expect(state.get(operationId)).toBeTruthy();
-                expect(state.get(operationId)!.isLoading).toBe(false);
-                expect(state.get(operationId)!.isError).toBe(true);
-                expect(state.get(operationId)!.error).toBe(error);
-            }
-        })
-        .toPromise();
+    const runner = getSagaRunner();
+
+    return runner.run(function* ({ operationService, store }) {
+        const testService = new TestService(operationService);
+        try {
+            yield* call(testService.operation);
+        } catch (error) {
+            const operationId = getId(testService.operation);
+            const state = store.getState().asyncOperations as any as Map<string, AsyncOperation>;
+            expect(state.get(operationId)).toBeTruthy();
+            expect(state.get(operationId)!.isLoading).toBe(false);
+            expect(state.get(operationId)!.isError).toBe(true);
+            expect(state.get(operationId)!.error).toBe(error);
+        }
+    });
 });
 
 test('with id', () => {
@@ -87,9 +88,13 @@ test('with id', () => {
             return 1;
         }
     }
-    const testService = new TestService(operationService);
 
-    expect(getId(testService.operation)?.startsWith(TEST_ID)).toBe(true);
+    const runner = getSagaRunner();
+
+    return runner.run(function* ({ operationService }) {
+        const testService = new TestService(operationService);
+        expect(getId(testService.operation)?.startsWith(TEST_ID)).toBe(true);
+    });
 });
 
 test('with object', () => {
@@ -137,9 +142,13 @@ test('with object', () => {
             return 1;
         }
     }
-    const testService = new TestService(operationService);
 
-    expect(getId(testService.operation)?.startsWith(TEST_ID)).toBe(true);
+    const runner = getSagaRunner();
+
+    return runner.run(function* ({ operationService }) {
+        const testService = new TestService(operationService);
+        expect(getId(testService.operation)?.startsWith(TEST_ID)).toBe(true);
+    });
 });
 
 test('outer operation hides inner for method id', () => {
@@ -156,9 +165,13 @@ test('outer operation hides inner for method id', () => {
             return 1;
         }
     }
-    const testService = new TestService(operationService);
 
-    expect(getId(testService.operation)?.startsWith(TEST_ID)).toBe(true);
+    const runner = getSagaRunner();
+
+    return runner.run(function* ({ operationService }) {
+        const testService = new TestService(operationService);
+        expect(getId(testService.operation)?.startsWith(TEST_ID)).toBe(true);
+    });
 });
 
 test('propagates id even if operation is not the top decorator', () => {
@@ -178,9 +191,13 @@ test('propagates id even if operation is not the top decorator', () => {
             return 1;
         }
     }
-    const testService = new TestService(operationService);
 
-    expect(getId(testService.operation)?.startsWith(TEST_ID)).toBe(true);
+    const runner = getSagaRunner();
+
+    return runner.run(function* ({ operationService }) {
+        const testService = new TestService(operationService);
+        expect(getId(testService.operation)?.startsWith(TEST_ID)).toBe(true);
+    });
 });
 
 test('propagates return value', () => {
@@ -196,15 +213,16 @@ test('propagates return value', () => {
         }
     }
 
-    const testService = new TestService(operationService);
+    const runner = getSagaRunner();
 
     return runner
-        .run(function* () {
+        .run(function* ({ operationService }) {
+            const testService = new TestService(operationService);
             return yield* call(testService.method);
         })
-        .toPromise()
-        .then(runResult => {
-            expect(runResult).toBe(1);
+
+        .then(({ result }) => {
+            expect(result).toBe(1);
         });
 });
 
@@ -247,50 +265,50 @@ test('properly invoke updateStrategy', () => {
         }
     }
 
-    const testService = new TestService(operationService);
+    const runner = getSagaRunner();
 
-    return runner
-        .run(function* () {
-            return yield* call(testService.method);
-        })
-        .toPromise()
-        .then(() => {
-            const { result } = runner.store.getState().get(getId(testService.method)!)!;
-            expect(result).toBe(2);
-        });
+    return runner.run(function* ({ operationService }) {
+        const testService = new TestService(operationService);
+        yield* call(testService.method);
+
+        const state = (yield* select()).asyncOperations as any as Map<string, AsyncOperation>;
+        const { result } = state.get(getId(testService.method)!)!;
+        expect(result).toBe(2);
+    });
 });
 
 test('keeps this', () => {
-    // tslint:disable-next-line: max-classes-per-file
-    class TestService extends Service {
-        toString() {
-            return 'TestService';
-        }
-
-        private _x: number;
-
-        constructor(x: number) {
-            super(operationService);
-            this._x = x;
-        }
-
-        @operation
-        *method() {
-            expect(this._x).toBe(1);
-            expect(this).toBe(testService);
-            return 1;
-        }
-    }
-
-    const testService = new TestService(1);
+    const runner = getSagaRunner();
 
     return runner
-        .run(function* () {
+        .run(function* ({ operationService }) {
+            // tslint:disable-next-line: max-classes-per-file
+            class TestService extends Service {
+                toString() {
+                    return 'TestService';
+                }
+
+                private _x: number;
+
+                constructor(x: number) {
+                    super(operationService);
+                    this._x = x;
+                }
+
+                @operation
+                *method() {
+                    expect(this._x).toBe(1);
+                    expect(this).toBe(testService);
+                    return 1;
+                }
+            }
+
+            const testService = new TestService(1);
             return yield* call(testService.method);
         })
-        .toPromise()
-        .then(runResult => {
-            expect(runResult).toBe(1);
+
+        .then(({ result }) => {
+            expect(result).toBe(1);
         });
 });
 
@@ -396,34 +414,34 @@ test('service correctly handle operations', () => {
         }
     }
 
-    const service = new TestService(new OperationService({ hash: {} }));
+    const runner = getSagaRunner();
 
-    return runner
-        .run(function* () {
-            yield* call(service.run);
-            yield* call(service.method);
-            yield* call(service.method2, 10);
-            yield* call(service.method2, 11);
-            yield* call(service.method3, 12);
-            yield* call(service.method3, 13);
+    return runner.run(function* ({ operationService }) {
+        const service = new TestService(operationService);
 
-            let state = (yield* select()) as any as Map<string, AsyncOperation>;
-            expect(state.get(getId(service.method)!)).toBeTruthy();
-            expect(state.get('10')).toBeTruthy();
-            expect(state.get('11')).toBeTruthy();
-            expect(state.get('12')).toBeTruthy();
-            expect(state.get('13')).toBeTruthy();
+        yield* call(service.run);
+        yield* call(service.method);
+        yield* call(service.method2, 10);
+        yield* call(service.method2, 11);
+        yield* call(service.method3, 12);
+        yield* call(service.method3, 13);
 
-            yield* call(service.destroy);
+        let state = (yield* select()).asyncOperations as any as Map<string, AsyncOperation>;
+        expect(state.get(getId(service.method)!)).toBeTruthy();
+        expect(state.get('10')).toBeTruthy();
+        expect(state.get('11')).toBeTruthy();
+        expect(state.get('12')).toBeTruthy();
+        expect(state.get('13')).toBeTruthy();
 
-            state = (yield* select()) as any as Map<string, AsyncOperation>;
-            expect(state.get(getId(service.method)!)).toBe(undefined);
-            expect(state.get('10')).toBe(undefined);
-            expect(state.get('11')).toBe(undefined);
-            expect(state.get('12')).toBe(undefined);
-            expect(state.get('13')).toBe(undefined);
-        })
-        .toPromise();
+        yield* call(service.destroy);
+
+        state = (yield* select()).asyncOperations as any as Map<string, AsyncOperation>;
+        expect(state.get(getId(service.method)!)).toBe(undefined);
+        expect(state.get('10')).toBe(undefined);
+        expect(state.get('11')).toBe(undefined);
+        expect(state.get('12')).toBe(undefined);
+        expect(state.get('13')).toBe(undefined);
+    });
 });
 
 test('ssr only', () => {

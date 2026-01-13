@@ -2,18 +2,16 @@ import { expect, test } from 'vitest';
 
 import { call } from 'typed-redux-saga';
 
-import { getSagaRunner } from '_test/utils';
+import { getSagaRunner } from '../../test-utils';
 
 import { AsyncOperation, OperationId } from '../../types';
 import { createOperation } from '../createOperation';
 import { errorHandler } from '../errorHandler';
-import reducer from '../../reducer';
 
 console.warn = () => {};
 console.error = () => {};
 
 const id = 'id' as OperationId<number>;
-const runner = getSagaRunner(reducer);
 
 const func = () => {
     return 1;
@@ -25,13 +23,14 @@ test('Operation invoked with proper args', () => {
         result += a + b;
         return result;
     };
+
     const operation = createOperation(id, sum);
+    const runner = getSagaRunner();
 
     return runner
         .run(function* () {
             yield* call(operation.run, 1, 1);
         })
-        .toPromise()
         .then(() => {
             expect(result).toBe(2);
         });
@@ -43,27 +42,28 @@ test('exceptions bubble', () => {
     });
     const onErrorHandled = () => Promise.reject(new Error('Exceptions do not bubble'));
     const onErrorBubble = () => Promise.resolve();
+    const runner = getSagaRunner();
 
     return runner
         .run(function* () {
             yield* call(operation.run, 1, 1);
         })
-        .toPromise()
         .then(onErrorHandled, onErrorBubble);
 });
 
 test('operation persists in store', () => {
+    const runner = getSagaRunner();
     const operation = createOperation(id, func);
 
     return runner
-        .run(operation.run)
-        .toPromise()
+        .run(() => operation.run())
         .then(() => {
-            expect(runner.store.getState().get(id)).toMatchObject({ isLoading: false, args: [] });
+            expect(runner.store.getState().asyncOperations.get(id)).toMatchObject({ isLoading: false, args: [] });
         });
 });
 
 test('Operation created even if failed', () => {
+    const runner = getSagaRunner();
     const error = new Error('Exception');
     const operation = createOperation(id, () => {
         throw error;
@@ -71,15 +71,17 @@ test('Operation created even if failed', () => {
 
     // приходится экранировать ошибку через errorHandler
     // иначе не получится получить стор из результата
-    return runner
-        .run(errorHandler(operation.run))
-        .toPromise()
-        .then(() => {
-            expect(runner.store.getState().get(id)).toMatchObject({ isLoading: false, isError: true, error });
+    return runner.run(errorHandler(operation.run)).then(({ state }) => {
+        expect(state.asyncOperations.get(id)).toMatchObject({
+            isLoading: false,
+            isError: true,
+            error,
         });
+    });
 });
 
 test('operation removed', () => {
+    const runner = getSagaRunner();
     const operation = createOperation(id, func);
 
     return runner
@@ -87,22 +89,19 @@ test('operation removed', () => {
             yield* call(operation.run);
             yield* call(operation.destroy);
         })
-        .toPromise()
-        .then(() => {
-            expect(runner.store.getState().get(id)).toBeFalsy();
+        .then(({ state }) => {
+            expect(state.asyncOperations.get(id)).toBeFalsy();
         });
 });
 
 test('strategy properly updates operation', () => {
+    const runner = getSagaRunner();
     const operation = createOperation(id, func, ({ result, ...rest }: AsyncOperation<number>) => {
         return { result: (result || 0) + 1, ...rest };
     });
 
-    return runner
-        .run(operation.run)
-        .toPromise()
-        .then(runResult => {
-            expect(runner.store.getState().get(id)?.result).toBe(2);
-            expect(runResult).toBe(1);
-        });
+    return runner.run(operation.run).then(({ result, state }) => {
+        expect(state.asyncOperations.get(id)?.result).toBe(2);
+        expect(result).toBe(1);
+    });
 });

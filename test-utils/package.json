@@ -1,0 +1,7 @@
+{
+    "name": "@iiiristram/sagun/test-utils",
+    "version": "0.0.0",
+    "main": "../lib/test-utils/index.js",
+    "types": "../lib/test-utils/index.d.ts",
+    "private": true
+}

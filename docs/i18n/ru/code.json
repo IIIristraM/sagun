@@ -1,0 +1,75 @@
+{
+  "homepage.tagline": {
+    "message": "Фреймворк для разработки React приложений на базе redux-saga и MVC паттерна",
+    "description": "The tagline on the homepage"
+  },
+  "homepage.getStarted": {
+    "message": "Начать",
+    "description": "The get started button on homepage"
+  },
+  "homepage.featureDecoupledLogic.title": {
+    "message": "Изолированная бизнес-логика",
+    "description": "Feature 1 title"
+  },
+  "homepage.featureDecoupledLogic.description": {
+    "message": "Держите бизнес-логику отдельно от UI. Разделяйте её на небольшие переиспользуемые сервисы.",
+    "description": "Feature decoupled logic description"
+  },
+  "homepage.featureRedux.title": {
+    "message": "Redux без недостатков",
+    "description": "Feature 2 title"
+  },
+  "homepage.featureRedux.description": {
+    "message": "Привычный единый стейт и никакого бойлерплейта. Просто интегрировать в существующее приложение на Redux.",
+    "description": "Feature redux description"
+  },
+  "homepage.featureDI.title": {
+    "message": "Dependency Injection",
+    "description": "Feature 3 title"
+  },
+  "homepage.featureDI.description": {
+    "message": "Встроенный DI контейнер для управления зависимостями сервисов. Тестировать бизнес-логику проще простого.",
+    "description": "Feature DI description"
+  },
+  "homepage.featureSuspense.title": {
+    "message": "Совместимость с Suspense",
+    "description": "Feature 4 title"
+  },
+  "homepage.featureSuspense.description": {
+    "message": "Возможность использовать Suspense для произвольной асинхронной логики начиная с React 16.",
+    "description": "Feature Suspense description"
+  },
+  "homepage.featureReduxSaga.title": {
+    "message": "Вся мощь redux-saga под капотом.",
+    "description": "Feature 5 title"
+  },
+  "homepage.featureReduxSaga.description": {
+    "message": "Автоматическая отмена неактуальных асинхронных операций, простой и мощный API для решения типовых проблем с гонками и дубликатами запросов.",
+    "description": "Feature redux saga description"
+  },
+  "homepage.featureMemoryManagement.title": {
+    "message": "Управление памятью",
+    "description": "Feature 6 title"
+  },
+  "homepage.featureMemoryManagement.description": {
+    "message": "Фреймворк автоматически подчищает неиспользуемые данные в сторе.",
+    "description": "Feature memory management description"
+  },
+  "theme.common.skipToMainContent": {
+    "message": "Перейти к основному содержимому",
+    "description": "The skip to content label used for accessibility"
+  },
+  "theme.docs.sidebar.collapseButtonTitle": {
+    "message": "Свернуть боковую панель",
+    "description": "The title attribute for collapse button of doc sidebar"
+  },
+  "theme.docs.sidebar.expandButtonTitle": {
+    "message": "Развернуть боковую панель",
+    "description": "The title attribute for expand button of doc sidebar"
+  },
+  "playground.reset": {
+    "message": "Сбросить",
+    "description": "Reset button in playground"
+  }
+}
+

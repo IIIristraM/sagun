@@ -1,0 +1,34 @@
+{
+  "sidebar.tutorialSidebar.category.Step-by-Step Guide": {
+    "message": "Пошаговое руководство",
+    "description": "The label for category Step-by-Step Guide in sidebar tutorialSidebar"
+  },
+  "sidebar.tutorialSidebar.category.Core Concepts": {
+    "message": "Основные концепции",
+    "description": "The label for category Core Concepts in sidebar tutorialSidebar"
+  },
+  "sidebar.tutorialSidebar.category.API Reference": {
+    "message": "API Reference",
+    "description": "The label for category API Reference in sidebar tutorialSidebar"
+  },
+  "sidebar.tutorialSidebar.category.Services": {
+    "message": "Сервисы",
+    "description": "The label for category Services in sidebar tutorialSidebar"
+  },
+  "sidebar.tutorialSidebar.category.Decorators": {
+    "message": "Декораторы",
+    "description": "The label for category Decorators in sidebar tutorialSidebar"
+  },
+  "sidebar.tutorialSidebar.category.Hooks": {
+    "message": "Хуки",
+    "description": "The label for category Hooks in sidebar tutorialSidebar"
+  },
+  "sidebar.tutorialSidebar.category.Components": {
+    "message": "Компоненты",
+    "description": "The label for category Components in sidebar tutorialSidebar"
+  },
+  "sidebar.tutorialSidebar.category.Advanced": {
+    "message": "Продвинутое",
+    "description": "The label for category Advanced in sidebar tutorialSidebar"
+  }
+}

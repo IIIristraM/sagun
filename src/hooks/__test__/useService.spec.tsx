@@ -1,26 +1,18 @@
 import { beforeEach, expect, test, vi } from 'vitest';
 
-import { applyMiddleware, createStore } from 'redux';
 import React, { useEffect } from 'react';
 import { call } from 'typed-redux-saga';
-import createSagaMiddleware from 'redux-saga';
 import jsdom from 'jsdom';
-import { Provider } from 'react-redux';
 
-import { ComponentLifecycleService, OperationService, Service } from '../../services';
 import { daemon, DaemonMode } from '../../decorators';
+import { OperationService, Service } from '../../services';
 import { createDeferred } from '../../utils/createDeferred';
-import reducer from '../../reducer';
-import { Root } from '../../components/Root';
+
 import { useService } from '../useService';
 
+import { getSagaRunner } from '../../test-utils';
 import { render } from '_root/utils';
 import { wait } from '_test/';
-
-const sagaMiddleware = createSagaMiddleware();
-const store = applyMiddleware(sagaMiddleware)(createStore)(reducer);
-const operationService = new OperationService({ hash: {} });
-const componentLifecycleService = new ComponentLifecycleService(operationService);
 
 const processLoading = vi.fn((x: string, y: number) => ({}));
 const processDisposing = vi.fn(() => ({}));
@@ -52,6 +44,7 @@ beforeEach(() => {
 });
 
 test('useService runs and destroys service', async () => {
+    const runner = getSagaRunner();
     const { window } = new jsdom.JSDOM(`
         <html>
             <body>
@@ -66,45 +59,39 @@ test('useService runs and destroys service', async () => {
     const mountDefer = createDeferred();
     const unmountDefer = createDeferred();
 
-    const task = sagaMiddleware.run(function* () {
-        yield* call(componentLifecycleService.run);
-        yield mountDefer.promise;
-        yield unmountDefer.promise;
-        yield* call(componentLifecycleService.destroy);
-    });
+    return runner.run(function* ({ operationService, TestProvider }) {
+        const TestComponent: React.FC<{}> = () => {
+            useService(new TestServiceClass(operationService), ['1', 1]);
 
-    const TestComponent: React.FC<{}> = () => {
-        useService(new TestServiceClass(operationService), ['1', 1]);
+            useEffect(() => {
+                mountDefer.resolve();
+                return () => unmountDefer.resolve();
+            }, []);
 
-        useEffect(() => {
-            mountDefer.resolve();
-            return () => unmountDefer.resolve();
-        }, []);
+            return null;
+        };
 
-        return null;
-    };
-
-    const { unmount } = await render(
-        <Root operationService={operationService} componentLifecycleService={componentLifecycleService}>
-            <Provider store={store}>
+        const { unmount } = yield render(
+            <TestProvider>
                 <TestComponent />
-            </Provider>
-        </Root>
-    );
+            </TestProvider>
+        );
 
-    await mountDefer.promise;
-    await wait(10);
-    await unmount();
-    await unmountDefer.promise;
-    await wait(10);
-    task.cancel();
+        yield mountDefer.promise;
+        yield wait(10);
+        yield unmount();
+        yield unmountDefer.promise;
+        yield wait(10);
 
-    expect(processLoading).toHaveBeenCalledTimes(1);
-    expect(processLoading).toHaveBeenCalledWith('1', 1);
-    expect(processDisposing).toHaveBeenCalledTimes(1);
+        expect(processLoading).toHaveBeenCalledTimes(1);
+        expect(processLoading).toHaveBeenCalledWith('1', 1);
+        expect(processDisposing).toHaveBeenCalledTimes(1);
+    });
 });
 
 test('types are correctly inferred from hook args', () => {
+    const operationService = new OperationService({ hash: {} });
+
     // @ts-ignore
     function TestComponent() {
         const arg0 = 1;
