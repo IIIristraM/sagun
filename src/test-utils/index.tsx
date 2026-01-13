@@ -1,4 +1,4 @@
-import { AnyAction, applyMiddleware, combineReducers, createStore, Reducer, Store } from 'redux';
+import { Action, applyMiddleware, combineReducers, createStore, Reducer, Store } from 'redux';
 import createSagaMiddleware, { Saga } from 'redux-saga';
 import { call } from 'typed-redux-saga';
 import { Provider } from 'react-redux';
@@ -12,12 +12,12 @@ type Runner<S = any> = {
         saga: Saga<
             [
                 {
-                    store: Store<S, AnyAction>;
+                    store: Store<S, Action>;
                     operationService: OperationService;
                     componentLifecycleService: ComponentLifecycleService;
                     TestProvider: React.FC<{
                         children: React.ReactNode;
-                        store?: Store<any, AnyAction>;
+                        store?: Store<any, Action>;
                         operationService?: OperationService;
                         componentLifecycleService?: ComponentLifecycleService;
                     }>;
@@ -25,7 +25,7 @@ type Runner<S = any> = {
             ]
         >
     ) => Promise<{ result: any; state: S }>;
-    store: Store<S, AnyAction>;
+    store: Store<S, Action>;
 };
 
 function createDefaultReducer() {
@@ -37,10 +37,13 @@ function createDefaultReducer() {
 }
 
 export function getSagaRunner(): Runner<{ asyncOperations: State }>;
-export function getSagaRunner<T extends Reducer<any, AnyAction>>(reducer: T): Runner<ReturnType<T>>;
-export function getSagaRunner<T extends Reducer<any, AnyAction>>(reducer?: T) {
+export function getSagaRunner<T extends Reducer<any, Action>>(reducer: T): Runner<ReturnType<T>>;
+export function getSagaRunner<T extends Reducer<any, Action>>(reducer?: T) {
     const sagaMiddleware = createSagaMiddleware();
-    const _store = applyMiddleware(sagaMiddleware)(createStore)(reducer || createDefaultReducer());
+    const _store = applyMiddleware(sagaMiddleware)(createStore)(reducer || createDefaultReducer()) as Store<
+        any,
+        Action
+    >;
 
     return {
         run: (saga: Saga<[{ store?: any }]>) =>
@@ -59,7 +62,7 @@ export function getSagaRunner<T extends Reducer<any, AnyAction>>(reducer?: T) {
                         componentLifecycleService,
                     }: {
                         children: React.ReactNode;
-                        store?: Store<any, AnyAction>;
+                        store?: Store<any, Action>;
                         operationService?: OperationService;
                         componentLifecycleService?: ComponentLifecycleService;
                     }) {
