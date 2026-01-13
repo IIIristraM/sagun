@@ -1,11 +1,11 @@
 import { Exact, ExtractByType, ReplaceReturn } from '@iiiristram/ts-type-utils';
 import Redux from 'redux';
 
-export type Action<P, T = string> = Redux.Action<T> & {
+export type Action<P, T extends string = string> = Redux.Action<T> & {
     payload?: P;
 };
 
-export interface ActionCreator<P, T = any> {
+export interface ActionCreator<P, T extends string = string> {
     (...args: any[]): Action<P, T>;
     method?: string;
 }
@@ -17,7 +17,7 @@ export type ActionAPI<T> = {
     >;
 };
 
-export type ResolveActionCreator<P, T> =
+export type ResolveActionCreator<P, T extends string = string> =
     Exact<P, never> extends true ? () => Action<never, T> : (payload: P) => Action<P, T>;
 
 export type AsyncOperation<TRes = unknown, TArgs = unknown[], TMeta = unknown, TErr = Error> = {
