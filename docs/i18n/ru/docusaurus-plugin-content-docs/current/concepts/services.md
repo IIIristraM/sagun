@@ -71,9 +71,7 @@ class ProductService extends Service<[string], Product[]> {
     this.category = category;
     
     // Пользовательская инициализация
-    yield* call(this.fetchProducts, category);
-    
-    return this.getProducts();
+    return yield* call(this.fetchProducts, category);
   }
 
   *destroy() {
@@ -143,13 +141,22 @@ function SearchForm() {
 ### Из других саг
 
 ```typescript
+import { inject, OperationService } from '@iiiristram/sagun';
+
 class OrderService extends Service {
+  constructor(
+    @inject(OperationService) operationService: OperationService,
+    @inject(AnalyticsService) private analytics: AnalyticsService,
+  ) {
+    super(operationService);
+  }
+
   @operation
   *createOrder(items: Item[]) {
     const order = yield* call(api.createOrder, items);
     
     // Прямой вызов метода другого сервиса
-    yield* call(this._analytics.trackEvent, 'order_created');
+    yield* call(this.analytics.trackEvent, 'order_created');
     
     return order;
   }
@@ -200,4 +207,3 @@ class ProductService extends Service {
   *fetchProductWithReviewsAndRelatedAndCart() { /* ... */ }
 }
 ```
-
